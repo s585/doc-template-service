@@ -1,0 +1,10 @@
+zonky:
+  test:
+    database:
+      type: postgres
+      provider: zonky
+      postgres:
+        initdb:
+          properties:
+            locale: C
+            encoding: UTF8

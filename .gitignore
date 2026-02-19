@@ -1,0 +1,9 @@
+.DS_Store
+ADR doc-template-service/
+adr_saas-sbercrm-doc-template-service.md
+mvp-requirements.rtf
+template_variable_spec
+ddl.sql
+**/target/
+.idea/
+META-INF/

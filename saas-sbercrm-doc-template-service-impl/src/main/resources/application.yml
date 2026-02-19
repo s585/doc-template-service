@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: saas-sbercrm-doc-template-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/doctemplate
+    username: doc_template
+    password: doc_template
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:db/db.changelog-master.yaml
+  jooq:
+    sql-dialect: POSTGRES
+
+server:
+  port: 8080

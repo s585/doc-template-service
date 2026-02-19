@@ -1,0 +1,78 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>ru.sberbank.sbercrm</groupId>
+    <artifactId>saas-sbercrm-doc-template-service</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>saas-sbercrm-doc-template-service-db</artifactId>
+  <name>saas-sbercrm-doc-template-service-db</name>
+  <packaging>jar</packaging>
+  <properties>
+    <testcontainers.version>1.20.4</testcontainers.version>
+    <liquibase.db.url>jdbc:tc:postgresql:16-alpine:///doctemplate?TC_DAEMON=true</liquibase.db.url>
+    <liquibase.db.driver>org.testcontainers.jdbc.ContainerDatabaseDriver</liquibase.db.driver>
+    <liquibase.db.user>test</liquibase.db.user>
+    <liquibase.db.password>test</liquibase.db.password>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
+      <version>${liquibase.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.liquibase</groupId>
+        <artifactId>liquibase-maven-plugin</artifactId>
+        <version>${liquibase.version}</version>
+        <executions>
+          <execution>
+            <id>liquibase-update</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>update</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <changeLogFile>src/main/resources/db/db.changelog-master.yaml</changeLogFile>
+          <driver>${liquibase.db.driver}</driver>
+          <url>${liquibase.db.url}</url>
+          <username>${liquibase.db.user}</username>
+          <password>${liquibase.db.password}</password>
+          <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
+          </dependency>
+          <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>jdbc</artifactId>
+            <version>${testcontainers.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
+  </build>
+</project>

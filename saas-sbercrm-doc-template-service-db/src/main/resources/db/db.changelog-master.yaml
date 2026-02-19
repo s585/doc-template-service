@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - include:
+      file: changelog/000_extensions.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/010_template.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/011_template_variable.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/012_template_condition.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/020_generated_document.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/021_generated_file.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/030_generation_job.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/031_generation_job_attempt.sql
+      relativeToChangelogFile: true
