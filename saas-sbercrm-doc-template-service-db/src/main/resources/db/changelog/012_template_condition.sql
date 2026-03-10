@@ -25,4 +25,12 @@ USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
 -- changeset codex:012_template_condition_comments runOnChange:true
 COMMENT ON TABLE t_template_condition IS
-'Availability condition for templates (AND/OR up to configured depth). User-facing: RLS by tenant_id.';
+'Условие доступности шаблона. Хранит дерево Rule для определения отображения шаблона. Для пользовательских операций применяется RLS по tenant_id.';
+
+COMMENT ON COLUMN t_template_condition.id IS 'Идентификатор условия шаблона.';
+COMMENT ON COLUMN t_template_condition.tenant_id IS 'Идентификатор тенанта для изоляции данных через RLS.';
+COMMENT ON COLUMN t_template_condition.template_id IS 'Идентификатор шаблона, для которого задано условие отображения.';
+COMMENT ON COLUMN t_template_condition.condition IS 'Условие отображения шаблона в формате JSON.';
+COMMENT ON COLUMN t_template_condition.created_by IS 'Идентификатор пользователя, создавшего условие.';
+COMMENT ON COLUMN t_template_condition.updated_by IS 'Идентификатор пользователя, последним обновившего условие.';
+COMMENT ON COLUMN t_template_condition.created_at IS 'Дата и время создания условия.';

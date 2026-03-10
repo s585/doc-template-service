@@ -22,6 +22,8 @@
     <liquibase.version>4.27.0</liquibase.version>
     <poi.version>5.2.5</poi.version>
     <jacoco.version>0.8.12</jacoco.version>
+    <swagger.annotations.version>2.2.22</swagger.annotations.version>
+    <checkerframework.version>3.45.0</checkerframework.version>
     <db.url>jdbc:postgresql://localhost:5432/doctemplate</db.url>
     <db.user>doc_template</db.user>
     <db.password>doc_template</db.password>
@@ -44,6 +46,16 @@
         <version>${jooq.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-qual</artifactId>
+        <version>${checkerframework.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-annotations-jakarta</artifactId>
+        <version>${swagger.annotations.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

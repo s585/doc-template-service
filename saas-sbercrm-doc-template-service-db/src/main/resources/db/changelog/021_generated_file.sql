@@ -38,9 +38,19 @@ USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
 -- changeset codex:021_generated_file_comments runOnChange:true
 COMMENT ON TABLE t_generated_file IS
-'Generated artifacts (files) for a generated_document. Status tracked per file. RLS by tenant_id.';
+'Сгенерированные файлы, относящиеся к generated_document. Статус отслеживается отдельно для каждого файла. Для пользовательских операций применяется RLS по tenant_id.';
 
-COMMENT ON COLUMN t_generated_file.s3_key IS
-'S3 key of generated artifact. Filled when status=DONE.';
-COMMENT ON COLUMN t_generated_file.status IS
-'Per-file lifecycle status. Allows DOCX DONE while PDF IN_PROGRESS, etc.';
+COMMENT ON COLUMN t_generated_file.id IS 'Идентификатор сгенерированного файла.';
+COMMENT ON COLUMN t_generated_file.tenant_id IS 'Идентификатор тенанта для изоляции данных через RLS.';
+COMMENT ON COLUMN t_generated_file.document_id IS 'Идентификатор generated_document, к которому относится файл.';
+COMMENT ON COLUMN t_generated_file.format IS 'Формат сгенерированного файла.';
+COMMENT ON COLUMN t_generated_file.status IS 'Статус жизненного цикла файла. Позволяет отслеживать состояние каждого формата отдельно.';
+COMMENT ON COLUMN t_generated_file.s3_key IS 'Ключ файла в S3. Заполняется после успешной генерации.';
+COMMENT ON COLUMN t_generated_file.checksum IS 'Контрольная сумма сгенерированного файла.';
+COMMENT ON COLUMN t_generated_file.size_bytes IS 'Размер файла в байтах.';
+COMMENT ON COLUMN t_generated_file.error_code IS 'Код ошибки генерации файла.';
+COMMENT ON COLUMN t_generated_file.error_message IS 'Текстовое описание ошибки генерации файла.';
+COMMENT ON COLUMN t_generated_file.created_by IS 'Идентификатор пользователя, создавшего запись о файле.';
+COMMENT ON COLUMN t_generated_file.updated_by IS 'Идентификатор пользователя, последним обновившего запись о файле.';
+COMMENT ON COLUMN t_generated_file.created_at IS 'Дата и время создания записи о файле.';
+COMMENT ON COLUMN t_generated_file.updated_at IS 'Дата и время последнего обновления записи о файле.';

@@ -43,9 +43,21 @@ ALTER TABLE t_generation_job DISABLE ROW LEVEL SECURITY;
 
 -- changeset codex:030_generation_job_comments runOnChange:true
 COMMENT ON TABLE t_generation_job IS
-'Internal orchestration queue. NOT used for UI/read APIs. tenant_id present but RLS is DISABLED on this table.';
+'Внутренняя очередь оркестрации генерации. Не используется напрямую в UI и read API. Поле tenant_id присутствует, но RLS для таблицы отключен.';
 
-COMMENT ON COLUMN t_generation_job.locked_until IS
-'Lease lock: if worker dies, another worker may pick the job after this timestamp.';
-COMMENT ON COLUMN t_generation_job.requested_formats IS
-'Formats to generate for the document (e.g., DOCX/XLSX primary + optional PDF).';
+COMMENT ON COLUMN t_generation_job.id IS 'Идентификатор задания на генерацию.';
+COMMENT ON COLUMN t_generation_job.tenant_id IS 'Идентификатор тенанта, к которому относится задание.';
+COMMENT ON COLUMN t_generation_job.document_id IS 'Идентификатор generated_document, для которого создается задание.';
+COMMENT ON COLUMN t_generation_job.template_id IS 'Идентификатор шаблона, используемого для генерации.';
+COMMENT ON COLUMN t_generation_job.entity_id IS 'Идентификатор сущности исходного объекта.';
+COMMENT ON COLUMN t_generation_job.object_id IS 'Идентификатор исходного объекта, по которому выполняется генерация.';
+COMMENT ON COLUMN t_generation_job.requested_formats IS 'Список форматов, которые необходимо сгенерировать по документу.';
+COMMENT ON COLUMN t_generation_job.status IS 'Текущий статус задания на генерацию.';
+COMMENT ON COLUMN t_generation_job.locked_by IS 'Идентификатор воркера, который в данный момент удерживает задание.';
+COMMENT ON COLUMN t_generation_job.locked_until IS 'Время окончания lease-блокировки. После него другое приложение может забрать задание.';
+COMMENT ON COLUMN t_generation_job.created_by IS 'Идентификатор пользователя, создавшего задание.';
+COMMENT ON COLUMN t_generation_job.updated_by IS 'Идентификатор пользователя или процесса, последним обновившего задание.';
+COMMENT ON COLUMN t_generation_job.created_at IS 'Дата и время создания задания.';
+COMMENT ON COLUMN t_generation_job.updated_at IS 'Дата и время последнего обновления задания.';
+COMMENT ON COLUMN t_generation_job.error_code IS 'Код последней ошибки при обработке задания.';
+COMMENT ON COLUMN t_generation_job.error_message IS 'Текстовое описание последней ошибки при обработке задания.';
