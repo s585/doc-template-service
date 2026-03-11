@@ -22,7 +22,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"id", "key", "scope", "value"})
+@JsonPropertyOrder({"id", "key", "definition"})
 @Schema(description = "Маппинг переменной шаблона: определяет область применения и способ получения значения")
 public class TemplateMappingDto implements Serializable {
     private static final long serialVersionUID = 3888013418710878195L;
@@ -35,12 +35,8 @@ public class TemplateMappingDto implements Serializable {
     @Schema(description = "Ключ переменной в шаблоне")
     private String key;
 
-    @NotNull
-    @Schema(description = "Область применения переменной")
-    private String scope;
-
     @Valid
     @NotNull
-    @Schema(description = "Описание значения переменной")
-    private MappingValueDto value;
+    @Schema(description = "Определение маппинга переменной")
+    private TemplateMappingDefinitionDto definition;
 }

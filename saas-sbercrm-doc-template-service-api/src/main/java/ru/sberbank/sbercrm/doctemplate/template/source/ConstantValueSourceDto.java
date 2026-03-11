@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKind.CONSTANT;
+import static ru.sberbank.sbercrm.doctemplate.template.source.ValueSourceDto.SourceKind.CONSTANT;
 
 @Data
 @Builder(toBuilder = true)
@@ -23,7 +23,7 @@ import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKi
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"kind", "value"})
 @Schema(description = "Источник значения в виде константы")
-public class ConstantSourceDto implements SourceDto, Serializable {
+public class ConstantValueSourceDto implements ValueSourceDto, Serializable {
     private static final long serialVersionUID = 4712066924486506163L;
 
     @Schema(description = "Константное значение", example = "2026-03-10")

@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.expression.ExpressionDto;
-import ru.sberbank.sbercrm.doctemplate.template.source.SourceDto;
+import ru.sberbank.sbercrm.doctemplate.template.source.ValueSourceDto;
 
 import java.io.Serializable;
 
@@ -22,10 +22,14 @@ import java.io.Serializable;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"type", "expression", "source"})
-@Schema(description = "Описание значения переменной шаблона")
-public class MappingValueDto implements Serializable {
-    private static final long serialVersionUID = 8451716636398481331L;
+@JsonPropertyOrder({"scope", "type", "expression", "source"})
+@Schema(description = "Определение маппинга переменной шаблона")
+public class TemplateMappingDefinitionDto implements Serializable {
+    private static final long serialVersionUID = 1231723713516335699L;
+
+    @NotNull
+    @Schema(description = "Область применения переменной")
+    private String scope;
 
     @NotNull
     @Schema(description = "Тип итогового значения")
@@ -39,5 +43,5 @@ public class MappingValueDto implements Serializable {
     @Valid
     @NotNull
     @Schema(description = "Источник данных для значения")
-    private SourceDto source;
+    private ValueSourceDto source;
 }

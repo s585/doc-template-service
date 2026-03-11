@@ -13,8 +13,8 @@
 {
   "id": "uuid",
   "key": "string",
-  "scope": "FILE_NAME | VALUE | TABLE",
-  "value": {
+  "definition": {
+    "scope": "FILE_NAME | VALUE | TABLE",
     "type": "STRING | NUMBER | DATE | DATETIME | BOOLEAN",
     "expression": {},
     "source": {
@@ -38,7 +38,7 @@
 - `DATETIME`
 - `BOOLEAN`
 
-Для `TABLE` поле `value.type` описывает тип одного резолвленного элемента, а не всей коллекции.
+Для `TABLE` поле `definition.type` описывает тип одного резолвленного элемента, а не всей коллекции.
 
 ## Expression
 
@@ -50,7 +50,7 @@
 - внутри контекста expression доступен только `$value`
 - прямой доступ к `source.*`, `reference.*`, `targetPath` запрещен
 - fallback выражается через `coalesce`
-- результат expression должен быть совместим с `value.type`
+- результат expression должен быть совместим с `definition.type`
 - для `TABLE` в рамках MVP поддерживаются только поэлементные операции
 
 Форма узла expression:
@@ -71,7 +71,7 @@
 - `lower`
 - `trim`
 
-## Source
+## ValueSource
 
 Поддерживаемые `source.kind`:
 
@@ -153,8 +153,8 @@ targetPath + "." + path without "reference."
 {
   "id": "uuid",
   "key": "deal_num",
-  "scope": "VALUE",
-  "value": {
+  "definition": {
+    "scope": "VALUE",
     "type": "STRING",
     "expression": null,
     "source": {
@@ -171,8 +171,8 @@ Reference через lookup:
 {
   "id": "uuid",
   "key": "storage_product_name",
-  "scope": "TABLE",
-  "value": {
+  "definition": {
+    "scope": "TABLE",
     "type": "STRING",
     "expression": null,
     "source": {

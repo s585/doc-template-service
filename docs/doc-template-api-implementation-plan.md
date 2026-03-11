@@ -9,9 +9,9 @@
 
 ## Текущий статус
 
-- DTO для `TemplateMapping`, `TemplateCreationRq`, `TemplateUpdateRq`, `TemplateRs`, `Expression`, `Source` уже заведены в `api`-модуле
+- DTO для `TemplateMapping`, `TemplateCreationRq`, `TemplateUpdateRq`, `TemplateRs`, `Expression`, `ValueSource` уже заведены в `api`-модуле
 - соглашения по mapping и expression зафиксированы в `docs/template-mapping-agreements.md`
-- схема `t_template_mapping` приведена к хранению полного mapping-объекта в `mapping JSONB`
+- схема `t_template_mapping` приведена к хранению `key` и JSON-описания маппинга в `definition JSONB`
 - комментарии по changelog в `db`-модуле приведены к русскому языку и покрывают все колонки
 - `Шаг 1` выполнен: API-контракты зафиксированы в `DocTemplateController`
 - `Шаг 2` выполнен: модель хранения синхронизирована с контрактами API
@@ -45,7 +45,6 @@
 
 - `t_template`
 - `t_template_mapping`
-- `t_template_condition`
 - API DTO
 - будущую доменную модель
 
@@ -64,8 +63,8 @@
 
 Нужно определить, как именно сериализуются:
 
-- `TemplateMapping` в `t_template_mapping.mapping`
-- `displayCondition` в `t_template_condition.condition`
+- `TemplateMappingDefinition` в `t_template_mapping.definition`
+- `displayCondition` в `t_template.display_condition`
 
 Нужно решить:
 

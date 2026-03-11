@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKind.REFERENCE;
+import static ru.sberbank.sbercrm.doctemplate.template.source.ValueSourceDto.SourceKind.REFERENCE;
 
 @Data
 @Builder(toBuilder = true)
@@ -31,7 +31,7 @@ import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKi
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"kind", "targetPath", "entityId", "referenceFieldName", "referenceValuePath", "path", "sort", "paging"})
 @Schema(description = "Источник значения, которое загружается отдельным запросом по обратной ссылке")
-public class ReferenceSourceDto implements SourceDto, Serializable {
+public class ReferenceValueSourceDto implements ValueSourceDto, Serializable {
     private static final long serialVersionUID = 6995429950117882487L;
 
     @NotBlank

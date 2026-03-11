@@ -7,11 +7,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "kind")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = DirectSourceDto.class, name = SourceDto.SourceKind.DIRECT),
-    @JsonSubTypes.Type(value = ReferenceSourceDto.class, name = SourceDto.SourceKind.REFERENCE),
-    @JsonSubTypes.Type(value = ConstantSourceDto.class, name = SourceDto.SourceKind.CONSTANT)
+    @JsonSubTypes.Type(value = DirectValueSourceDto.class, name = ValueSourceDto.SourceKind.DIRECT),
+    @JsonSubTypes.Type(value = ReferenceValueSourceDto.class, name = ValueSourceDto.SourceKind.REFERENCE),
+    @JsonSubTypes.Type(value = ConstantValueSourceDto.class, name = ValueSourceDto.SourceKind.CONSTANT)
 })
-public interface SourceDto {
+public interface ValueSourceDto {
     @Schema(description = "Вид источника значения")
     @JsonProperty("kind")
     String getKind();

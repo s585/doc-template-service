@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKind.DIRECT;
+import static ru.sberbank.sbercrm.doctemplate.template.source.ValueSourceDto.SourceKind.DIRECT;
 
 @Data
 @Builder(toBuilder = true)
@@ -24,7 +24,7 @@ import static ru.sberbank.sbercrm.doctemplate.template.source.SourceDto.SourceKi
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"kind", "path"})
 @Schema(description = "Источник значения, которое читается напрямую из исходного объекта")
-public class DirectSourceDto implements SourceDto, Serializable {
+public class DirectValueSourceDto implements ValueSourceDto, Serializable {
     private static final long serialVersionUID = -2379362295802904914L;
 
     @NotBlank
