@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class TemplateMappingDto implements Serializable {
     private static final long serialVersionUID = 3888013418710878195L;
 
     @Schema(description = "Идентификатор маппинга")
+    @Nullable
     private UUID id;
 
     @NotBlank

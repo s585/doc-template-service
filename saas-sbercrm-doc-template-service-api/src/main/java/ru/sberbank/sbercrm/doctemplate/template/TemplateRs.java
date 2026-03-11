@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.rule.RuleDto;
 
 import java.io.Serializable;
@@ -62,6 +63,7 @@ public class TemplateRs implements Serializable {
     private String format;
 
     @Schema(description = "Описание шаблона")
+    @Nullable
     private String description;
 
     @NotNull
@@ -70,6 +72,7 @@ public class TemplateRs implements Serializable {
 
     @Valid
     @Schema(description = "Условие отображения шаблона")
+    @Nullable
     private RuleDto displayCondition;
 
     @NotNull
@@ -89,6 +92,7 @@ public class TemplateRs implements Serializable {
     @Schema(description = "Дата и время создания шаблона", example = "2026-03-10T12:30:00+03:00")
     private OffsetDateTime createdAt;
 
+    @NotNull
     @Schema(description = "Пользователь, создавший шаблон")
     private UUID createdBy;
 
@@ -96,6 +100,7 @@ public class TemplateRs implements Serializable {
     @Schema(description = "Дата и время последнего обновления шаблона", example = "2026-03-10T12:45:00+03:00")
     private OffsetDateTime updatedAt;
 
+    @NotNull
     @Schema(description = "Пользователь, обновивший шаблон")
     private UUID updatedBy;
 }

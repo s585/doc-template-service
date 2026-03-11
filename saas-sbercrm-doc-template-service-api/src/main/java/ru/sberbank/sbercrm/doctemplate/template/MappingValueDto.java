@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.expression.ExpressionDto;
 import ru.sberbank.sbercrm.doctemplate.template.source.SourceDto;
 
@@ -32,6 +33,7 @@ public class MappingValueDto implements Serializable {
 
     @Valid
     @Schema(description = "Выражение для преобразования результата source. Выполняется после source")
+    @Nullable
     private ExpressionDto expression;
 
     @Valid

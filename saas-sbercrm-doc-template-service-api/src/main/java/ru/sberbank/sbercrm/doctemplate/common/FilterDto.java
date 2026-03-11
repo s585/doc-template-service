@@ -43,10 +43,10 @@ public class FilterDto implements Serializable, HasField {
     @Schema(title = "Конвертация поля", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private String valueConverter;
 
-    public FilterDto(@Nullable String field, Operation operation, List<Object> value) {
+    public FilterDto(@Nullable String field, @Nullable Operation operation, @Nullable List<Object> value) {
         this.field = field;
         this.operation = operation;
-        this.value = value;
+        this.value = value == null ? new ArrayList<>() : value;
     }
 
     @JsonIgnore

@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.rule.RuleDto;
 
 import java.io.Serializable;
@@ -33,12 +34,10 @@ public class TemplateUpdateRq implements Serializable {
     @Schema(description = "Название шаблона")
     private String name;
 
-    @NotNull
     @Schema(description = "Описание шаблона")
     private String description;
 
     @Valid
-    @NotNull
     @Schema(description = "Условие отображения шаблона")
     private RuleDto displayCondition;
 

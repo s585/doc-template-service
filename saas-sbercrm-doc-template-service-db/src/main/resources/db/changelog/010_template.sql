@@ -7,11 +7,12 @@ CREATE TABLE IF NOT EXISTS t_template (
 
   entity_id    UUID NOT NULL,
   name         VARCHAR(255) NOT NULL,
-  system_name  VARCHAR(255) NOT NULL,
+  code         VARCHAR(255) NOT NULL,
+  description  TEXT,
   format       VARCHAR(32) NOT NULL,
   s3_key       TEXT NOT NULL,
-
-  status       VARCHAR(32) NOT NULL,
+  active       BOOLEAN NOT NULL,
+  display_condition JSONB,
 
   created_by   UUID,
   updated_by   UUID,
@@ -37,10 +38,12 @@ COMMENT ON COLUMN t_template.id IS 'Идентификатор шаблона.';
 COMMENT ON COLUMN t_template.tenant_id IS 'Идентификатор тенанта для изоляции данных через RLS.';
 COMMENT ON COLUMN t_template.entity_id IS 'Идентификатор бизнес-сущности, к которой относится шаблон.';
 COMMENT ON COLUMN t_template.name IS 'Отображаемое название шаблона.';
-COMMENT ON COLUMN t_template.system_name IS 'Системный код шаблона.';
+COMMENT ON COLUMN t_template.code IS 'Системный код шаблона.';
+COMMENT ON COLUMN t_template.description IS 'Описание шаблона.';
 COMMENT ON COLUMN t_template.format IS 'Формат бинарного файла шаблона.';
 COMMENT ON COLUMN t_template.s3_key IS 'Ключ файла шаблона в S3.';
-COMMENT ON COLUMN t_template.status IS 'Статус шаблона.';
+COMMENT ON COLUMN t_template.active IS 'Признак активности шаблона.';
+COMMENT ON COLUMN t_template.display_condition IS 'Условие отображения шаблона в формате JSON.';
 COMMENT ON COLUMN t_template.created_by IS 'Идентификатор пользователя, создавшего шаблон.';
 COMMENT ON COLUMN t_template.updated_by IS 'Идентификатор пользователя, последним обновившего шаблон.';
 COMMENT ON COLUMN t_template.created_at IS 'Дата и время создания шаблона.';

@@ -33,7 +33,6 @@ public class TemplateCreationRq implements Serializable {
     @Schema(description = "Название шаблона")
     private String name;
 
-    @NotNull
     @Schema(description = "Описание шаблона")
     private String description;
 
