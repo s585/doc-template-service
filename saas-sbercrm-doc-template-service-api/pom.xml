@@ -43,5 +43,10 @@
       <artifactId>swagger-annotations-jakarta</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 </project>

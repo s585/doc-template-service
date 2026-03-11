@@ -34,7 +34,7 @@ import java.util.UUID;
     "s3Key",
     "displayCondition",
     "entityId",
-    "isActive",
+    "active",
     "templateMapping",
     "createdAt",
     "createdBy",
@@ -54,8 +54,8 @@ public class TemplateRs implements Serializable {
     private String name;
 
     @NotNull
-    @Schema(description = "Системное наименование шаблона")
-    private String systemName;
+    @Schema(description = "Системный код шаблона")
+    private String code;
 
     @NotNull
     @Schema(description = "Формат файла шаблона")

@@ -8,17 +8,19 @@
 ## Scope
 ### API эндпоинты
 1. `POST /v1/doc/template/import`
-   - multipart/form-data: `file`, `name`, `description`, `code`
+   - multipart/form-data:
+     - `file` как отдельный part
+     - `request` как `TemplateCreationRq` с полями `entityId`, `name`, `description`, `code`
    - Ответ: `TemplateRs`
 2. `PUT /v1/doc/template/{templateId}`
-   - Body: `TemplateRq`
-   - Обновление только переданных полей
+   - Body: `TemplateUpdateRq`
+   - Полное обновление шаблона
    - Ответ: `TemplateRs`
 3. `DELETE /v1/doc/template/{templateId}`
    - Ответ: `204 No Content`
 4. `POST /v1/doc/template/list`
    - Body: `commonRq`
-   - Фильтрация: `is_active`, `entity_id`, `name`, `description`, `format`
+   - Фильтрация: `active`, `entityId`, `name`, `description`, `format`
    - Ответ: массив `TemplateRs`
 5. `POST /v1/doc/{entityId}/{objectId}/template/list`
    - Список доступных шаблонов с учетом `displayCondition`
@@ -26,7 +28,8 @@
 ### DTO
 - `Rule` (RuleDto)
 - `TemplateMapping`
-- `TemplateRq`
+- `TemplateCreationRq`
+- `TemplateUpdateRq`
 - `TemplateRs`
 - `commonRq` (общий запрос списка/фильтра)
 
@@ -34,7 +37,7 @@
 - `code` должен быть уникальным. При дубле -> 400.
 - Файл должен быть DOCX или XLSX. Иначе -> 400.
 - При импорте распарсить файл на маппинги по placeholder-паттерну из конфигурации.
-- При обновлении изменять только поля, переданные в `TemplateRq`.
+- При обновлении полностью заменять состояние шаблона значением из `TemplateUpdateRq`.
 - При удалении: удалить файл в S3 и удалить данные из БД (template + mappings).
 
 ## Integrations
@@ -46,7 +49,7 @@
 - Контракты и DTO соответствуют описанию страницы.
 - Эндпоинты соответствуют URL/методам.
 - Негативные сценарии (400): дубль `code`, неверный формат файла.
-- `list` фильтрует по `is_active`, `entity_id`, `name`, `description`, `format`.
+- `list` фильтрует по `active`, `entityId`, `name`, `description`, `format`.
 - `DELETE` возвращает 204.
 
 ## Notes
