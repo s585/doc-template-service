@@ -24,6 +24,9 @@
     <jacoco.version>0.8.12</jacoco.version>
     <swagger.annotations.version>2.2.22</swagger.annotations.version>
     <checkerframework.version>3.45.0</checkerframework.version>
+    <mapstruct.version>1.5.5.Final</mapstruct.version>
+    <lombok.version>1.18.32</lombok.version>
+    <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
     <db.url>jdbc:postgresql://localhost:5432/doctemplate</db.url>
     <db.user>doc_template</db.user>
     <db.password>doc_template</db.password>
@@ -56,6 +59,11 @@
         <groupId>io.swagger.core.v3</groupId>
         <artifactId>swagger-annotations-jakarta</artifactId>
         <version>${swagger.annotations.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>${mapstruct.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
