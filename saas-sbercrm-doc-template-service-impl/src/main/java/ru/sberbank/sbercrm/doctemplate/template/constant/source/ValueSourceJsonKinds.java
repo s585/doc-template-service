@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.model.source;
+package ru.sberbank.sbercrm.doctemplate.template.constant.source;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

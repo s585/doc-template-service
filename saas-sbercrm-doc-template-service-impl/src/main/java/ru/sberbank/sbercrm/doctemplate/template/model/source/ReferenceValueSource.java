@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.sberbank.sbercrm.doctemplate.template.constant.source.ValueSourceJsonKinds;
 import ru.sberbank.sbercrm.doctemplate.common.PagingRqDto;
 import ru.sberbank.sbercrm.doctemplate.common.SortTypeDto;
 

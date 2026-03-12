@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.sberbank.sbercrm.doctemplate.template.constant.rule.RuleJsonTypes;
 
 @Data
 @Builder(toBuilder = true)
