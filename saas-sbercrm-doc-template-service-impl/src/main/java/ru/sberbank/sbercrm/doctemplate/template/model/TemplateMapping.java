@@ -10,13 +10,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-@Data
-@Builder(toBuilder = true)
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"id", "key", "definition"})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TemplateMapping {
     private UUID id;
     private String key;

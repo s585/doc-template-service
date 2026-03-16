@@ -30,7 +30,7 @@ import java.util.UUID;
     name = "Шаблоны печатных форм",
     description = "Контракты API для управления шаблонами печатных форм"
 )
-public interface DocTemplateController {
+public interface TemplateController {
     @Operation(summary = "Импортировать шаблон")
     @ApiResponses({
         @ApiResponse(
@@ -49,8 +49,8 @@ public interface DocTemplateController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     TemplateRs importTemplate(
-        @RequestPart("file") MultipartFile file,
-        @Valid @RequestPart("request") TemplateCreationRq request
+        @Valid @RequestPart("request") TemplateCreationRq request,
+        @RequestPart("file") MultipartFile file
     );
 
     @Operation(summary = "Обновить шаблон")

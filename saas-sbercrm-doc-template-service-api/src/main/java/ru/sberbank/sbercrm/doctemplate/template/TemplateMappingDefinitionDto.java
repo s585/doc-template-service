@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,12 +26,11 @@ import java.io.Serializable;
 public class TemplateMappingDefinitionDto implements Serializable {
     private static final long serialVersionUID = 1231723713516335699L;
 
-    @NotNull
     @Schema(description = "Область применения переменной")
     private String scope;
 
-    @NotNull
     @Schema(description = "Тип итогового значения")
+    @Nullable
     private String type;
 
     @Valid
@@ -41,7 +39,7 @@ public class TemplateMappingDefinitionDto implements Serializable {
     private ExpressionDto expression;
 
     @Valid
-    @NotNull
     @Schema(description = "Источник данных для значения")
+    @Nullable
     private ValueSourceDto source;
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import ru.sberbank.sbercrm.doctemplate.template.model.rule.Rule;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -27,4 +28,5 @@ public class Template {
     private UUID updatedBy;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private List<TemplateMapping> mappings;
 }

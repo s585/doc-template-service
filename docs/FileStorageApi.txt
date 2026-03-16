@@ -1,0 +1,821 @@
+package ru.sbrf.sbercrm.saasfilestorageapi.controller.internal;
+
+
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+
+import io.swagger.v3.oas.annotations.media.Content;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.core.io.InputStreamResource;
+
+import org.springframework.http.MediaType;
+
+import org.springframework.http.ResponseEntity;
+
+import org.springframework.validation.annotation.Validated;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+
+import org.springframework.web.bind.annotation.GetMapping;
+
+import org.springframework.web.bind.annotation.PostMapping;
+
+import org.springframework.web.bind.annotation.PutMapping;
+
+import org.springframework.web.bind.annotation.RequestBody;
+
+import org.springframework.web.bind.annotation.RequestHeader;
+
+import org.springframework.web.bind.annotation.RequestParam;
+
+import org.springframework.web.bind.annotation.RequestPart;
+
+import org.springframework.web.multipart.MultipartFile;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FileFilterRq;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FileRq;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FileRs;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.valiadtion.File;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.valiadtion.Path;
+
+
+
+import jakarta.validation.Valid;
+
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.validation.constraints.Pattern;
+
+import java.io.IOException;
+
+import java.net.URL;
+
+import java.util.List;
+
+import java.util.UUID;
+
+
+
+import static ru.sbrf.sbercrm.saasfilestorageapi.utils.ConstantsUtils.REGEX;
+
+
+
+@Validated
+
+@Tag(name = "Внутренний контроллер по работе с файлами")
+
+public interface FileController {
+
+    String TENANT_ID_HEADER = "X-Tenant-Id";
+
+    String USER_ID_HEADER = "X-User-Id";
+
+
+
+    @Operation(summary = "Загрузка файла")
+
+    @ApiResponse(responseCode = "200", description = "Файл успешно загружен",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FileRs.class))
+
+            })
+
+    @PostMapping(value = "/internal/v1/file/upload",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = {
+
+                    MediaType.MULTIPART_FORM_DATA_VALUE,
+
+                    MediaType.MULTIPART_MIXED_VALUE,
+
+                    MediaType.APPLICATION_JSON_VALUE
+
+            })
+
+    FileRs upload(@RequestHeader(value = "source", required = false) String source,
+
+                  @Parameter(name = "property", description = "Свойства файла")
+
+                  @Valid @NotNull @RequestPart("property") FileRq property,
+
+                  @Parameter(name = "file", description = "Файл изображения")
+
+                  @NotNull @File @RequestPart MultipartFile file,
+
+                  @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                  @RequestHeader(USER_ID_HEADER) UUID userId) throws IOException;
+
+
+
+    @Operation(summary = "Обновление свойств файла")
+
+    @ApiResponse(responseCode = "200", description = "Информация об файле успешно обновлена",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FileRs.class))
+
+            })
+
+    @PutMapping(value = "/internal/v1/file",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+
+    FileRs update(@RequestHeader(value = "source", required = false) String source,
+
+                  @Parameter(name = "property", description = "Свойства файла")
+
+                  @Valid @NotNull @RequestBody FileRq property,
+
+                  @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                  @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Скачать файл по ключу")
+
+    @ApiResponse(responseCode = "200", description = "Идет загрузка файла",
+
+            content = {@Content(mediaType = "application/force-download")})
+
+    @Parameter(name = "key", description = "Ключ файла")
+
+    @GetMapping("/internal/v1/file/download")
+
+    ResponseEntity<InputStreamResource> download(@RequestHeader(value = "source", required = false) String source,
+
+                                                 @Path(min = 3, max = 1000, nullable = false)
+
+                                                 @RequestParam("key") String key,
+
+                                                 @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                                                 @RequestHeader(USER_ID_HEADER) UUID userId)
+
+            throws IOException;
+
+
+
+    @Operation(summary = "Получить url на файл")
+
+    @ApiResponse(responseCode = "200", description = "Получить url на файл",
+
+            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = URL.class))})
+
+    @Parameter(name = "key", description = "Ключ файла")
+
+    @GetMapping(value = "/internal/v1/file/url",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    URL getUrl(@RequestHeader(value = "source", required = false) String source,
+
+               @Path(min = 3, max = 1000, nullable = false) @RequestParam("key")
+
+                       String key,
+
+               @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+               @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Поиск файлов по фильтру")
+
+    @ApiResponse(responseCode = "200", description = "Список файлов удолетворяющие фильтру",
+
+            content = {@Content(mediaType = "application/json",
+
+                    array = @ArraySchema(schema = @Schema(implementation = FileRs.class))
+
+            )})
+
+    @PostMapping(value = "/internal/v1/file/find",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+
+    List<FileRs> getWithFilter(@RequestHeader(value = "source", required = false) String source,
+
+                               @Parameter(name = "filter", description = "Фильтр")
+
+                               @Valid @RequestBody FileFilterRq fileFilterRq,
+
+                               @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                               @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Получение файла по ключу")
+
+    @ApiResponse(responseCode = "200", description = "Найден файл",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FileRs.class))
+
+            })
+
+    @Parameter(name = "key", description = "Ключ файла")
+
+    @GetMapping(value = "/internal/v1/file",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FileRs get(@RequestHeader(value = "source", required = false) String source,
+
+               @Path(min = 3, max = 1000, nullable = false) @RequestParam String key,
+
+               @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+               @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Удалить файл по ключу")
+
+    @ApiResponse(responseCode = "200", description = "Удален файл",
+
+            content = {@Content(mediaType = "application/json")
+
+            })
+
+    @Parameter(name = "key", description = "Ключ файла")
+
+    @DeleteMapping("/internal/v1/file")
+
+    void delete(@RequestHeader(value = "source", required = false) String source,
+
+                @Path(min = 3, max = 1000, nullable = false) @RequestParam String key,
+
+                @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Копирование файла")
+
+    @ApiResponse(responseCode = "200", description = "Файл копирован файл")
+
+    @Parameter(name = "keyFrom", description = "Ключ файла источника")
+
+    @Parameter(name = "keyTo", description = "Ключ файла назначения")
+
+    @GetMapping(value = "/internal/v1/file/copy",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FileRs copy(@RequestHeader(value = "source", required = false) String source,
+
+                @Path(min = 3, max = 1000, nullable = false) @RequestParam String keyFrom,
+
+                @Path(min = 3, max = 1000, nullable = false) @RequestParam String keyTo,
+
+                @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Перемещение файла")
+
+    @ApiResponse(responseCode = "200", description = "Файл перемещен файл")
+
+    @Parameter(name = "keyFrom", description = "Ключ файла источника")
+
+    @Parameter(name = "keyTo", description = "Ключ файла назначения")
+
+    @GetMapping(value = "/internal/v1/file/move",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FileRs move(@RequestHeader(value = "source", required = false) String source,
+
+                @Path(min = 3, max = 1000, nullable = false) @RequestParam String keyFrom,
+
+                @Path(min = 3, max = 1000, nullable = false) @RequestParam String keyTo,
+
+                @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Переименования файла")
+
+    @ApiResponse(responseCode = "200", description = "Файл переименован")
+
+    @Parameter(name = "key", description = "Ключ файла")
+
+    @Parameter(name = "fileName", description = "Новое название файла")
+
+    @GetMapping(value = "/internal/v1/file/rename",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FileRs rename(@RequestHeader(value = "source", required = false) String source,
+
+                  @Path(min = 3, max = 1000, nullable = false) @RequestParam String key,
+
+                  @NotNull @Pattern(regexp = REGEX) @RequestParam String fileName,
+
+                  @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                  @RequestHeader(USER_ID_HEADER) UUID userId);
+
+}
+
+
+
+package ru.sbrf.sbercrm.saasfilestorageapi.controller.internal;
+
+
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+
+import io.swagger.v3.oas.annotations.media.Content;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.http.MediaType;
+
+import org.springframework.validation.annotation.Validated;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+
+import org.springframework.web.bind.annotation.GetMapping;
+
+import org.springframework.web.bind.annotation.PostMapping;
+
+import org.springframework.web.bind.annotation.PutMapping;
+
+import org.springframework.web.bind.annotation.RequestBody;
+
+import org.springframework.web.bind.annotation.RequestHeader;
+
+import org.springframework.web.bind.annotation.RequestParam;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FolderFilterRq;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FolderRq;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.dto.FolderRs;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.valiadtion.Path;
+
+
+
+import jakarta.validation.Valid;
+
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+import java.util.UUID;
+
+
+
+@Validated
+
+@Tag(name = "Внутренний контроллер по работе с папками")
+
+public interface FolderController {
+
+    String TENANT_ID_HEADER = "X-Tenant-Id";
+
+    String USER_ID_HEADER = "X-User-Id";
+
+
+
+    @Operation(summary = "Создать папку")
+
+    @ApiResponse(responseCode = "200", description = "Папка успешно создана",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FolderRs.class))
+
+            })
+
+    @PostMapping(value = "/internal/v1/folder",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs create(@RequestHeader(value = "source", required = false) String source,
+
+                    @Parameter(name = "folder", description = "Папка")
+
+                    @Valid @NotNull @RequestBody FolderRq folder,
+
+                    @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                    @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Обновить папку")
+
+    @ApiResponse(responseCode = "200", description = "Папка успешно обновлена",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FolderRs.class))
+
+            })
+
+    @PutMapping(value = "/internal/v1/folder",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs update(@RequestHeader(value = "source", required = false) String source,
+
+                    @Valid @NotNull @RequestBody FolderRq folder,
+
+                    @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                    @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Получить папку и ее содержимое по пути")
+
+    @ApiResponse(responseCode = "200", description = "Папка найдена по пути",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FolderRs.class))
+
+            })
+
+    @Parameter(name = "path", description = "Путь папки")
+
+    @GetMapping(value = "/internal/v1/folder",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs get(@RequestHeader(value = "source", required = false) String source,
+
+                 @Path(min = 1, max = 769, nullable = false) @RequestParam String path,
+
+                 @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                 @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Удалить папку и ее содержимое по пути")
+
+    @ApiResponse(responseCode = "200", description = "Папка удалена по пути",
+
+            content = {@Content(mediaType = "application/json")
+
+            })
+
+    @Parameter(name = "path", description = "Путь папки")
+
+    @DeleteMapping("/internal/v1/folder")
+
+    void delete(@RequestHeader(value = "source", required = false) String source,
+
+                @Path(min = 1, max = 769, nullable = false) @RequestParam String path,
+
+                @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Копирование папки с ее содержимом")
+
+    @ApiResponse(responseCode = "200", description = "Папка копирована",
+
+            content = {@Content(mediaType = "application/json",
+
+                    schema = @Schema(implementation = FolderRs.class))
+
+            })
+
+    @Parameter(name = "pathFrom", description = "Путь папки источника")
+
+    @Parameter(name = "pathTo", description = "Путь папки назначения")
+
+    @GetMapping(value = "/internal/v1/folder/copy",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs copy(@RequestHeader(value = "source", required = false) String source,
+
+                  @Path(min = 1, max = 769, nullable = false) @RequestParam String pathFrom,
+
+                  @Path(min = 1, max = 769, nullable = false) @RequestParam String pathTo,
+
+                  @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                  @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Перемещение папки с ее содержимом")
+
+    @ApiResponse(responseCode = "200", description = "Папка перемещена")
+
+    @Parameter(name = "pathFrom", description = "Путь папки источника")
+
+    @Parameter(name = "pathTo", description = "Путь папки назначения")
+
+    @GetMapping(value = "/internal/v1/folder/move",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs move(@RequestHeader(value = "source", required = false) String source,
+
+                  @Path(min = 1, max = 769, nullable = false) @RequestParam String pathFrom,
+
+                  @Path(min = 1, max = 769, nullable = false) @RequestParam String pathTo,
+
+                  @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                  @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Переименование папки, у всех объектов в папке будет изенен путь")
+
+    @ApiResponse(responseCode = "200", description = "Папка переименована")
+
+    @Parameter(name = "oldPath", description = "Страрый путь папки")
+
+    @Parameter(name = "newPath", description = "Новый путь папки")
+
+    @GetMapping(value = "/internal/v1/folder/rename",
+
+            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    FolderRs rename(@RequestHeader(value = "source", required = false) String source,
+
+                    @Path(min = 1, max = 769, nullable = false) @RequestParam String oldPath,
+
+                    @Path(min = 1, max = 769, nullable = false) @RequestParam String newPath,
+
+                    @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                    @RequestHeader(USER_ID_HEADER) UUID userId);
+
+
+
+    @Operation(summary = "Поиск папок по фильтру")
+
+    @ApiResponse(responseCode = "200", description = "Список папок удолетворяющие фильтру",
+
+            content = {@Content(mediaType = "application/json",
+
+                    array = @ArraySchema(schema = @Schema(implementation = FolderRs.class))
+
+            )})
+
+    @PostMapping(value = "/internal/v1/folder/find",
+
+            produces = MediaType.APPLICATION_JSON_VALUE,
+
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+
+    List<FolderRs> getWithFilter(@RequestHeader(value = "source", required = false) String source,
+
+                                 @Parameter(name = "filter", description = "Фильтр")
+
+                                 @Valid @RequestBody FolderFilterRq filter,
+
+                                 @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+
+                                 @RequestHeader(USER_ID_HEADER) UUID userId);
+
+}
+
+
+
+package ru.sbrf.sbercrm.saasfilestorageapi.dto;
+
+
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.validation.constraints.Pattern;
+
+import jakarta.validation.constraints.Size;
+
+import lombok.AllArgsConstructor;
+
+import lombok.Builder;
+
+import lombok.Data;
+
+import lombok.NoArgsConstructor;
+
+import ru.sbrf.sbercrm.saasfilestorageapi.valiadtion.Path;
+
+
+
+import java.util.List;
+
+import java.util.Map;
+
+
+
+@Data
+
+@Builder
+
+@NoArgsConstructor
+
+@AllArgsConstructor
+
+@Schema(title = "Папка")
+
+public class FolderRq {
+
+    @Schema(title = "Путь")
+
+    @Path(min = 1, max = 769, nullable = false)
+
+    private String path;
+
+    @Schema(title = "Источник", description = "Система источник")
+
+    @NotNull
+
+    @Pattern(regexp = "[a-zA-Z0-9а-яА-Я _-]+")
+
+    @Size(min = 1, max = 50)
+
+    private String source;
+
+    @Schema(title = "Теги", description = "Дополнительная информация")
+
+    private Map<String, List<String>> tags;
+
+}
+
+
+
+package ru.sbrf.sbercrm.saasfilestorageapi.dto;
+
+
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.OffsetDateTime;
+
+import lombok.AllArgsConstructor;
+
+import lombok.Builder;
+
+import lombok.Data;
+
+import lombok.NoArgsConstructor;
+
+
+
+import jakarta.validation.constraints.Max;
+
+import jakarta.validation.constraints.Size;
+
+import java.net.URL;
+
+import java.util.List;
+
+import java.util.Map;
+
+import java.util.UUID;
+
+
+
+@Data
+
+@Builder
+
+@NoArgsConstructor
+
+@AllArgsConstructor
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+
+@Schema(title = "Файл")
+
+public class FileRs {
+
+    @Schema(title = "Ключ", example = "/folder/image.jpeg", description = "Уникальный ключ файла")
+
+    @Size(min = 3, max = 1000)
+
+    private String key;
+
+    @Schema(title = "Публичный ключ", example = "/folder/image.jpeg", description = "Уникальный публичный ключ файла")
+
+    @Size(min = 3, max = 1000)
+
+    private String publicKey;
+
+    @Schema(title = "Ключ", example = "/folder", description = "Директория файла")
+
+    @Size(min = 1, max = 1000)
+
+    private String path;
+
+    @Schema(title = "Источник", description = "Система источник")
+
+    @Size(min = 1, max = 50)
+
+    private String source;
+
+    @Schema(title = "Описание файла")
+
+    @Max(500)
+
+    private String description;
+
+    @Schema(title = "Имя файла", description = "Оригинальное название файла при загрузке")
+
+    private String fileName;
+
+    @Schema(title = "Управления доступом")
+
+    private AclDto acl;
+
+    @Schema(title = "Ссылка на файл")
+
+    private URL url;
+
+    @Schema(title = "Размер файла")
+
+    private Long size;
+
+    @Schema(title = "Тип файла")
+
+    private String type;
+
+    @Schema(title = "Флаг на доступ к редактированию")
+
+    private boolean readOnly;
+
+    @Schema(title = "Теги", description = "Дополнительная информация")
+
+    private Map<String, List<String>> tags;
+
+    @Schema(title = "Обновлен пользовтелем")
+
+    private UUID updatedBy;
+
+    @Schema(title = "Создан пользовтелем")
+
+    private UUID createdBy;
+
+    @Schema(title = "Дата создания")
+
+    private OffsetDateTime createdDate;
+
+    @Schema(title = "Дата обновления")
+
+    private OffsetDateTime updatedDate;
+
+}

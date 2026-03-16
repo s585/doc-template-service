@@ -12,7 +12,6 @@
   <name>saas-sbercrm-doc-template-service-db</name>
   <packaging>jar</packaging>
   <properties>
-    <testcontainers.version>1.20.4</testcontainers.version>
     <liquibase.db.url>jdbc:tc:postgresql:16-alpine:///doctemplate?TC_DAEMON=true</liquibase.db.url>
     <liquibase.db.driver>org.testcontainers.jdbc.ContainerDatabaseDriver</liquibase.db.driver>
     <liquibase.db.user>test</liquibase.db.user>
