@@ -56,6 +56,10 @@ public class FeignFileStorageAdapter implements FileStorageAdapter {
 
     @Override
     public void deleteFile(UUID tenantId, UUID userId, String key) {
-        fileStorageClient.deleteFile(templateProperties.getFileStorage().getSource(), key, tenantId, userId);
+        try {
+            fileStorageClient.deleteFile(templateProperties.getFileStorage().getSource(), key, tenantId, userId);
+        } catch (FeignException.NotFound ex) {
+            // Delete is idempotent for file storage: missing file must not block template deletion.
+        }
     }
 }

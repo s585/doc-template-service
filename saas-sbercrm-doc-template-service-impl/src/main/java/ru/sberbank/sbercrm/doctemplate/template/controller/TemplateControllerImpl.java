@@ -50,7 +50,11 @@ public class TemplateControllerImpl implements TemplateController {
 
     @Override
     public void deleteTemplate(@PathVariable("templateId") UUID templateId) {
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Delete template is not implemented yet");
+        templateWebAdapter.deleteTemplate(
+            getRequiredUuidHeader(TENANT_ID_HEADER),
+            getRequiredUuidHeader(USER_ID_HEADER),
+            templateId
+        );
     }
 
     @Override

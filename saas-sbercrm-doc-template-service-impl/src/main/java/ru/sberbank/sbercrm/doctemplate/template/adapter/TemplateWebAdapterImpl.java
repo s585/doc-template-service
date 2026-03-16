@@ -8,6 +8,7 @@ import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
 import ru.sberbank.sbercrm.doctemplate.template.converter.TemplateConverter;
 import ru.sberbank.sbercrm.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.doctemplate.template.usecase.DeleteTemplateUseCase;
 import ru.sberbank.sbercrm.doctemplate.template.usecase.ImportTemplateUseCase;
 import ru.sberbank.sbercrm.doctemplate.template.usecase.UpdateTemplateUseCase;
 
@@ -19,6 +20,7 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
     private final TemplateConverter templateConverter;
     private final ImportTemplateUseCase importTemplateUseCase;
     private final UpdateTemplateUseCase updateTemplateUseCase;
+    private final DeleteTemplateUseCase deleteTemplateUseCase;
 
     @Override
     public TemplateRs importTemplate(UUID tenantId, UUID userId, TemplateCreationRq request, MultipartFile file) {
@@ -40,5 +42,10 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
             templateConverter.convertToModel(request)
         );
         return templateConverter.convertToRs(template);
+    }
+
+    @Override
+    public void deleteTemplate(UUID tenantId, UUID userId, UUID templateId) {
+        deleteTemplateUseCase.execute(tenantId, userId, templateId);
     }
 }

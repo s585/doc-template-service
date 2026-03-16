@@ -37,6 +37,12 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
+    public void delete(UUID tenantId, UUID templateId) {
+        templateMappingRepository.deleteByTemplateId(tenantId, templateId);
+        templateRepository.deleteById(tenantId, templateId);
+    }
+
+    @Override
     public Optional<Template> findById(UUID tenantId, UUID templateId) {
         return templateRepository.findById(tenantId, templateId);
     }

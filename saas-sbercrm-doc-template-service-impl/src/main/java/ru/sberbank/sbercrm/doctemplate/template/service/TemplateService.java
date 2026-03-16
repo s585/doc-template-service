@@ -14,6 +14,8 @@ public interface TemplateService {
 
     Template update(UUID tenantId, Template template);
 
+    void delete(UUID tenantId, UUID templateId);
+
     Optional<Template> findById(UUID tenantId, UUID templateId);
 
     Optional<Template> findAggregateById(UUID tenantId, UUID templateId);

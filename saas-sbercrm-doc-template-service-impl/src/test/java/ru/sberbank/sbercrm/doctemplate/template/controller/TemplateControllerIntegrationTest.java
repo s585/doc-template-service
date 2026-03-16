@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -306,6 +307,54 @@ class TemplateControllerIntegrationTest {
             .isEqualTo(updatedGeneratedFileName);
 
         assertThat(response.getName()).isEqualTo(updatedName);
+        verifyNoMoreInteractions(fileStorageClient);
+    }
+
+    @Test
+    @DisplayName("Удаление шаблона удаляет файл и записи шаблона")
+    void givenExistingTemplate_whenDeleteTemplate_thenDeleteTemplateAndFile() throws Exception {
+        // given
+        String templateName = "Шаблон на удаление";
+        String templateCode = "SUPPLY_CONTRACT_DELETE";
+        String templateS3Key = "templates/" + ENTITY_ID + "/delete.docx";
+        Template createdTemplate = templateService.create(
+            TENANT_ID,
+            Template.builder()
+                .entityId(ENTITY_ID)
+                .name(templateName)
+                .code(templateCode)
+                .description("Шаблон для удаления")
+                .format(TemplateFormat.DOCX)
+                .s3Key(templateS3Key)
+                .active(true)
+                .createdBy(USER_ID)
+                .updatedBy(USER_ID)
+                .build()
+        );
+        templateService.createMappings(
+            TENANT_ID,
+            createdTemplate.getId(),
+            USER_ID,
+            List.of(
+                TemplateMapping.builder()
+                    .key("delete_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+        String fileStorageSource = "doc-template-service";
+
+        // when
+        mockMvc.perform(
+                delete("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isNoContent());
+
+        // then
+        assertThat(templateService.findAggregateById(TENANT_ID, createdTemplate.getId())).isEmpty();
+        verify(fileStorageClient).deleteFile(fileStorageSource, templateS3Key, TENANT_ID, USER_ID);
         verifyNoMoreInteractions(fileStorageClient);
     }
 }

@@ -11,4 +11,6 @@ public interface TemplateWebAdapter {
     TemplateRs importTemplate(UUID tenantId, UUID userId, TemplateCreationRq request, MultipartFile file);
 
     TemplateRs updateTemplate(UUID tenantId, UUID userId, UUID templateId, TemplateUpdateRq request);
+
+    void deleteTemplate(UUID tenantId, UUID userId, UUID templateId);
 }
