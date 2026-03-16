@@ -9,6 +9,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.sberbank.sbercrm.doctemplate.common.exception.BusinessCrmException;
+import ru.sberbank.sbercrm.doctemplate.common.exception.NotFoundCrmException;
 import ru.sberbank.sbercrm.doctemplate.common.exception.SystemCrmException;
 
 import java.io.Serializable;
@@ -19,6 +20,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CrmExceptionHandler {
     private final MessageSource messageSource;
+
+    @ExceptionHandler(NotFoundCrmException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundCrmException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(ex));
+    }
 
     @ExceptionHandler(BusinessCrmException.class)
     public ResponseEntity<Map<String, Object>> handleBusiness(BusinessCrmException ex) {

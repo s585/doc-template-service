@@ -10,8 +10,8 @@ import ru.sberbank.sbercrm.doctemplate.template.repository.TemplateMappingReposi
 import ru.sberbank.sbercrm.doctemplate.template.repository.TemplateRepository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,13 +32,28 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
-    public Template getAggregateById(UUID tenantId, UUID templateId) {
-        return templateRepository.findById(tenantId, templateId)
-                .orElseThrow(() -> new BusinessCrmException("No data found"));
+    public Template update(UUID tenantId, Template template) {
+        return templateRepository.update(tenantId, template);
+    }
+
+    @Override
+    public Optional<Template> findById(UUID tenantId, UUID templateId) {
+        return templateRepository.findById(tenantId, templateId);
+    }
+
+    @Override
+    public Optional<Template> findAggregateById(UUID tenantId, UUID templateId) {
+        return templateRepository.findById(tenantId, templateId);
     }
 
     @Override
     public void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
+        templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
+    }
+
+    @Override
+    public void replaceMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
+        templateMappingRepository.deleteByTemplateId(tenantId, templateId);
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
     }
 

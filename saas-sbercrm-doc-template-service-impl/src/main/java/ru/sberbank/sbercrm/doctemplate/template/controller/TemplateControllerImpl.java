@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.doctemplate.template.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.annotation.PathVariable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,12 +39,17 @@ public class TemplateControllerImpl implements TemplateController {
     }
 
     @Override
-    public TemplateRs updateTemplate(UUID templateId, TemplateUpdateRq request) {
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Update template is not implemented yet");
+    public TemplateRs updateTemplate(@PathVariable("templateId") UUID templateId, TemplateUpdateRq request) {
+        return templateWebAdapter.updateTemplate(
+            getRequiredUuidHeader(TENANT_ID_HEADER),
+            getRequiredUuidHeader(USER_ID_HEADER),
+            templateId,
+            request
+        );
     }
 
     @Override
-    public void deleteTemplate(UUID templateId) {
+    public void deleteTemplate(@PathVariable("templateId") UUID templateId) {
         throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Delete template is not implemented yet");
     }
 

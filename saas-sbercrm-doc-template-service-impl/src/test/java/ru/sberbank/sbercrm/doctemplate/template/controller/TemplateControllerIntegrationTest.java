@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -29,15 +30,22 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
+import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
 import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileRs;
 import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileStorageClient;
 import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FolderRs;
 import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateMappingKeys;
 import ru.sberbank.sbercrm.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMapping;
+import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.doctemplate.template.model.source.ConstantValueSource;
+import ru.sberbank.sbercrm.doctemplate.template.TemplateMappingDefinitionDto;
+import ru.sberbank.sbercrm.doctemplate.template.TemplateMappingDto;
+import ru.sberbank.sbercrm.doctemplate.rule.PrimitiveRuleDto;
+import ru.sberbank.sbercrm.doctemplate.template.source.ConstantValueSourceDto;
 import ru.sberbank.sbercrm.doctemplate.template.service.TemplateService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -67,7 +75,7 @@ class TemplateControllerIntegrationTest {
         // given
         String templateName = "Договор поставки";
         String templateDescription = "Тестовый шаблон";
-        String templateCode = "SUPPLY_CONTRACT";
+        String templateCode = "SUPPLY_CONTRACT_IMPORT";
         String templateFileName = "import-happy-path.docx";
         String fileStorageSource = "doc-template-service";
         String templateFolderPath = "/doc-template/" + ENTITY_ID;
@@ -137,11 +145,11 @@ class TemplateControllerIntegrationTest {
             )
             .andReturn()
             .getResponse()
-            .getContentAsString();
+            .getContentAsString(StandardCharsets.UTF_8);
         TemplateRs response = objectMapper.readValue(responseBody, TemplateRs.class);
 
         // then
-        Template savedTemplate = templateService.getAggregateById(TENANT_ID, response.getId());
+        Template savedTemplate = templateService.findAggregateById(TENANT_ID, response.getId()).orElseThrow();
         assertThat(savedTemplate.getName()).isEqualTo(templateName);
         assertThat(savedTemplate.getCode()).isEqualTo(templateCode);
         assertThat(savedTemplate.getS3Key()).isEqualTo(expectedS3Key);
@@ -179,6 +187,125 @@ class TemplateControllerIntegrationTest {
         verify(fileStorageClient).getFolder(fileStorageSource, templateFolderPath, TENANT_ID, USER_ID);
         verify(fileStorageClient).upload(eq(fileStorageSource), any(), any(), eq(TENANT_ID), eq(USER_ID));
         verifyNoMoreInteractions(fileStorageClient);
-        assertThat(responseBody).contains(templateCode);
+        assertThat(response.getCode()).isEqualTo(templateCode);
+    }
+
+    @Test
+    @DisplayName("Обновление шаблона заменяет метаданные и маппинги")
+    void givenExistingTemplate_whenUpdateTemplate_thenPersistUpdatedTemplateAndMappings() throws Exception {
+        // given
+        String initialName = "Исходный шаблон";
+        String initialCode = "SUPPLY_CONTRACT_UPDATE";
+        String initialS3Key = "templates/" + ENTITY_ID + "/initial.docx";
+        Template createdTemplate = templateService.create(
+            TENANT_ID,
+            Template.builder()
+                .entityId(ENTITY_ID)
+                .name(initialName)
+                .code(initialCode)
+                .description("Исходное описание")
+                .format(TemplateFormat.DOCX)
+                .s3Key(initialS3Key)
+                .active(true)
+                .createdBy(USER_ID)
+                .updatedBy(USER_ID)
+                .build()
+        );
+        templateService.createMappings(
+            TENANT_ID,
+            createdTemplate.getId(),
+            USER_ID,
+            List.of(
+                TemplateMapping.builder()
+                    .key("old_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+
+        String updatedName = "Обновленный шаблон";
+        String updatedDescription = "Обновленное описание";
+        String updatedGeneratedFileName = "Имя файла";
+        TemplateUpdateRq request = TemplateUpdateRq.builder()
+            .name(updatedName)
+            .description(updatedDescription)
+            .displayCondition(PrimitiveRuleDto.builder().value("true").build())
+            .active(false)
+            .templateMapping(
+                List.of(
+                    TemplateMappingDto.builder()
+                        .key(TemplateMappingKeys.GENERATED_FILE_NAME)
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.FILE_NAME.value())
+                                .type(TemplateValueType.STRING.value())
+                                .source(ConstantValueSourceDto.builder().value(updatedGeneratedFileName).build())
+                                .build()
+                        )
+                        .build(),
+                    TemplateMappingDto.builder()
+                        .key("customer_name")
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.VALUE.value())
+                                .build()
+                        )
+                        .build()
+                )
+            )
+            .build();
+
+        // when
+        String responseBody = mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(createdTemplate.getId().toString()))
+            .andExpect(jsonPath("$.name").value(updatedName))
+            .andExpect(jsonPath("$.description").value(updatedDescription))
+            .andExpect(jsonPath("$.code").value(initialCode))
+            .andExpect(jsonPath("$.s3Key").value(initialS3Key))
+            .andExpect(jsonPath("$.active").value(false))
+            .andExpect(jsonPath("$.templateMapping.length()").value(2))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+        TemplateRs response = objectMapper.readValue(responseBody, TemplateRs.class);
+
+        // then
+        Template updatedTemplate = templateService.findAggregateById(TENANT_ID, response.getId()).orElseThrow();
+        assertThat(updatedTemplate.getName()).isEqualTo(updatedName);
+        assertThat(updatedTemplate.getDescription()).isEqualTo(updatedDescription);
+        assertThat(updatedTemplate.getCode()).isEqualTo(initialCode);
+        assertThat(updatedTemplate.getS3Key()).isEqualTo(initialS3Key);
+        assertThat(updatedTemplate.getEntityId()).isEqualTo(ENTITY_ID);
+        assertThat(updatedTemplate.isActive()).isFalse();
+        assertThat(updatedTemplate.getDisplayCondition()).isNotNull();
+
+        List<TemplateMapping> mappings = updatedTemplate.getMappings();
+        assertThat(mappings).hasSize(2);
+        assertThat(mappings)
+            .extracting(TemplateMapping::getKey)
+            .containsExactlyInAnyOrder(TemplateMappingKeys.GENERATED_FILE_NAME, "customer_name");
+        assertThat(mappings)
+            .extracting(TemplateMapping::getKey)
+            .doesNotContain("old_variable");
+
+        TemplateMapping generatedFileNameMapping = mappings.stream()
+            .filter(mapping -> TemplateMappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
+            .findFirst()
+            .orElseThrow();
+        assertThat(generatedFileNameMapping.getDefinition().getScope()).isEqualTo(MappingScope.FILE_NAME);
+        assertThat(generatedFileNameMapping.getDefinition().getType()).isEqualTo(TemplateValueType.STRING);
+        assertThat(generatedFileNameMapping.getDefinition().getSource()).isInstanceOf(ConstantValueSource.class);
+        assertThat(((ConstantValueSource) generatedFileNameMapping.getDefinition().getSource()).getValue())
+            .isEqualTo(updatedGeneratedFileName);
+
+        assertThat(response.getName()).isEqualTo(updatedName);
+        verifyNoMoreInteractions(fileStorageClient);
     }
 }

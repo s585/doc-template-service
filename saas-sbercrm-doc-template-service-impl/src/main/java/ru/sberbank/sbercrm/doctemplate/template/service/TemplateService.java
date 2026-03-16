@@ -12,9 +12,15 @@ public interface TemplateService {
 
     Template create(UUID tenantId, Template template);
 
-    Template getAggregateById(UUID tenantId, UUID templateId);
+    Template update(UUID tenantId, Template template);
+
+    Optional<Template> findById(UUID tenantId, UUID templateId);
+
+    Optional<Template> findAggregateById(UUID tenantId, UUID templateId);
 
     void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings);
+
+    void replaceMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings);
 
     List<TemplateMapping> getMappings(UUID tenantId, UUID templateId);
 }

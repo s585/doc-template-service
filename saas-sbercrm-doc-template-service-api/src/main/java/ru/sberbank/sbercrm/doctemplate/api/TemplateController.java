@@ -69,7 +69,7 @@ public interface TemplateController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     TemplateRs updateTemplate(
-        @PathVariable UUID templateId,
+        @PathVariable("templateId") UUID templateId,
         @Valid @org.springframework.web.bind.annotation.RequestBody TemplateUpdateRq request
     );
 
@@ -80,7 +80,7 @@ public interface TemplateController {
     })
     @DeleteMapping("/v1/doc/template/{templateId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteTemplate(@PathVariable UUID templateId);
+    void deleteTemplate(@PathVariable("templateId") UUID templateId);
 
     @Operation(summary = "Получить список шаблонов")
     @ApiResponses({
