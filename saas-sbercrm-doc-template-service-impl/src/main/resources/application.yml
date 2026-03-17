@@ -10,6 +10,21 @@ spring:
     change-log: classpath:db/db.changelog-master.yaml
   jooq:
     sql-dialect: POSTGRES
+  cloud:
+    openfeign:
+      client:
+        config:
+          file-storage-client:
+            url: http://localhost:8081
+
+saas:
+  doc-template:
+    template:
+      variable:
+        placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'
+    file-storage:
+      source: "doc-template-service"
+      folder: "/doc-template"
 
 server:
   port: 8080

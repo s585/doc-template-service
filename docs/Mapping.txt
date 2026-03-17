@@ -1,0 +1,142 @@
+Основные вещи, которые стоит предусмотреть
+Поле lookup/master-detail
+Поле reference (когда оно поле текущего объекта)
+Поле reference (когда оно подтянулось с lookup) document.document_product
+Константа
++ форматирование
+Общая структура
+{
+  "id": "uuid",
+  "key": "string",
+  "type": "string", fileName / field / table /
+  "value": {
+    "type": "string", field / reference / constant
+    "format": "string", (или тут фиксировать формулу в формате date_trunc({$value$})
+    "source":{
+      "referenceTableId":"uuid",
+      "referenceFieldName":"string",
+      "path":"string",
+      "value":"string"
+    }
+  }
+}
+Структура RULE
+{
+  "op":"string", //операция сравнения
+  "type":"string", //operation ИЛИ primitive
+  "args":[
+    {
+      "op":"string",
+      "type":"string",
+      "path":"string", //путь через дот нотацию
+      "args":[{"type":"string", "value":"string"}]
+    }
+  ]
+}
+3.	Маппинг для константы (вычисляемого значения - даты)
+{
+  "id": "uuid",
+  "key": "sign_date",
+  "type": "field",
+  "value": {
+    "type": "constant",
+    "format": {
+      "op":"dateToString",
+      "type":"operation",
+      "args":[
+        {
+          "type":"primitive",
+          "value":"<<dd>> MON yyyy"
+        },
+        {
+          "type":"primitive",
+          "value":"$source"
+        },
+      ]
+    },
+    "source":{
+      "value":"${now()}"
+    }
+  }
+}
+4.	Маппинг для поля объекта
+{
+  "id": "uuid",
+  "key": "deal_num",
+  "type": "field",
+  "value": {
+    "type": "field",
+    "format": null,
+    "source":{
+      "type":"string",
+      "path":"source.doc_number"
+    }
+  }
+}
+
+Маппинг для лукапа поля (с предзаполнением, если поле пустое)
+{
+  "id": "uuid",
+  "key": "deal_num",
+  "type": "field",
+  "value": {
+    "type": "field",
+    "format": null,
+    "source":{
+      "type":"string"
+      "path":"source.organization$c.name",
+      "value":"-"
+    }
+  }
+}
+6.	Маппинг для reference поля
+{
+  "id": "uuid",
+  "key": "product_name",
+  "type": "table",
+  "value": {
+    "type": "reference",
+    "format": null,
+    "source":{
+      "type":"string",
+      "path":"reference.product.name"
+      "referencePath":"source.dealProduct$c"
+      "referenceTableId":"uuid",
+      "referenceFieldName":"deal$c",
+    }
+  }
+}
+7.	Маппинг для reference поля через лукап
+{
+  "id": "uuid",
+  "key": "storage_product_name",
+  "type": "table",
+  "value": {
+    "type": "reference",
+    "format": null,
+    "source":{
+      "type":"string",
+      "path":"reference.product.name"
+      "referencePath":"source.document$c.dealProduct$c"
+      "referenceTableId":"uuid",
+      "referenceFieldName":"document$c",
+    }
+  }
+}
+{
+  "id": "uuid",
+  "key": "storage_product_q",
+  "type": "table",
+  "value": {
+    "type": "reference",
+    "format": null,
+    "source":{
+      "type":"number",
+      "path":"reference.quantity"
+      "referencePath":"source.document$c.dealProduct$c"
+      "referenceTableId":"uuid",
+      "referenceFieldName":"document$c",
+    }
+  }
+}
+

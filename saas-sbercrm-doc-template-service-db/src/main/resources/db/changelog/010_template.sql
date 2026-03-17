@@ -7,11 +7,12 @@ CREATE TABLE IF NOT EXISTS t_template (
 
   entity_id    UUID NOT NULL,
   name         VARCHAR(255) NOT NULL,
-  system_name  VARCHAR(255) NOT NULL,
+  code         VARCHAR(255) NOT NULL,
+  description  TEXT,
   format       VARCHAR(32) NOT NULL,
   s3_key       TEXT NOT NULL,
-
-  status       VARCHAR(32) NOT NULL,
+  active       BOOLEAN NOT NULL,
+  display_condition JSONB,
 
   created_by   UUID,
   updated_by   UUID,
@@ -31,8 +32,19 @@ USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
 -- changeset codex:010_template_comments runOnChange:true
 COMMENT ON TABLE t_template IS
-'Template metadata. MVP: single current state (no versioning). User-facing: RLS by tenant_id.';
+'Метаданные шаблона. В рамках MVP хранится только одно актуальное состояние без версионирования. Для пользовательских операций применяется RLS по tenant_id.';
 
-COMMENT ON COLUMN t_template.tenant_id IS 'Tenant identifier for RLS isolation.';
-COMMENT ON COLUMN t_template.entity_id IS 'Identifier of business entity type this template belongs to.';
-COMMENT ON COLUMN t_template.s3_key IS 'S3 key of template binary (DOCX/XLSX).';
+COMMENT ON COLUMN t_template.id IS 'Идентификатор шаблона.';
+COMMENT ON COLUMN t_template.tenant_id IS 'Идентификатор тенанта для изоляции данных через RLS.';
+COMMENT ON COLUMN t_template.entity_id IS 'Идентификатор бизнес-сущности, к которой относится шаблон.';
+COMMENT ON COLUMN t_template.name IS 'Отображаемое название шаблона.';
+COMMENT ON COLUMN t_template.code IS 'Системный код шаблона.';
+COMMENT ON COLUMN t_template.description IS 'Описание шаблона.';
+COMMENT ON COLUMN t_template.format IS 'Формат бинарного файла шаблона.';
+COMMENT ON COLUMN t_template.s3_key IS 'Ключ файла шаблона в S3.';
+COMMENT ON COLUMN t_template.active IS 'Признак активности шаблона.';
+COMMENT ON COLUMN t_template.display_condition IS 'Условие отображения шаблона в формате JSON.';
+COMMENT ON COLUMN t_template.created_by IS 'Идентификатор пользователя, создавшего шаблон.';
+COMMENT ON COLUMN t_template.updated_by IS 'Идентификатор пользователя, последним обновившего шаблон.';
+COMMENT ON COLUMN t_template.created_at IS 'Дата и время создания шаблона.';
+COMMENT ON COLUMN t_template.updated_at IS 'Дата и время последнего обновления шаблона.';
