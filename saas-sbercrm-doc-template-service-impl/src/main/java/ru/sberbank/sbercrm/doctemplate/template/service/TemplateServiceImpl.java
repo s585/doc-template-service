@@ -2,8 +2,11 @@ package ru.sberbank.sbercrm.doctemplate.template.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
 import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
 import ru.sberbank.sbercrm.doctemplate.common.exception.BusinessCrmException;
+import ru.sberbank.sbercrm.doctemplate.common.model.PageResult;
 import ru.sberbank.sbercrm.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.doctemplate.template.repository.TemplateMappingRepository;
@@ -37,6 +40,7 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
+    @Transactional
     public void delete(UUID tenantId, UUID templateId) {
         templateMappingRepository.deleteByTemplateId(tenantId, templateId);
         templateRepository.deleteById(tenantId, templateId);
@@ -53,11 +57,20 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
+    public PageResult<Template> findAll(UUID tenantId, CommonRqDto request) {
+        return PageResult.<Template>builder()
+            .data(templateRepository.findAll(tenantId, request))
+            .totalRecordsAmount(templateRepository.count(tenantId, request))
+            .build();
+    }
+
+    @Override
     public void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
     }
 
     @Override
+    @Transactional
     public void replaceMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
         templateMappingRepository.deleteByTemplateId(tenantId, templateId);
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);

@@ -1,6 +1,8 @@
 package ru.sberbank.sbercrm.doctemplate.template.adapter;
 
 import org.springframework.web.multipart.MultipartFile;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRsDto;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
@@ -13,4 +15,6 @@ public interface TemplateWebAdapter {
     TemplateRs updateTemplate(UUID tenantId, UUID userId, UUID templateId, TemplateUpdateRq request);
 
     void deleteTemplate(UUID tenantId, UUID userId, UUID templateId);
+
+    CommonRsDto listTemplates(UUID tenantId, CommonRqDto request);
 }

@@ -13,9 +13,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.util.*;
 
-/**
- * Просмотр списка пользователей.
- */
 @JsonPropertyOrder({"select", "filter", "sort", "paging", "itemsPerPage", "additionalItems"})
 @Data
 @Builder(toBuilder = true)

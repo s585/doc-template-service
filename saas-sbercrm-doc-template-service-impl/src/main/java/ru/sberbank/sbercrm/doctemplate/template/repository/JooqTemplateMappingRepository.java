@@ -27,7 +27,7 @@ public class JooqTemplateMappingRepository implements TemplateMappingRepository 
                 T_TEMPLATE_MAPPING.TENANT_ID.eq(tenantId),
                 T_TEMPLATE_MAPPING.TEMPLATE_ID.eq(templateId)
             )
-            .fetch(templateMappingRecordConverter::convert);
+            .fetch(templateMappingRecordConverter);
     }
 
     @Override

@@ -11,6 +11,7 @@ import ru.sberbank.sbercrm.doctemplate.api.TemplateController;
 import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
 import ru.sberbank.sbercrm.doctemplate.common.exception.BusinessCrmException;
 import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRsDto;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
@@ -58,12 +59,12 @@ public class TemplateControllerImpl implements TemplateController {
     }
 
     @Override
-    public List<TemplateRs> listTemplates(CommonRqDto request) {
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "List templates is not implemented yet");
+    public CommonRsDto listTemplates(CommonRqDto request) {
+        return templateWebAdapter.listTemplates(getRequiredUuidHeader(TENANT_ID_HEADER), request);
     }
 
     @Override
-    public List<TemplateRs> listAvailableTemplates(UUID entityId, UUID objectId) {
+    public CommonRsDto listAvailableTemplates(UUID entityId, UUID objectId) {
         throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "List available templates is not implemented yet");
     }
 

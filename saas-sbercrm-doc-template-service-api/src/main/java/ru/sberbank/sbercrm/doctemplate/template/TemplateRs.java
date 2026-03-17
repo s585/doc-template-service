@@ -36,7 +36,7 @@ import java.util.UUID;
     "displayCondition",
     "entityId",
     "active",
-    "templateMapping",
+    "mappings",
     "createdAt",
     "createdBy",
     "updatedAt",
@@ -86,7 +86,7 @@ public class TemplateRs implements Serializable {
     @Valid
     @Builder.Default
     @ArraySchema(schema = @Schema(description = "Маппинги переменных шаблона"))
-    private List<TemplateMappingDto> templateMapping = new ArrayList<>();
+    private List<TemplateMappingDto> mappings = new ArrayList<>();
 
     @NotNull
     @Schema(description = "Дата и время создания шаблона", example = "2026-03-10T12:30:00+03:00")

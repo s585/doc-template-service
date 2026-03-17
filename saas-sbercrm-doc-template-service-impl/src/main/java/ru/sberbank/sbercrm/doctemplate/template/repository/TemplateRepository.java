@@ -16,6 +16,8 @@ public interface TemplateRepository {
 
     List<Template> findAll(UUID tenantId, CommonRqDto request);
 
+    long count(UUID tenantId, CommonRqDto request);
+
     List<Template> findAllByEntityId(UUID tenantId, UUID entityId);
 
     boolean existsByCode(UUID tenantId, String code, UUID excludedTemplateId);

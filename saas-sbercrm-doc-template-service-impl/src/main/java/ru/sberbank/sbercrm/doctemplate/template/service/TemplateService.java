@@ -1,5 +1,7 @@
 package ru.sberbank.sbercrm.doctemplate.template.service;
 
+import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.model.PageResult;
 import ru.sberbank.sbercrm.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMapping;
 
@@ -19,6 +21,8 @@ public interface TemplateService {
     Optional<Template> findById(UUID tenantId, UUID templateId);
 
     Optional<Template> findAggregateById(UUID tenantId, UUID templateId);
+
+    PageResult<Template> findAll(UUID tenantId, CommonRqDto request);
 
     void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings);
 

@@ -1,7 +1,6 @@
 package ru.sberbank.sbercrm.doctemplate.api;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -19,11 +18,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRsDto;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
 
-import java.util.List;
 import java.util.UUID;
 
 @Tag(
@@ -87,9 +86,7 @@ public interface TemplateController {
         @ApiResponse(
             responseCode = "200",
             description = "Список шаблонов",
-            content = @Content(
-                array = @ArraySchema(schema = @Schema(implementation = TemplateRs.class))
-            )
+            content = @Content(schema = @Schema(implementation = CommonRsDto.class))
         ),
         @ApiResponse(responseCode = "400", description = "Некорректный запрос списка")
     })
@@ -98,7 +95,7 @@ public interface TemplateController {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
     )
-    List<TemplateRs> listTemplates(
+    CommonRsDto listTemplates(
         @Valid
         @RequestBody(description = "Параметры фильтрации, сортировки и пагинации")
         @org.springframework.web.bind.annotation.RequestBody CommonRqDto request
@@ -109,9 +106,7 @@ public interface TemplateController {
         @ApiResponse(
             responseCode = "200",
             description = "Список доступных шаблонов",
-            content = @Content(
-                array = @ArraySchema(schema = @Schema(implementation = TemplateRs.class))
-            )
+            content = @Content(schema = @Schema(implementation = CommonRsDto.class))
         ),
         @ApiResponse(responseCode = "404", description = "Сущность или объект не найдены")
     })
@@ -119,7 +114,7 @@ public interface TemplateController {
         value = "/v1/doc/{entityId}/{objectId}/template/list",
         produces = MediaType.APPLICATION_JSON_VALUE
     )
-    List<TemplateRs> listAvailableTemplates(
+    CommonRsDto listAvailableTemplates(
         @PathVariable UUID entityId,
         @PathVariable UUID objectId
     );

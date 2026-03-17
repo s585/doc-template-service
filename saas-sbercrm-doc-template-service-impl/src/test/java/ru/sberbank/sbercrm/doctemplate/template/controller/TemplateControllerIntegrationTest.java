@@ -29,6 +29,11 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.CommonRsDto;
+import ru.sberbank.sbercrm.doctemplate.common.FilterDto;
+import ru.sberbank.sbercrm.doctemplate.common.PagingRqDto;
+import ru.sberbank.sbercrm.doctemplate.common.SortTypeDto;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
@@ -133,10 +138,10 @@ class TemplateControllerIntegrationTest {
             .andExpect(jsonPath("$.active").value(true))
             .andExpect(jsonPath("$.s3Key").value(expectedS3Key))
             .andExpect(jsonPath("$.displayCondition").doesNotExist())
-            .andExpect(jsonPath("$.templateMapping.length()").value(3))
+            .andExpect(jsonPath("$.mappings.length()").value(3))
             .andExpect(
                 jsonPath(
-                    "$.templateMapping[*].key",
+                    "$.mappings[*].key",
                     containsInAnyOrder(
                         TemplateMappingKeys.GENERATED_FILE_NAME,
                         "deal_number",
@@ -232,7 +237,7 @@ class TemplateControllerIntegrationTest {
             .description(updatedDescription)
             .displayCondition(PrimitiveRuleDto.builder().value("true").build())
             .active(false)
-            .templateMapping(
+            .mappings(
                 List.of(
                     TemplateMappingDto.builder()
                         .key(TemplateMappingKeys.GENERATED_FILE_NAME)
@@ -271,7 +276,7 @@ class TemplateControllerIntegrationTest {
             .andExpect(jsonPath("$.code").value(initialCode))
             .andExpect(jsonPath("$.s3Key").value(initialS3Key))
             .andExpect(jsonPath("$.active").value(false))
-            .andExpect(jsonPath("$.templateMapping.length()").value(2))
+            .andExpect(jsonPath("$.mappings.length()").value(2))
             .andReturn()
             .getResponse()
             .getContentAsString(StandardCharsets.UTF_8);
@@ -355,6 +360,105 @@ class TemplateControllerIntegrationTest {
         // then
         assertThat(templateService.findAggregateById(TENANT_ID, createdTemplate.getId())).isEmpty();
         verify(fileStorageClient).deleteFile(fileStorageSource, templateS3Key, TENANT_ID, USER_ID);
+        verifyNoMoreInteractions(fileStorageClient);
+    }
+
+    @Test
+    @DisplayName("Список шаблонов возвращает отфильтрованные и отсортированные шаблоны")
+    void givenTemplates_whenListTemplates_thenReturnFilteredAndSortedTemplates() throws Exception {
+        // given
+        UUID listEntityId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+        Template alphaTemplate = templateService.create(
+            TENANT_ID,
+            Template.builder()
+                .entityId(listEntityId)
+                .name("Альфа")
+                .code("LIST_ALPHA")
+                .description("Первый")
+                .format(TemplateFormat.DOCX)
+                .s3Key("templates/" + ENTITY_ID + "/alpha.docx")
+                .active(true)
+                .createdBy(USER_ID)
+                .updatedBy(USER_ID)
+                .build()
+        );
+        Template betaTemplate = templateService.create(
+            TENANT_ID,
+            Template.builder()
+                .entityId(listEntityId)
+                .name("Бета")
+                .code("LIST_BETA")
+                .description("Второй")
+                .format(TemplateFormat.DOCX)
+                .s3Key("templates/" + ENTITY_ID + "/beta.docx")
+                .active(true)
+                .createdBy(USER_ID)
+                .updatedBy(USER_ID)
+                .build()
+        );
+        templateService.create(
+            TENANT_ID,
+            Template.builder()
+                .entityId(listEntityId)
+                .name("Гамма")
+                .code("LIST_GAMMA")
+                .description("Третий")
+                .format(TemplateFormat.DOCX)
+                .s3Key("templates/" + ENTITY_ID + "/gamma.docx")
+                .active(false)
+                .createdBy(USER_ID)
+                .updatedBy(USER_ID)
+                .build()
+        );
+
+        CommonRqDto request = CommonRqDto.builder()
+            .paging(PagingRqDto.builder().page(0).size(2).build())
+            .sort(List.of(SortTypeDto.builder().field("name").direction(SortTypeDto.Direction.DESC).build()))
+            .filter(
+                java.util.Set.of(
+                    FilterDto.builder()
+                        .field("active")
+                        .operation(FilterDto.Operation.EQUAL)
+                        .value(List.of(true))
+                        .build(),
+                    FilterDto.builder()
+                        .field("entityId")
+                        .operation(FilterDto.Operation.EQUAL)
+                        .value(List.of(listEntityId))
+                        .build()
+                )
+            )
+            .build();
+
+        // when
+        String responseBody = mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/v1/doc/template/list")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.length()").value(2))
+            .andExpect(jsonPath("$.data[0].id").value(betaTemplate.getId().toString()))
+            .andExpect(jsonPath("$.data[0].name").value("Бета"))
+            .andExpect(jsonPath("$.data[1].id").value(alphaTemplate.getId().toString()))
+            .andExpect(jsonPath("$.data[1].name").value("Альфа"))
+            .andExpect(jsonPath("$.paging.currentPage").value(0))
+            .andExpect(jsonPath("$.paging.recordsOnPage").value(2))
+            .andExpect(jsonPath("$.paging.totalRecordsAmount").value(2))
+            .andExpect(jsonPath("$.paging.totalPageAmount").value(1))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+        CommonRsDto response = objectMapper.readValue(responseBody, CommonRsDto.class);
+        @SuppressWarnings("unchecked")
+        List<java.util.Map<String, Object>> data = (List<java.util.Map<String, Object>>) response.getData();
+
+        // then
+        assertThat(data).hasSize(2);
+        assertThat(data.get(0).get("id")).isEqualTo(betaTemplate.getId().toString());
+        assertThat(data.get(1).get("id")).isEqualTo(alphaTemplate.getId().toString());
         verifyNoMoreInteractions(fileStorageClient);
     }
 }

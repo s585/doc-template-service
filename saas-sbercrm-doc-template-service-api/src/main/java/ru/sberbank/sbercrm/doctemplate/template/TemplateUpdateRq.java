@@ -25,7 +25,7 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"name", "description", "displayCondition", "active", "templateMapping"})
+@JsonPropertyOrder({"name", "description", "displayCondition", "active", "mappings"})
 @Schema(description = "Запрос на полное обновление шаблона")
 public class TemplateUpdateRq implements Serializable {
     private static final long serialVersionUID = 4640994087951262490L;
@@ -49,5 +49,5 @@ public class TemplateUpdateRq implements Serializable {
     @Builder.Default
     @NotNull
     @ArraySchema(schema = @Schema(description = "Маппинги переменных шаблона"))
-    private List<TemplateMappingDto> templateMapping = new ArrayList<>();
+    private List<TemplateMappingDto> mappings = new ArrayList<>();
 }

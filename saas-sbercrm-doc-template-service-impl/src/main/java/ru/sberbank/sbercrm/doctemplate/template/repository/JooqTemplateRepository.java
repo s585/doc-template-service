@@ -33,7 +33,7 @@ public class JooqTemplateRepository implements TemplateRepository {
 
     @Override
     public Template create(UUID tenantId, Template template) {
-        return templateRecordConverter.convert(
+        return templateRecordConverter.map(
             dslContext.insertInto(T_TEMPLATE)
                 .set(T_TEMPLATE.TENANT_ID, tenantId)
                 .set(T_TEMPLATE.ENTITY_ID, template.getEntityId())
@@ -53,7 +53,7 @@ public class JooqTemplateRepository implements TemplateRepository {
 
     @Override
     public Template update(UUID tenantId, Template template) {
-        return templateRecordConverter.convert(
+        return templateRecordConverter.map(
             dslContext.update(T_TEMPLATE)
                 .set(T_TEMPLATE.ENTITY_ID, template.getEntityId())
                 .set(T_TEMPLATE.NAME, template.getName())
@@ -83,7 +83,7 @@ public class JooqTemplateRepository implements TemplateRepository {
                     T_TEMPLATE_MAPPING.TENANT_ID.eq(T_TEMPLATE.TENANT_ID),
                     T_TEMPLATE_MAPPING.TEMPLATE_ID.eq(T_TEMPLATE.ID)
                 )
-        ).convertFrom(result -> result.map(templateMappingRecordConverter::convert));
+        ).convertFrom(result -> result.map(templateMappingRecordConverter));
 
         return dslContext.select(
                 T_TEMPLATE.fields()
@@ -96,7 +96,7 @@ public class JooqTemplateRepository implements TemplateRepository {
             )
             .fetchOptional()
             .map(record -> {
-                Template template = templateRecordConverter.convert(record);
+                Template template = templateRecordConverter.map(record);
                 template.setMappings(record.get(mappingsField));
                 return template;
             });
@@ -112,7 +112,18 @@ public class JooqTemplateRepository implements TemplateRepository {
             .orderBy(jooqQueryBuilder.buildOrderBy(request.getSort(), TemplateJooqFieldMappings.FIELDS))
             .limit(jooqQueryBuilder.buildLimit(request))
             .offset(jooqQueryBuilder.buildOffset(request))
-            .fetch(templateRecordConverter::convert);
+            .fetch(templateRecordConverter);
+    }
+
+    @Override
+    public long count(UUID tenantId, CommonRqDto request) {
+        Condition condition = T_TEMPLATE.TENANT_ID.eq(tenantId)
+            .and(jooqQueryBuilder.buildCondition(request.getFilter(), TemplateJooqFieldMappings.FIELDS));
+
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_TEMPLATE)
+                .where(condition)
+        );
     }
 
     @Override
@@ -122,7 +133,7 @@ public class JooqTemplateRepository implements TemplateRepository {
                 T_TEMPLATE.TENANT_ID.eq(tenantId),
                 T_TEMPLATE.ENTITY_ID.eq(entityId)
             )
-            .fetch(templateRecordConverter::convert);
+            .fetch(templateRecordConverter);
     }
 
     @Override
