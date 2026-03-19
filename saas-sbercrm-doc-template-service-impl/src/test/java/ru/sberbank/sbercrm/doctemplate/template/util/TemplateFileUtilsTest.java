@@ -13,9 +13,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
-import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
-import ru.sberbank.sbercrm.doctemplate.common.exception.BusinessCrmException;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateFormat;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
+import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateFileUtilsTest {
@@ -50,7 +52,7 @@ class TemplateFileUtilsTest {
             .isInstanceOf(BusinessCrmException.class)
             .satisfies(ex -> {
                 BusinessCrmException exception = (BusinessCrmException) ex;
-                assertThat(exception.getCode()).isEqualTo(CrmErrorCodes.TEMPLATE_FORMAT_UNSUPPORTED);
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FORMAT_UNSUPPORTED);
                 assertThat(exception.getParams()).containsExactly("pdf");
             });
     }
@@ -64,7 +66,7 @@ class TemplateFileUtilsTest {
         // expected
         assertThatThrownBy(() -> TemplateFileUtils.resolveOriginalFileName(multipartFile))
             .isInstanceOf(BusinessCrmException.class)
-            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(CrmErrorCodes.TEMPLATE_FILE_INVALID));
+            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID));
     }
 
     @Test
@@ -76,6 +78,6 @@ class TemplateFileUtilsTest {
         // expected
         assertThatThrownBy(() -> TemplateFileUtils.readBytes(multipartFile))
             .isInstanceOf(BusinessCrmException.class)
-            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(CrmErrorCodes.TEMPLATE_FILE_INVALID));
+            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID));
     }
 }

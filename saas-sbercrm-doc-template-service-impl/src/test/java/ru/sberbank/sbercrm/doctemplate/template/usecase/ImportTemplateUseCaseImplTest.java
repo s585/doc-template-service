@@ -18,18 +18,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
-import ru.sberbank.sbercrm.doctemplate.common.exception.BusinessCrmException;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileRs;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileStorageAdapter;
-import ru.sberbank.sbercrm.doctemplate.template.config.TemplateProperties;
-import ru.sberbank.sbercrm.doctemplate.template.model.MappingScope;
-import ru.sberbank.sbercrm.doctemplate.template.model.Template;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateCreationCmd;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateFormat;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateVariableInfo;
-import ru.sberbank.sbercrm.doctemplate.template.processor.TemplateProcessingFacade;
-import ru.sberbank.sbercrm.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileRs;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
+import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.ImportTemplateUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
 class ImportTemplateUseCaseImplTest {
@@ -40,7 +41,7 @@ class ImportTemplateUseCaseImplTest {
     private TemplateService templateService;
 
     @Mock
-    private FileStorageAdapter fileStorageAdapter;
+    private FileStorageGateway fileStorageGateway;
 
     @Mock
     private TemplateProcessingFacade templateProcessingFacade;
@@ -56,7 +57,7 @@ class ImportTemplateUseCaseImplTest {
         templateProperties.getFileStorage().setFolder("/doc-template");
         importTemplateUseCase = new ImportTemplateUseCaseImpl(
             templateService,
-            fileStorageAdapter,
+            fileStorageGateway,
             templateProperties,
             templateProcessingFacade
         );
@@ -85,13 +86,12 @@ class ImportTemplateUseCaseImplTest {
             .isInstanceOf(BusinessCrmException.class)
             .satisfies(ex -> {
                 BusinessCrmException exception = (BusinessCrmException) ex;
-                assertThat(exception.getCode()).isEqualTo(CrmErrorCodes.TEMPLATE_VARIABLE_INVALID);
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID);
                 assertThat(exception.getParams()).containsExactly("deal_number");
             });
 
         verify(templateService).checkCodeUnique(TENANT_ID, "CONTRACT", null);
-        verify(fileStorageAdapter, never()).ensureFolderExists(any(), any(), any());
-        verify(fileStorageAdapter, never()).upload(any(), any(), any(), any(), any(), any());
+        verify(fileStorageGateway, never()).upload(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -102,7 +102,7 @@ class ImportTemplateUseCaseImplTest {
         templateProperties.getFileStorage().setFolder("/doc-template");
         importTemplateUseCase = new ImportTemplateUseCaseImpl(
             templateService,
-            fileStorageAdapter,
+            fileStorageGateway,
             templateProperties,
             templateProcessingFacade
         );
@@ -124,7 +124,7 @@ class ImportTemplateUseCaseImplTest {
         );
         given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
             .willReturn(List.of(TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.VALUE).build()));
-        given(fileStorageAdapter.upload(any(), any(), any(), any(), any(), any()))
+        given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
             .willReturn(FileRs.builder().key(uploadedKey).build());
         given(templateService.create(eq(TENANT_ID), any()))
             .willThrow(new RuntimeException("db error"));
@@ -135,7 +135,7 @@ class ImportTemplateUseCaseImplTest {
             .hasMessage("db error");
 
         verify(templateService, never()).createMappings(any(), any(), any(), any());
-        verify(fileStorageAdapter).deleteFile(TENANT_ID, USER_ID, uploadedKey);
+        verify(fileStorageGateway).deleteFile(TENANT_ID, USER_ID, uploadedKey);
     }
 
     @Test
@@ -146,7 +146,7 @@ class ImportTemplateUseCaseImplTest {
         templateProperties.getFileStorage().setFolder("/doc-template");
         importTemplateUseCase = new ImportTemplateUseCaseImpl(
             templateService,
-            fileStorageAdapter,
+            fileStorageGateway,
             templateProperties,
             templateProcessingFacade
         );
@@ -165,12 +165,12 @@ class ImportTemplateUseCaseImplTest {
         );
         given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
             .willReturn(List.of());
-        given(fileStorageAdapter.upload(any(), any(), any(), any(), any(), any()))
+        given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
             .willReturn(FileRs.builder().key(uploadedKey).build());
         given(templateService.create(eq(TENANT_ID), any()))
             .willThrow(new RuntimeException("db error"));
         doThrow(new RuntimeException("cleanup error"))
-            .when(fileStorageAdapter).deleteFile(TENANT_ID, USER_ID, uploadedKey);
+            .when(fileStorageGateway).deleteFile(TENANT_ID, USER_ID, uploadedKey);
 
         // expected
         assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))

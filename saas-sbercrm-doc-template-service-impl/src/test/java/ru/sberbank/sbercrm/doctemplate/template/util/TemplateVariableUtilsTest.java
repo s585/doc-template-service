@@ -6,8 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
-import ru.sberbank.sbercrm.doctemplate.common.exception.SystemCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateVariableUtils;
 
 class TemplateVariableUtilsTest {
 
@@ -33,6 +35,6 @@ class TemplateVariableUtilsTest {
         // when // then
         assertThatThrownBy(() -> TemplateVariableUtils.compilePlaceholderPattern(placeholderRegex))
             .isInstanceOf(SystemCrmException.class)
-            .satisfies(ex -> assertThat(((SystemCrmException) ex).getCode()).isEqualTo(CrmErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID));
+            .satisfies(ex -> assertThat(((SystemCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID));
     }
 }

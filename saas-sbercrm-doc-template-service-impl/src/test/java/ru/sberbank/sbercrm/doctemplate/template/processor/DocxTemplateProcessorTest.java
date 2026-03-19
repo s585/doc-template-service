@@ -11,9 +11,10 @@ import org.apache.poi.xwpf.usermodel.XWPFFooter;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.doctemplate.template.config.TemplateProperties;
-import ru.sberbank.sbercrm.doctemplate.template.model.MappingScope;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.processor.DocxTemplateProcessor;
 
 class DocxTemplateProcessorTest {
 

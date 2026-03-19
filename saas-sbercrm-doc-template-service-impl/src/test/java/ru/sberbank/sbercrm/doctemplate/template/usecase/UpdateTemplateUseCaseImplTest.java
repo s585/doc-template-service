@@ -12,10 +12,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
-import ru.sberbank.sbercrm.doctemplate.common.exception.NotFoundCrmException;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateUpdateCmd;
-import ru.sberbank.sbercrm.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateUpdateCmd;
+import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.UpdateTemplateUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateTemplateUseCaseImplTest {
@@ -43,7 +45,7 @@ class UpdateTemplateUseCaseImplTest {
         assertThatThrownBy(() -> updateTemplateUseCase.execute(TENANT_ID, USER_ID, TEMPLATE_ID, request))
             .isInstanceOf(NotFoundCrmException.class)
             .satisfies(ex -> org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
-                .isEqualTo(CrmErrorCodes.TEMPLATE_NOT_FOUND));
+                .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND));
 
         verify(templateService).findById(TENANT_ID, TEMPLATE_ID);
         verify(templateService, never()).update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());

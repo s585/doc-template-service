@@ -13,10 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.sberbank.sbercrm.doctemplate.common.constant.CrmErrorCodes;
-import ru.sberbank.sbercrm.doctemplate.common.exception.NotFoundCrmException;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileStorageAdapter;
-import ru.sberbank.sbercrm.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.DeleteTemplateUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteTemplateUseCaseImplTest {
@@ -28,7 +30,7 @@ class DeleteTemplateUseCaseImplTest {
     private TemplateService templateService;
 
     @Mock
-    private FileStorageAdapter fileStorageAdapter;
+    private FileStorageGateway fileStorageGateway;
 
     @InjectMocks
     private DeleteTemplateUseCaseImpl deleteTemplateUseCase;
@@ -43,10 +45,10 @@ class DeleteTemplateUseCaseImplTest {
         assertThatThrownBy(() -> deleteTemplateUseCase.execute(TENANT_ID, USER_ID, TEMPLATE_ID))
             .isInstanceOf(NotFoundCrmException.class)
             .satisfies(ex -> org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
-                .isEqualTo(CrmErrorCodes.TEMPLATE_NOT_FOUND));
+                .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND));
 
         verify(templateService).findById(TENANT_ID, TEMPLATE_ID);
-        verify(fileStorageAdapter, never()).deleteFile(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(fileStorageGateway, never()).deleteFile(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
         verify(templateService, never()).delete(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }
