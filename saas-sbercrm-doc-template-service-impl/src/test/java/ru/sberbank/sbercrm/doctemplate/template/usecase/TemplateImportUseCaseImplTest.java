@@ -30,10 +30,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.ImportTemplateUseCaseImpl;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
-class ImportTemplateUseCaseImplTest {
+class TemplateImportUseCaseImplTest {
     private static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID ENTITY_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
@@ -47,7 +47,7 @@ class ImportTemplateUseCaseImplTest {
     private TemplateProcessingFacade templateProcessingFacade;
 
     @InjectMocks
-    private ImportTemplateUseCaseImpl importTemplateUseCase;
+    private TemplateImportUseCaseImpl importTemplateUseCase;
 
     @Test
     @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")
@@ -55,7 +55,7 @@ class ImportTemplateUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new ImportTemplateUseCaseImpl(
+        importTemplateUseCase = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,
@@ -100,7 +100,7 @@ class ImportTemplateUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new ImportTemplateUseCaseImpl(
+        importTemplateUseCase = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,
@@ -144,7 +144,7 @@ class ImportTemplateUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new ImportTemplateUseCaseImpl(
+        importTemplateUseCase = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,

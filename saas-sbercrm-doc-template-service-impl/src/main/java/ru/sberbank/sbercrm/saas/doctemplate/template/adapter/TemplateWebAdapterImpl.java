@@ -12,10 +12,10 @@ import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.DeleteTemplateUseCase;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.ImportTemplateUseCase;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.ListTemplatesUseCase;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.UpdateTemplateUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateListingUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateUpdateUseCase;
 
 import java.util.UUID;
 
@@ -23,10 +23,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TemplateWebAdapterImpl implements TemplateWebAdapter {
     private final TemplateConverter templateConverter;
-    private final ImportTemplateUseCase importTemplateUseCase;
-    private final UpdateTemplateUseCase updateTemplateUseCase;
-    private final DeleteTemplateUseCase deleteTemplateUseCase;
-    private final ListTemplatesUseCase listTemplatesUseCase;
+    private final TemplateImportUseCase importTemplateUseCase;
+    private final TemplateUpdateUseCase updateTemplateUseCase;
+    private final TemplateDeletionUseCase deleteTemplateUseCase;
+    private final TemplateListingUseCase listTemplatesUseCase;
 
     @Override
     public TemplateRs importTemplate(UUID tenantId, UUID userId, TemplateCreationRq request, MultipartFile file) {

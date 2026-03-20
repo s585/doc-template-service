@@ -6,6 +6,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 
 import java.util.UUID;
 
-public interface ListTemplatesUseCase {
+public interface TemplateListingUseCase {
     PageResult<Template> execute(UUID tenantId, CommonRqDto request);
 }

@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class ListTemplatesUseCaseImpl implements ListTemplatesUseCase {
+public class TemplateListingUseCaseImpl implements TemplateListingUseCase {
     private final TemplateService templateService;
 
     @Override

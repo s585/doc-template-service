@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class UpdateTemplateUseCaseImpl implements UpdateTemplateUseCase {
+public class TemplateUpdateUseCaseImpl implements TemplateUpdateUseCase {
     private final TemplateService templateService;
 
     @Override

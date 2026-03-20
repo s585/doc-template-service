@@ -6,6 +6,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 
 import java.util.UUID;
 
-public interface ImportTemplateUseCase {
+public interface TemplateImportUseCase {
     Template execute(UUID tenantId, UUID userId, TemplateCreationCmd request, MultipartFile file);
 }

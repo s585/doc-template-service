@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class DeleteTemplateUseCaseImpl implements DeleteTemplateUseCase {
+public class TemplateDeletionUseCaseImpl implements TemplateDeletionUseCase {
     private final TemplateService templateService;
     private final FileStorageGateway fileStorageGateway;
 

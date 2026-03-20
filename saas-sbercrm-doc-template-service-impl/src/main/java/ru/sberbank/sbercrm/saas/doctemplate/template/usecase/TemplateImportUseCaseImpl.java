@@ -35,7 +35,7 @@ import java.util.UUID;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class ImportTemplateUseCaseImpl implements ImportTemplateUseCase {
+public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     private final TemplateService templateService;
     private final FileStorageGateway fileStorageGateway;
     private final TemplateProperties templateProperties;
