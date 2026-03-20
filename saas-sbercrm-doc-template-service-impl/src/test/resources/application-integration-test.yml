@@ -1,0 +1,32 @@
+spring:
+  liquibase:
+    enabled: true
+    change-log: classpath:db/db.changelog-master.yaml
+  jooq:
+    sql-dialect: POSTGRES
+  cloud:
+    openfeign:
+      client:
+        config:
+          file-storage-client:
+            url: http://localhost:${wiremock.server.port}
+
+zonky:
+  test:
+    database:
+      type: postgres
+      provider: zonky
+      postgres:
+        initdb:
+          properties:
+            locale: C
+            encoding: UTF8
+
+saas:
+  doc-template:
+    file-storage:
+      source: doc-template-service
+      folder: /doc-template
+    template:
+      variable:
+        placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'

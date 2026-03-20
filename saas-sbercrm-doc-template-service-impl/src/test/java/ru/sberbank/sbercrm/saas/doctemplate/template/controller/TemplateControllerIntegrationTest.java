@@ -2,11 +2,6 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,9 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -37,9 +32,8 @@ import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -55,7 +49,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @AutoConfigureEmbeddedDatabase
-@ActiveProfiles("test")
+@AutoConfigureWireMock(port = 0)
+@ActiveProfiles("integration-test")
 class TemplateControllerIntegrationTest {
     private static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
@@ -69,9 +64,6 @@ class TemplateControllerIntegrationTest {
 
     @Autowired
     private TemplateService templateService;
-
-    @MockBean
-    private FileStorageClient fileStorageClient;
 
     @Test
     @DisplayName("Импорт шаблона сохраняет шаблон и маппинги на happy path")
@@ -103,15 +95,15 @@ class TemplateControllerIntegrationTest {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             new ClassPathResource("template/import-happy-path.docx").getContentAsByteArray()
         );
-        given(fileStorageClient.upload(eq(fileStorageSource), any(), any(), eq(TENANT_ID), eq(USER_ID)))
-            .willReturn(
-                FileRs.builder()
-                    .key(expectedS3Key)
-                    .path(templateFolderPath)
-                    .source(fileStorageSource)
-                    .fileName(templateFileName)
-                    .build()
-            );
+        FileStorageWireMock.stubUploadFile(
+            objectMapper,
+            TENANT_ID,
+            USER_ID,
+            fileStorageSource,
+            templateFolderPath,
+            templateFileName,
+            expectedS3Key
+        );
 
         // when
         String responseBody = mockMvc.perform(
@@ -180,8 +172,7 @@ class TemplateControllerIntegrationTest {
         assertThat(extractedMappings.get(1).getDefinition().getType()).isNull();
         assertThat(extractedMappings.get(1).getDefinition().getSource()).isNull();
 
-        verify(fileStorageClient).upload(eq(fileStorageSource), any(), any(), eq(TENANT_ID), eq(USER_ID));
-        verifyNoMoreInteractions(fileStorageClient);
+        FileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource);
         assertThat(response.getCode()).isEqualTo(templateCode);
     }
 
@@ -301,7 +292,6 @@ class TemplateControllerIntegrationTest {
             .isEqualTo(updatedGeneratedFileName);
 
         assertThat(response.getName()).isEqualTo(updatedName);
-        verifyNoMoreInteractions(fileStorageClient);
     }
 
     @Test
@@ -337,6 +327,7 @@ class TemplateControllerIntegrationTest {
             )
         );
         String fileStorageSource = "doc-template-service";
+        FileStorageWireMock.stubDeleteFile(TENANT_ID, USER_ID, fileStorageSource, templateS3Key);
 
         // when
         mockMvc.perform(
@@ -348,8 +339,7 @@ class TemplateControllerIntegrationTest {
 
         // then
         assertThat(templateService.findAggregateById(TENANT_ID, createdTemplate.getId())).isEmpty();
-        verify(fileStorageClient).deleteFile(fileStorageSource, templateS3Key, TENANT_ID, USER_ID);
-        verifyNoMoreInteractions(fileStorageClient);
+        FileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, templateS3Key);
     }
 
     @Test
@@ -448,6 +438,5 @@ class TemplateControllerIntegrationTest {
         assertThat(data).hasSize(2);
         assertThat(data.get(0).get("id")).isEqualTo(betaTemplate.getId().toString());
         assertThat(data.get(1).get("id")).isEqualTo(alphaTemplate.getId().toString());
-        verifyNoMoreInteractions(fileStorageClient);
     }
 }

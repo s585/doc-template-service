@@ -8,7 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureEmbeddedDatabase
-@ActiveProfiles("test")
+@ActiveProfiles("integration-test")
 class DocTemplateServiceApplicationTest {
   @Test
   void contextLoads() {
