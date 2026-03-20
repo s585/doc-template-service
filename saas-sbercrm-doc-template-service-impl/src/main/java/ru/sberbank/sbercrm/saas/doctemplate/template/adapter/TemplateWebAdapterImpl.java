@@ -1,0 +1,75 @@
+package ru.sberbank.sbercrm.saas.doctemplate.template.adapter;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateConverter;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateListingUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateUpdateUseCase;
+
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class TemplateWebAdapterImpl implements TemplateWebAdapter {
+    private final TemplateConverter templateConverter;
+    private final TemplateImportUseCase importTemplateUseCase;
+    private final TemplateUpdateUseCase updateTemplateUseCase;
+    private final TemplateDeletionUseCase deleteTemplateUseCase;
+    private final TemplateListingUseCase listTemplatesUseCase;
+
+    @Override
+    public TemplateRs importTemplate(UUID tenantId, UUID userId, TemplateCreationRq request, MultipartFile file) {
+        Template template = importTemplateUseCase.execute(
+            tenantId,
+            userId,
+            templateConverter.convertToModel(request),
+            file
+        );
+        return templateConverter.convertToRs(template);
+    }
+
+    @Override
+    public TemplateRs updateTemplate(UUID tenantId, UUID userId, UUID templateId, TemplateUpdateRq request) {
+        Template template = updateTemplateUseCase.execute(
+            tenantId,
+            userId,
+            templateId,
+            templateConverter.convertToModel(request)
+        );
+        return templateConverter.convertToRs(template);
+    }
+
+    @Override
+    public void deleteTemplate(UUID tenantId, UUID userId, UUID templateId) {
+        deleteTemplateUseCase.execute(tenantId, userId, templateId);
+    }
+
+    @Override
+    public CommonRsDto listTemplates(UUID tenantId, CommonRqDto request) {
+        PageResult<Template> result = listTemplatesUseCase.execute(tenantId, request);
+        long pageSize = request.getPaging().getSize();
+
+        return CommonRsDto.builder()
+            .data(result.getData().stream().map(templateConverter::convertToRs).toList())
+            .paging(
+                PagingRsDto.builder()
+                    .currentPage(request.getPaging().getPage().longValue())
+                    .recordsOnPage((long) result.getData().size())
+                    .totalRecordsAmount(result.getTotalRecordsAmount())
+                    .totalPageAmount(pageSize == 0 ? 0L : (result.getTotalRecordsAmount() + pageSize - 1) / pageSize)
+                    .build()
+            )
+            .build();
+    }
+}

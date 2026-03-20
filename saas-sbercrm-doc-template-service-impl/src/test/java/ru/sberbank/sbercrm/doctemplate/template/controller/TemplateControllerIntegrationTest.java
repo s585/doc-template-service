@@ -29,30 +29,28 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.sberbank.sbercrm.doctemplate.common.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.common.CommonRsDto;
-import ru.sberbank.sbercrm.doctemplate.common.FilterDto;
-import ru.sberbank.sbercrm.doctemplate.common.PagingRqDto;
-import ru.sberbank.sbercrm.doctemplate.common.SortTypeDto;
-import ru.sberbank.sbercrm.doctemplate.template.TemplateCreationRq;
-import ru.sberbank.sbercrm.doctemplate.template.TemplateRs;
-import ru.sberbank.sbercrm.doctemplate.template.TemplateUpdateRq;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileRs;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FileStorageClient;
-import ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage.FolderRs;
-import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateMappingKeys;
-import ru.sberbank.sbercrm.doctemplate.template.model.MappingScope;
-import ru.sberbank.sbercrm.doctemplate.template.model.Template;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateFormat;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMapping;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateMappingDefinition;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateValueType;
-import ru.sberbank.sbercrm.doctemplate.template.model.source.ConstantValueSource;
-import ru.sberbank.sbercrm.doctemplate.template.TemplateMappingDefinitionDto;
-import ru.sberbank.sbercrm.doctemplate.template.TemplateMappingDto;
-import ru.sberbank.sbercrm.doctemplate.rule.PrimitiveRuleDto;
-import ru.sberbank.sbercrm.doctemplate.template.source.ConstantValueSourceDto;
-import ru.sberbank.sbercrm.doctemplate.template.service.TemplateService;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileRs;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageClient;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDefinitionDto;
+import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDto;
+import ru.sberbank.sbercrm.doctemplate.template.dto.source.ConstantValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -105,14 +103,6 @@ class TemplateControllerIntegrationTest {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             new ClassPathResource("template/import-happy-path.docx").getContentAsByteArray()
         );
-        given(
-            fileStorageClient.getFolder(eq(fileStorageSource), eq(templateFolderPath), eq(TENANT_ID), eq(USER_ID))
-        ).willReturn(
-            FolderRs.builder()
-                .path(templateFolderPath)
-                .source(fileStorageSource)
-                .build()
-        );
         given(fileStorageClient.upload(eq(fileStorageSource), any(), any(), eq(TENANT_ID), eq(USER_ID)))
             .willReturn(
                 FileRs.builder()
@@ -143,7 +133,7 @@ class TemplateControllerIntegrationTest {
                 jsonPath(
                     "$.mappings[*].key",
                     containsInAnyOrder(
-                        TemplateMappingKeys.GENERATED_FILE_NAME,
+                        TemplateConstants.MappingKeys.GENERATED_FILE_NAME,
                         "deal_number",
                         "product_name"
                     )
@@ -165,10 +155,10 @@ class TemplateControllerIntegrationTest {
         assertThat(mappings).hasSize(3);
         assertThat(mappings)
             .extracting(TemplateMapping::getKey)
-            .containsExactlyInAnyOrder(TemplateMappingKeys.GENERATED_FILE_NAME, "deal_number", "product_name");
+            .containsExactlyInAnyOrder(TemplateConstants.MappingKeys.GENERATED_FILE_NAME, "deal_number", "product_name");
 
         TemplateMapping generatedFileNameMapping = mappings.stream()
-            .filter(mapping -> TemplateMappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
+            .filter(mapping -> TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
             .findFirst()
             .orElseThrow();
         assertThat(generatedFileNameMapping.getDefinition().getScope()).isEqualTo(MappingScope.FILE_NAME);
@@ -178,7 +168,7 @@ class TemplateControllerIntegrationTest {
             .isEqualTo(templateName);
 
         List<TemplateMapping> extractedMappings = mappings.stream()
-            .filter(mapping -> !TemplateMappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
+            .filter(mapping -> !TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
             .sorted(Comparator.comparing(TemplateMapping::getKey))
             .toList();
         assertThat(extractedMappings.get(0).getKey()).isEqualTo("deal_number");
@@ -190,7 +180,6 @@ class TemplateControllerIntegrationTest {
         assertThat(extractedMappings.get(1).getDefinition().getType()).isNull();
         assertThat(extractedMappings.get(1).getDefinition().getSource()).isNull();
 
-        verify(fileStorageClient).getFolder(fileStorageSource, templateFolderPath, TENANT_ID, USER_ID);
         verify(fileStorageClient).upload(eq(fileStorageSource), any(), any(), eq(TENANT_ID), eq(USER_ID));
         verifyNoMoreInteractions(fileStorageClient);
         assertThat(response.getCode()).isEqualTo(templateCode);
@@ -235,12 +224,12 @@ class TemplateControllerIntegrationTest {
         TemplateUpdateRq request = TemplateUpdateRq.builder()
             .name(updatedName)
             .description(updatedDescription)
-            .displayCondition(PrimitiveRuleDto.builder().value("true").build())
+            .displayCondition(FilterDto.builder().operation(FilterDto.Operation.TRUE).build())
             .active(false)
             .mappings(
                 List.of(
                     TemplateMappingDto.builder()
-                        .key(TemplateMappingKeys.GENERATED_FILE_NAME)
+                        .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.FILE_NAME.value())
@@ -296,13 +285,13 @@ class TemplateControllerIntegrationTest {
         assertThat(mappings).hasSize(2);
         assertThat(mappings)
             .extracting(TemplateMapping::getKey)
-            .containsExactlyInAnyOrder(TemplateMappingKeys.GENERATED_FILE_NAME, "customer_name");
+            .containsExactlyInAnyOrder(TemplateConstants.MappingKeys.GENERATED_FILE_NAME, "customer_name");
         assertThat(mappings)
             .extracting(TemplateMapping::getKey)
             .doesNotContain("old_variable");
 
         TemplateMapping generatedFileNameMapping = mappings.stream()
-            .filter(mapping -> TemplateMappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
+            .filter(mapping -> TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
             .findFirst()
             .orElseThrow();
         assertThat(generatedFileNameMapping.getDefinition().getScope()).isEqualTo(MappingScope.FILE_NAME);

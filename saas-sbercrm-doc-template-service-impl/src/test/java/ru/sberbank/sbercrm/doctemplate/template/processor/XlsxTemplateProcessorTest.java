@@ -8,9 +8,10 @@ import java.util.List;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.doctemplate.template.config.TemplateProperties;
-import ru.sberbank.sbercrm.doctemplate.template.model.MappingScope;
-import ru.sberbank.sbercrm.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.processor.XlsxTemplateProcessor;
 
 class XlsxTemplateProcessorTest {
 
