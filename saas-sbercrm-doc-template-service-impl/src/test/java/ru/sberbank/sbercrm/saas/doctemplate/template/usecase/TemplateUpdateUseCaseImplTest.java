@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.usecase;
+package ru.sberbank.sbercrm.saas.doctemplate.template.usecase;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;

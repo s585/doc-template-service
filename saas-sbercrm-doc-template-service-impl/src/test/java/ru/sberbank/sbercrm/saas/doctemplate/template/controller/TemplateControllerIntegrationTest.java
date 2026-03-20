@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.controller;
+package ru.sberbank.sbercrm.saas.doctemplate.template.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;

@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.processor;
+package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;

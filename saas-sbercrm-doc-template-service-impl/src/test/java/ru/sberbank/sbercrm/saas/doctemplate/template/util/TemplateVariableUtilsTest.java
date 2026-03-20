@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.util;
+package ru.sberbank.sbercrm.saas.doctemplate.template.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

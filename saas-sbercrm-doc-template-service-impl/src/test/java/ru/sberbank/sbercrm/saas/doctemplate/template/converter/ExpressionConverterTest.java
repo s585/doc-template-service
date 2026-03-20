@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.converter;
+package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;

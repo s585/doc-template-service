@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.shared.dto.helper;
+package ru.sberbank.sbercrm.saas.doctemplate.application.jooq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jooq.JSONB;

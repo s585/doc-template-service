@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm.doctemplate.template.adapter.filestorage;
+package ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage;
 
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;

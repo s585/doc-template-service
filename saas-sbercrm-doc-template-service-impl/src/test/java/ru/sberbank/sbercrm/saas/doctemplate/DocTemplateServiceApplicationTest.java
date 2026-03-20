@@ -1,4 +1,4 @@
-package ru.sberbank.sbercrm;
+package ru.sberbank.sbercrm.saas.doctemplate;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
