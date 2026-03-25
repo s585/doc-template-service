@@ -8,7 +8,6 @@ import lombok.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import ru.sberbank.sbercrm.doctemplate.shared.contract.HasField;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +24,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"field", "secondField", "value", "operation", "valueConverter"})
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class FilterDto implements Serializable, HasField {
-    private static final long serialVersionUID = 1160752734340956275L;
+public class FilterDto implements HasField {
     private static final String FIELD_NAME_REGEXP = "^[a-zA-Z0-9.$:^_]+";
     @Nullable
     @Schema(title = "Название поля", requiredMode = Schema.RequiredMode.NOT_REQUIRED)

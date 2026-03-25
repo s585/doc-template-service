@@ -45,17 +45,4 @@ public final class TemplateConstants {
             Map.entry("updatedBy", T_TEMPLATE.UPDATED_BY)
         );
     }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ExpressionJsonTypes {
-        public static final String OPERATION = "operation";
-        public static final String PRIMITIVE = "primitive";
-    }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ValueSourceJsonKinds {
-        public static final String DIRECT = "DIRECT";
-        public static final String REFERENCE = "REFERENCE";
-        public static final String CONSTANT = "CONSTANT";
-    }
 }

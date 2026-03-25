@@ -10,8 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
-
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -20,8 +18,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"page", "size"})
 @Schema(description = "Параметры пагинации запроса")
-public class PagingRqDto implements Serializable {
-    private static final long serialVersionUID = 7867444848483912495L;
+public class PagingRqDto {
 
     @NotNull
     @Schema(description = "Номер страницы, начиная с 0")

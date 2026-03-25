@@ -13,7 +13,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 @Data
@@ -24,8 +23,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"id", "key", "definition"})
 @Schema(description = "Маппинг переменной шаблона: определяет область применения и способ получения значения")
-public class TemplateMappingDto implements Serializable {
-    private static final long serialVersionUID = 3888013418710878195L;
+public class TemplateMappingDto {
 
     @Schema(description = "Идентификатор маппинга")
     @Nullable

@@ -14,7 +14,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +25,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"name", "description", "displayCondition", "active", "mappings"})
 @Schema(description = "Запрос на полное обновление шаблона")
-public class TemplateUpdateRq implements Serializable {
-    private static final long serialVersionUID = 4640994087951262490L;
+public class TemplateUpdateRq {
 
     @NotBlank
     @Schema(description = "Название шаблона")

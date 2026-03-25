@@ -12,27 +12,24 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import static ru.sberbank.sbercrm.doctemplate.template.dto.source.ValueSourceDto.SourceKind.REFERENCE;
 
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(REFERENCE)
+@JsonTypeName(TemplateApiConstants.ValueSourceJsonKinds.REFERENCE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"kind", "targetPath", "entityId", "referenceFieldName", "referenceValuePath", "path", "sort", "paging"})
 @Schema(description = "Источник значения, которое загружается отдельным запросом по обратной ссылке")
-public class ReferenceValueSourceDto implements ValueSourceDto, Serializable {
-    private static final long serialVersionUID = 6995429950117882487L;
+public class ReferenceValueSourceDto implements ValueSourceDto {
 
     @NotBlank
     @Schema(description = "Путь обогащаемого узла исходного объекта", example = "source.document$c.dealProduct$c")
@@ -66,6 +63,6 @@ public class ReferenceValueSourceDto implements ValueSourceDto, Serializable {
 
     @Override
     public String getKind() {
-        return REFERENCE;
+        return TemplateApiConstants.ValueSourceJsonKinds.REFERENCE;
     }
 }

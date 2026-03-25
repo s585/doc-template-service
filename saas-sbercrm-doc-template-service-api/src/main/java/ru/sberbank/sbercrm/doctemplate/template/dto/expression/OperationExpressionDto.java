@@ -11,24 +11,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
-import static ru.sberbank.sbercrm.doctemplate.template.dto.expression.ExpressionDto.ExpressionNodeType.OPERATION;
 
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(OPERATION)
+@JsonTypeName(TemplateApiConstants.ExpressionJsonTypes.OPERATION)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"type", "op", "args"})
 @Schema(description = "Узел expression с оператором и аргументами")
-public class OperationExpressionDto implements ExpressionDto, Serializable {
-    private static final long serialVersionUID = -2138053519443683980L;
+public class OperationExpressionDto implements ExpressionDto {
 
     @Schema(description = "Оператор expression")
     @NotBlank
@@ -41,6 +38,6 @@ public class OperationExpressionDto implements ExpressionDto, Serializable {
 
     @Override
     public String getType() {
-        return OPERATION;
+        return TemplateApiConstants.ExpressionJsonTypes.OPERATION;
     }
 }

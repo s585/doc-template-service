@@ -13,7 +13,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.Business
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 
-import java.io.Serializable;
 import java.util.Map;
 
 @Slf4j
@@ -39,7 +38,7 @@ public class CrmExceptionHandler {
     }
 
     private Map<String, Object> errorBody(AbstractCrmException ex) {
-        Serializable[] params = ex.getParams() == null ? new Serializable[0] : ex.getParams();
+        Object[] params = ex.getParams() == null ? new Object[0] : ex.getParams();
         return Map.of(
             "code", ex.getCode(),
             "message", resolveMessage(ex.getCode(), params),

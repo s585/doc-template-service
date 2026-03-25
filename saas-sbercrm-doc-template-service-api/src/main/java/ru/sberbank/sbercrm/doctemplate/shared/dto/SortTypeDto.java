@@ -13,7 +13,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,8 +24,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"field", "direction"})
 @Schema(description = "Параметр сортировки")
-public class SortTypeDto implements Serializable {
-    private static final long serialVersionUID = -8093169857923577362L;
+public class SortTypeDto {
 
     @NotBlank
     @Schema(description = "Имя поля сортировки")

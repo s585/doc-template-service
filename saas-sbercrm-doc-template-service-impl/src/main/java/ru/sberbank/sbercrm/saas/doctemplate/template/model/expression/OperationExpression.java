@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(TemplateConstants.ExpressionJsonTypes.OPERATION)
+@JsonTypeName(TemplateApiConstants.ExpressionJsonTypes.OPERATION)
 @JsonPropertyOrder({"type", "op", "args"})
 public final class OperationExpression implements Expression {
     private ExpressionOperator op;
@@ -22,6 +22,6 @@ public final class OperationExpression implements Expression {
 
     @Override
     public String getType() {
-        return TemplateConstants.ExpressionJsonTypes.OPERATION;
+        return TemplateApiConstants.ExpressionJsonTypes.OPERATION;
     }
 }

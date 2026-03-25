@@ -11,7 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 @Data
@@ -22,8 +21,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"entityId", "name", "description", "code"})
 @Schema(description = "Метаданные запроса на импорт шаблона")
-public class TemplateCreationRq implements Serializable {
-    private static final long serialVersionUID = 4094228388911938422L;
+public class TemplateCreationRq {
 
     @NotNull
     @Schema(description = "Идентификатор сущности, к которой относится шаблон")

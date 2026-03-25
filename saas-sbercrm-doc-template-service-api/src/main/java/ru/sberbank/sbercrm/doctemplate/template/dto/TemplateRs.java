@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
 
-import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,8 +42,7 @@ import java.util.UUID;
     "updatedBy"
 })
 @Schema(description = "Ответ с данными шаблона")
-public class TemplateRs implements Serializable {
-    private static final long serialVersionUID = -427694471935565515L;
+public class TemplateRs {
 
     @NotNull
     @Schema(description = "Идентификатор шаблона")

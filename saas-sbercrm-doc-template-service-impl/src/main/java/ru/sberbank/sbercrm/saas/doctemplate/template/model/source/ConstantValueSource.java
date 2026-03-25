@@ -6,13 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(TemplateConstants.ValueSourceJsonKinds.CONSTANT)
+@JsonTypeName(TemplateApiConstants.ValueSourceJsonKinds.CONSTANT)
 @JsonPropertyOrder({"kind", "value"})
 public final class ConstantValueSource implements ValueSource {
     private Object value;

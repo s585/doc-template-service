@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
 
@@ -17,7 +17,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(TemplateConstants.ValueSourceJsonKinds.REFERENCE)
+@JsonTypeName(TemplateApiConstants.ValueSourceJsonKinds.REFERENCE)
 @JsonPropertyOrder({"kind", "targetPath", "entityId", "referenceFieldName", "referenceValuePath", "path", "sort", "paging"})
 public final class ReferenceValueSource implements ValueSource {
     private String targetPath;

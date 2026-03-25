@@ -10,22 +10,18 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
-
-import static ru.sberbank.sbercrm.doctemplate.template.dto.source.ValueSourceDto.SourceKind.DIRECT;
+import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
 
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeName(DIRECT)
+@JsonTypeName(TemplateApiConstants.ValueSourceJsonKinds.DIRECT)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"kind", "path"})
 @Schema(description = "Источник значения, которое читается напрямую из исходного объекта")
-public class DirectValueSourceDto implements ValueSourceDto, Serializable {
-    private static final long serialVersionUID = -2379362295802904914L;
+public class DirectValueSourceDto implements ValueSourceDto {
 
     @NotBlank
     @Schema(description = "Путь до значения в исходном объекте", example = "source.doc_number")
@@ -33,6 +29,6 @@ public class DirectValueSourceDto implements ValueSourceDto, Serializable {
 
     @Override
     public String getKind() {
-        return DIRECT;
+        return TemplateApiConstants.ValueSourceJsonKinds.DIRECT;
     }
 }

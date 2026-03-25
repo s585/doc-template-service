@@ -10,7 +10,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.util.*;
 
 @JsonPropertyOrder({"select", "filter", "sort", "paging", "itemsPerPage", "additionalItems"})
@@ -20,8 +19,7 @@ import java.util.*;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class CommonRqDto implements Serializable {
-    private static final long serialVersionUID = 7490832299763596282L;
+public class CommonRqDto {
     @Valid
     @Builder.Default
     private final Map<String, Object> additionalProperties = new HashMap<>();

@@ -13,8 +13,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.doctemplate.template.dto.expression.ExpressionDto;
 import ru.sberbank.sbercrm.doctemplate.template.dto.source.ValueSourceDto;
 
-import java.io.Serializable;
-
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -23,8 +21,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"scope", "type", "expression", "source"})
 @Schema(description = "Определение маппинга переменной шаблона")
-public class TemplateMappingDefinitionDto implements Serializable {
-    private static final long serialVersionUID = 1231723713516335699L;
+public class TemplateMappingDefinitionDto {
 
     @Schema(description = "Область применения переменной")
     private String scope;

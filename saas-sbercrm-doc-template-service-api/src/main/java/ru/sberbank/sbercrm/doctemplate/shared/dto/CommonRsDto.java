@@ -9,7 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.*;
 
 @JsonPropertyOrder({"data", "paging", "additionalItems"})
@@ -19,8 +18,7 @@ import java.util.*;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class CommonRsDto implements Serializable {
-    private static final long serialVersionUID = 7490832299763596282L;
+public class CommonRsDto {
 
     @JsonProperty("data")
     private Object data;
