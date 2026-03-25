@@ -2,14 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureEmbeddedDatabase
-@ActiveProfiles("integration-test")
-class DocTemplateServiceApplicationTest {
+class DocTemplateServiceApplicationTest extends AbstractIntegrationTest {
   @Test
   void contextLoads() {
     Assertions.assertTrue(true);

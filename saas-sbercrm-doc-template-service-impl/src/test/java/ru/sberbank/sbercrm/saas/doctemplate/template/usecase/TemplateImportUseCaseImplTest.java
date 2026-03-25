@@ -21,6 +21,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
@@ -131,15 +132,20 @@ class TemplateImportUseCaseImplTest {
 
         // expected
         assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessage("db error");
+            .isInstanceOf(SystemCrmException.class)
+            .satisfies(ex -> {
+                SystemCrmException exception = (SystemCrmException) ex;
+                assertThat(exception.getCode()).isEqualTo(CrmErrorCodes.SYSTEM_UNEXPECTED);
+                assertThat(exception.getParams()).containsExactly("RuntimeException");
+                assertThat(exception.getCause()).hasMessage("db error");
+            });
 
         verify(templateService, never()).createMappings(any(), any(), any(), any());
         verify(fileStorageGateway).deleteFile(TENANT_ID, USER_ID, uploadedKey);
     }
 
     @Test
-    @DisplayName("Импорт не скрывает основную ошибку, если удаление загруженного файла тоже завершилось ошибкой")
+    @DisplayName("Импорт пробрасывает ошибку rollback, если удаление загруженного файла завершается runtime-ошибкой")
     void givenCleanupFailure_whenExecute_thenPropagatePrimaryException() {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
@@ -175,6 +181,6 @@ class TemplateImportUseCaseImplTest {
         // expected
         assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))
             .isInstanceOf(RuntimeException.class)
-            .hasMessage("db error");
+            .hasMessage("cleanup error");
     }
 }

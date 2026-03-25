@@ -7,23 +7,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
@@ -32,6 +24,7 @@ import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
@@ -44,26 +37,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueS
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDefinitionDto;
 import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDto;
 import ru.sberbank.sbercrm.doctemplate.template.dto.source.ConstantValueSourceDto;
-import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@AutoConfigureEmbeddedDatabase
-@AutoConfigureWireMock(port = 0)
-@ActiveProfiles("integration-test")
-class TemplateControllerIntegrationTest {
-    private static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    private static final UUID ENTITY_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private TemplateService templateService;
+class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName("Импорт шаблона сохраняет шаблон и маппинги на happy path")
@@ -137,7 +112,7 @@ class TemplateControllerIntegrationTest {
         TemplateRs response = objectMapper.readValue(responseBody, TemplateRs.class);
 
         // then
-        Template savedTemplate = templateService.findAggregateById(TENANT_ID, response.getId()).orElseThrow();
+        Template savedTemplate = templateMother.findAggregateById(TENANT_ID, response.getId());
         assertThat(savedTemplate.getName()).isEqualTo(templateName);
         assertThat(savedTemplate.getCode()).isEqualTo(templateCode);
         assertThat(savedTemplate.getS3Key()).isEqualTo(expectedS3Key);
@@ -183,24 +158,16 @@ class TemplateControllerIntegrationTest {
         String initialName = "Исходный шаблон";
         String initialCode = "SUPPLY_CONTRACT_UPDATE";
         String initialS3Key = "templates/" + ENTITY_ID + "/initial.docx";
-        Template createdTemplate = templateService.create(
+        Template createdTemplate = templateMother.createTemplateWithMappings(
             TENANT_ID,
-            Template.builder()
-                .entityId(ENTITY_ID)
-                .name(initialName)
-                .code(initialCode)
-                .description("Исходное описание")
-                .format(TemplateFormat.DOCX)
-                .s3Key(initialS3Key)
-                .active(true)
-                .createdBy(USER_ID)
-                .updatedBy(USER_ID)
-                .build()
-        );
-        templateService.createMappings(
-            TENANT_ID,
-            createdTemplate.getId(),
             USER_ID,
+            ENTITY_ID,
+            initialName,
+            initialCode,
+            "Исходное описание",
+            TemplateFormat.DOCX,
+            initialS3Key,
+            true,
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
@@ -263,7 +230,7 @@ class TemplateControllerIntegrationTest {
         TemplateRs response = objectMapper.readValue(responseBody, TemplateRs.class);
 
         // then
-        Template updatedTemplate = templateService.findAggregateById(TENANT_ID, response.getId()).orElseThrow();
+        Template updatedTemplate = templateMother.findAggregateById(TENANT_ID, response.getId());
         assertThat(updatedTemplate.getName()).isEqualTo(updatedName);
         assertThat(updatedTemplate.getDescription()).isEqualTo(updatedDescription);
         assertThat(updatedTemplate.getCode()).isEqualTo(initialCode);
@@ -301,24 +268,16 @@ class TemplateControllerIntegrationTest {
         String templateName = "Шаблон на удаление";
         String templateCode = "SUPPLY_CONTRACT_DELETE";
         String templateS3Key = "templates/" + ENTITY_ID + "/delete.docx";
-        Template createdTemplate = templateService.create(
+        Template createdTemplate = templateMother.createTemplateWithMappings(
             TENANT_ID,
-            Template.builder()
-                .entityId(ENTITY_ID)
-                .name(templateName)
-                .code(templateCode)
-                .description("Шаблон для удаления")
-                .format(TemplateFormat.DOCX)
-                .s3Key(templateS3Key)
-                .active(true)
-                .createdBy(USER_ID)
-                .updatedBy(USER_ID)
-                .build()
-        );
-        templateService.createMappings(
-            TENANT_ID,
-            createdTemplate.getId(),
             USER_ID,
+            ENTITY_ID,
+            templateName,
+            templateCode,
+            "Шаблон для удаления",
+            TemplateFormat.DOCX,
+            templateS3Key,
+            true,
             List.of(
                 TemplateMapping.builder()
                     .key("delete_variable")
@@ -338,7 +297,7 @@ class TemplateControllerIntegrationTest {
             .andExpect(status().isNoContent());
 
         // then
-        assertThat(templateService.findAggregateById(TENANT_ID, createdTemplate.getId())).isEmpty();
+        assertThat(templateMother.exists(TENANT_ID, createdTemplate.getId())).isFalse();
         FileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, templateS3Key);
     }
 
@@ -347,47 +306,38 @@ class TemplateControllerIntegrationTest {
     void givenTemplates_whenListTemplates_thenReturnFilteredAndSortedTemplates() throws Exception {
         // given
         UUID listEntityId = UUID.fromString("44444444-4444-4444-4444-444444444444");
-        Template alphaTemplate = templateService.create(
+        Template alphaTemplate = templateMother.createTemplate(
             TENANT_ID,
-            Template.builder()
-                .entityId(listEntityId)
-                .name("Альфа")
-                .code("LIST_ALPHA")
-                .description("Первый")
-                .format(TemplateFormat.DOCX)
-                .s3Key("templates/" + ENTITY_ID + "/alpha.docx")
-                .active(true)
-                .createdBy(USER_ID)
-                .updatedBy(USER_ID)
-                .build()
+            USER_ID,
+            listEntityId,
+            "Альфа",
+            "LIST_ALPHA",
+            "Первый",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/alpha.docx",
+            true
         );
-        Template betaTemplate = templateService.create(
+        Template betaTemplate = templateMother.createTemplate(
             TENANT_ID,
-            Template.builder()
-                .entityId(listEntityId)
-                .name("Бета")
-                .code("LIST_BETA")
-                .description("Второй")
-                .format(TemplateFormat.DOCX)
-                .s3Key("templates/" + ENTITY_ID + "/beta.docx")
-                .active(true)
-                .createdBy(USER_ID)
-                .updatedBy(USER_ID)
-                .build()
+            USER_ID,
+            listEntityId,
+            "Бета",
+            "LIST_BETA",
+            "Второй",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/beta.docx",
+            true
         );
-        templateService.create(
+        templateMother.createTemplate(
             TENANT_ID,
-            Template.builder()
-                .entityId(listEntityId)
-                .name("Гамма")
-                .code("LIST_GAMMA")
-                .description("Третий")
-                .format(TemplateFormat.DOCX)
-                .s3Key("templates/" + ENTITY_ID + "/gamma.docx")
-                .active(false)
-                .createdBy(USER_ID)
-                .updatedBy(USER_ID)
-                .build()
+            USER_ID,
+            listEntityId,
+            "Гамма",
+            "LIST_GAMMA",
+            "Третий",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/gamma.docx",
+            false
         );
 
         CommonRqDto request = CommonRqDto.builder()
