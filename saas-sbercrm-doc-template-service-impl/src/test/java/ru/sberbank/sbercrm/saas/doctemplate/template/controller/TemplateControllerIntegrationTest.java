@@ -386,7 +386,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
         // then
         assertThat(data).hasSize(2);
-        assertThat(data.get(0).get("id")).isEqualTo(betaTemplate.getId().toString());
-        assertThat(data.get(1).get("id")).isEqualTo(alphaTemplate.getId().toString());
+        assertThat(data.get(0)).containsEntry("id", betaTemplate.getId().toString());
+        assertThat(data.get(1)).containsEntry("id", alphaTemplate.getId().toString());
     }
 }

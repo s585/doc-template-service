@@ -46,9 +46,10 @@ class TemplateProcessorResolverTest {
         // given
         given(docxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
         given(docxProcessor.supports(TemplateFormat.XLSX)).willReturn(false);
+        List<FormatAwareTemplateProcessor> processors = List.of(docxProcessor);
 
         // expected
-        assertThatThrownBy(() -> new TemplateProcessorResolver(List.of(docxProcessor)))
+        assertThatThrownBy(() -> new TemplateProcessorResolver(processors))
             .isInstanceOf(IllegalStateException.class)
             .hasMessage("Template processor is not configured for format: XLSX");
     }
@@ -59,9 +60,10 @@ class TemplateProcessorResolverTest {
         // given
         given(docxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
         given(duplicateDocxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
+        List<FormatAwareTemplateProcessor> processors = List.of(docxProcessor, duplicateDocxProcessor, xlsxProcessor);
 
         // expected
-        assertThatThrownBy(() -> new TemplateProcessorResolver(List.of(docxProcessor, duplicateDocxProcessor, xlsxProcessor)))
+        assertThatThrownBy(() -> new TemplateProcessorResolver(processors))
             .isInstanceOf(IllegalStateException.class)
             .hasMessage("Multiple template processors configured for format: DOCX");
     }

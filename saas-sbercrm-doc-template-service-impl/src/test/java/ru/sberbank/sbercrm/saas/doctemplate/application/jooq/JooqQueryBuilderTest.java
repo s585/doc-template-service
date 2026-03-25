@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.SQLDialect;
@@ -18,6 +19,9 @@ import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
@@ -94,12 +98,13 @@ class JooqQueryBuilderTest {
 
         // then
         String sql = render(condition);
-        assertThat(sql).contains("\"active\" = true");
-        assertThat(sql).contains("\"amount\" >= 10.50");
-        assertThat(sql).contains("cast(\"name\" as varchar) ilike '%contract%'");
-        assertThat(sql).contains("cast(\"name\" as varchar) ilike 'SUP%'");
-        assertThat(sql).contains("cast(\"name\" as varchar) ilike '%TRACT'");
-        assertThat(sql).contains(" or ");
+        assertThat(sql)
+            .contains("\"active\" = true")
+            .contains("\"amount\" >= 10.50")
+            .contains("cast(\"name\" as varchar) ilike '%contract%'")
+            .contains("cast(\"name\" as varchar) ilike 'SUP%'")
+            .contains("cast(\"name\" as varchar) ilike '%TRACT'")
+            .contains(" or ");
     }
 
     @Test
@@ -165,15 +170,16 @@ class JooqQueryBuilderTest {
 
         // then
         String sql = render(condition);
-        assertThat(sql).contains("\"id\" in (cast('11111111-1111-1111-1111-111111111111' as uuid))");
-        assertThat(sql).contains("\"id\" not in (cast('11111111-1111-1111-1111-111111111111' as uuid))");
-        assertThat(sql).contains("\"amount\" between 1.5 and 9.5");
-        assertThat(sql).contains("overlaps");
-        assertThat(sql).contains("alpha");
-        assertThat(sql).contains("beta");
-        assertThat(sql).contains("cast(\"name\" as varchar) is null or cast(\"name\" as varchar) = ''");
-        assertThat(sql).contains("not (cast(\"name\" as varchar) is null or cast(\"name\" as varchar) = '')");
-        assertThat(sql).contains("\"name\" is null or \"name\" <> 'draft'");
+        assertThat(sql)
+            .contains("\"id\" in (cast('11111111-1111-1111-1111-111111111111' as uuid))")
+            .contains("\"id\" not in (cast('11111111-1111-1111-1111-111111111111' as uuid))")
+            .contains("\"amount\" between 1.5 and 9.5")
+            .contains("overlaps")
+            .contains("alpha")
+            .contains("beta")
+            .contains("cast(\"name\" as varchar) is null or cast(\"name\" as varchar) = ''")
+            .contains("not (cast(\"name\" as varchar) is null or cast(\"name\" as varchar) = '')")
+            .contains("\"name\" is null or \"name\" <> 'draft'");
     }
 
     @Test
@@ -228,19 +234,63 @@ class JooqQueryBuilderTest {
 
         // then
         String sql = render(condition);
-        assertThat(sql).contains("extract(month from \"event_date\") = 3");
-        assertThat(sql).contains("extract(day from \"event_date\") = 25");
-        assertThat(sql).contains("extract(year from \"event_date\") = 2026");
-        assertThat(sql).contains("\"name\" <> 'archived'");
-        assertThat(sql).contains("\"name\" is null");
-        assertThat(sql).contains("\"name\" is not null");
-        assertThat(sql).contains("not (\"event_date\" = date '2026-03-25')");
+        assertThat(sql)
+            .contains("extract(month from \"event_date\") = 3")
+            .contains("extract(day from \"event_date\") = 25")
+            .contains("extract(year from \"event_date\") = 2026")
+            .contains("\"name\" <> 'archived'")
+            .contains("\"name\" is null")
+            .contains("\"name\" is not null")
+            .contains("not (\"event_date\" = date '2026-03-25')");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidFilterCases")
+    @DisplayName("Построитель выбрасывает ошибку для невалидных фильтров")
+    void givenInvalidFilters_whenBuildCondition_thenThrowIllegalArgumentException(
+        String caseName,
+        Set<FilterDto> filters,
+        String expectedMessagePart
+    ) {
+        assertThatThrownBy(() -> queryBuilder.buildCondition(filters, fieldMapping))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(expectedMessagePart);
     }
 
     @Test
-    @DisplayName("Построитель выбрасывает ошибку для невалидных фильтров")
-    void givenInvalidFilters_whenBuildCondition_thenThrowIllegalArgumentException() {
+    @DisplayName("Построитель формирует сортировку, лимит и смещение")
+    void givenCommonRequest_whenBuildOrderByLimitAndOffset_thenReturnExpectedValues() {
         // given
+        List<SortTypeDto> sort = List.of(
+            SortTypeDto.builder().field("name").direction(SortTypeDto.Direction.ASC).build(),
+            SortTypeDto.builder().field("createdAt").direction(SortTypeDto.Direction.DESC).build()
+        );
+        CommonRqDto request = CommonRqDto.builder()
+            .paging(PagingRqDto.builder().page(2).size(25).build())
+            .build();
+
+        // when
+        List<SortField<?>> orderBy = queryBuilder.buildOrderBy(sort, fieldMapping);
+        int limit = queryBuilder.buildLimit(request);
+        int offset = queryBuilder.buildOffset(request);
+
+        // then
+        assertThat(orderBy).hasSize(2);
+        assertThat(render(orderBy.getFirst())).isEqualTo("\"name\" asc");
+        assertThat(render(orderBy.get(1))).isEqualTo("\"created_at\" desc");
+        assertThat(limit).isEqualTo(25);
+        assertThat(offset).isEqualTo(50);
+    }
+
+    private String render(Condition condition) {
+        return DSL.using(SQLDialect.POSTGRES).renderInlined(condition);
+    }
+
+    private String render(SortField<?> sortField) {
+        return DSL.using(SQLDialect.POSTGRES).render(sortField);
+    }
+
+    private static Stream<Arguments> invalidFilterCases() {
         FilterDto unsupportedFieldFilter = FilterDto.builder()
             .field("unknown")
             .operation(FilterDto.Operation.EQUAL)
@@ -280,63 +330,15 @@ class JooqQueryBuilderTest {
             .value(List.of())
             .build();
 
-        // expected
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(unsupportedFieldFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Unsupported filter field");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(blankFieldFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("must not be blank");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(noOperationFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("must not be null");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(invalidValueCountFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("requires exactly one value");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(emptyContainsAnyFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("contains_any filter must contain values");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(invalidBetweenFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("between filter must contain exactly two values");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(invalidOverlapsFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("requires secondField");
-        assertThatThrownBy(() -> queryBuilder.buildCondition(Set.of(emptyLogicalFilter), fieldMapping))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("must contain nested filters");
-    }
-
-    @Test
-    @DisplayName("Построитель формирует сортировку, лимит и смещение")
-    void givenCommonRequest_whenBuildOrderByLimitAndOffset_thenReturnExpectedValues() {
-        // given
-        List<SortTypeDto> sort = List.of(
-            SortTypeDto.builder().field("name").direction(SortTypeDto.Direction.ASC).build(),
-            SortTypeDto.builder().field("createdAt").direction(SortTypeDto.Direction.DESC).build()
+        return Stream.of(
+            Arguments.of("unsupported field", Set.of(unsupportedFieldFilter), "Unsupported filter field"),
+            Arguments.of("blank field", Set.of(blankFieldFilter), "must not be blank"),
+            Arguments.of("missing operation", Set.of(noOperationFilter), "must not be null"),
+            Arguments.of("invalid scalar value count", Set.of(invalidValueCountFilter), "requires exactly one value"),
+            Arguments.of("empty contains_any", Set.of(emptyContainsAnyFilter), "contains_any filter must contain values"),
+            Arguments.of("invalid between", Set.of(invalidBetweenFilter), "between filter must contain exactly two values"),
+            Arguments.of("invalid overlaps", Set.of(invalidOverlapsFilter), "requires secondField"),
+            Arguments.of("empty logical filter", Set.of(emptyLogicalFilter), "must contain nested filters")
         );
-        CommonRqDto request = CommonRqDto.builder()
-            .paging(PagingRqDto.builder().page(2).size(25).build())
-            .build();
-
-        // when
-        List<SortField<?>> orderBy = queryBuilder.buildOrderBy(sort, fieldMapping);
-        int limit = queryBuilder.buildLimit(request);
-        int offset = queryBuilder.buildOffset(request);
-
-        // then
-        assertThat(orderBy).hasSize(2);
-        assertThat(render(orderBy.getFirst())).isEqualTo("\"name\" asc");
-        assertThat(render(orderBy.get(1))).isEqualTo("\"created_at\" desc");
-        assertThat(limit).isEqualTo(25);
-        assertThat(offset).isEqualTo(50);
-    }
-
-    private String render(Condition condition) {
-        return DSL.using(SQLDialect.POSTGRES).renderInlined(condition);
-    }
-
-    private String render(SortField<?> sortField) {
-        return DSL.using(SQLDialect.POSTGRES).render(sortField);
     }
 }
