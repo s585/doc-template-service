@@ -7,9 +7,9 @@ import org.jooq.Field;
 import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

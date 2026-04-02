@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 
 import java.util.ArrayList;
 import java.util.List;

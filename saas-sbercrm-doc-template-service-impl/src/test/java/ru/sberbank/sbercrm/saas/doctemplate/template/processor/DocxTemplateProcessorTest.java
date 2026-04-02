@@ -2,9 +2,11 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
@@ -39,6 +41,32 @@ class DocxTemplateProcessorTest {
                 org.assertj.core.groups.Tuple.tuple("footer_number", MappingScope.VALUE),
                 org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.TABLE)
             );
+    }
+
+    @Test
+    @DisplayName("DOCX процессор подставляет значения переменных при генерации")
+    void givenDocxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
+        // given
+        TemplateProperties templateProperties = new TemplateProperties();
+        templateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        DocxTemplateProcessor processor = new DocxTemplateProcessor(templateProperties);
+        byte[] content = createDocxContent();
+
+        // when
+        byte[] generated = processor.generate(content, Map.of(
+            "deal_number", "42",
+            "header_number", "H-1",
+            "footer_number", "F-1",
+            "product_name", "Product"
+        ));
+
+        // then
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            assertThat(document.getParagraphs().getFirst().getText()).contains("42");
+            assertThat(document.getHeaderList().getFirst().getText()).contains("H-1");
+            assertThat(document.getFooterList().getFirst().getText()).contains("F-1");
+            assertThat(document.getTables().getFirst().getRow(0).getCell(0).getText()).contains("Product");
+        }
     }
 
     private byte[] createDocxContent() throws IOException {

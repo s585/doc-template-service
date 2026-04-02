@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class TemplateProperties {
     private final Template template = new Template();
     private final FileStorage fileStorage = new FileStorage();
+    private final Generation generation = new Generation();
 
     @Data
     public static class Template {
@@ -25,5 +26,14 @@ public class TemplateProperties {
     public static class FileStorage {
         private String source;
         private String folder;
+        private boolean stubEnabled;
+        private String stubRootPath;
+    }
+
+    @Data
+    public static class Generation {
+        private boolean enabled = true;
+        private long dispatchFixedDelayMs = 250;
+        private int workerPoolSize = 4;
     }
 }

@@ -3,8 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
@@ -49,7 +48,12 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Override
     public Optional<Template> findById(UUID tenantId, UUID templateId) {
-        return templateRepository.findById(tenantId, templateId);
+        return findAggregateById(tenantId, templateId);
+    }
+
+    @Override
+    public boolean exists(UUID tenantId, UUID templateId) {
+        return templateRepository.exists(tenantId, templateId);
     }
 
     @Override

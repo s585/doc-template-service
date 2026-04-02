@@ -3,11 +3,10 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ReferenceValueSourceDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ValueSourceDto;
-import ru.sberbank.sbercrm.saas.doctemplate.template.converter.ValueSourceConverter;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ReferenceValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ValueSourceDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSource;
 

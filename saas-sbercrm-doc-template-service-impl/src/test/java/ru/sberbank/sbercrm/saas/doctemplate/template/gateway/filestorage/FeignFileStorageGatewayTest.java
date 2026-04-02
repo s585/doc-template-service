@@ -14,8 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FeignFileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageClient;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FeignFileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
 
 @ExtendWith(MockitoExtension.class)

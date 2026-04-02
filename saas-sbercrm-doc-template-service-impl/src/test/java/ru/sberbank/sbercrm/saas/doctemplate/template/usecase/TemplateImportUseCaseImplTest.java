@@ -22,8 +22,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
@@ -31,7 +31,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateImportUseCaseImplTest {

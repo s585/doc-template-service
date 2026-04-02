@@ -25,6 +25,12 @@ saas:
     file-storage:
       source: "doc-template-service"
       folder: "/doc-template"
+      stub-enabled: true
+      stub-root-path: "${java.io.tmpdir}/doc-template-file-storage"
+    generation:
+      enabled: true
+      dispatch-fixed-delay-ms: 250
+      worker-pool-size: 4
 
 server:
   port: 8080

@@ -1,10 +1,10 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
 import org.mapstruct.Mapper;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ConstantValueSourceDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.DirectValueSourceDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ReferenceValueSourceDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ConstantValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.DirectValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ReferenceValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ValueSourceDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;

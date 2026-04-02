@@ -10,6 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 
 import java.util.UUID;
 

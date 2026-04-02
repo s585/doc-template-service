@@ -22,10 +22,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
 
 class JooqQueryBuilderTest {
     private static final UUID ID = UUID.fromString("11111111-1111-1111-1111-111111111111");

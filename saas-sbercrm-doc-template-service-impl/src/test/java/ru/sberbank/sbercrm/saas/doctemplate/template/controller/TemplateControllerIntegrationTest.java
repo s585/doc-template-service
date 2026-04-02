@@ -16,14 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateCreationRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
@@ -34,9 +34,9 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDefinitionDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.source.ConstantValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDefinitionDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ConstantValueSourceDto;
 
 class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 

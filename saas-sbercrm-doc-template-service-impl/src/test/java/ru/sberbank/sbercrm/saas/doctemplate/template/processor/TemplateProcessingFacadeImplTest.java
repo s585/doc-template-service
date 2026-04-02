@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,5 +53,25 @@ class TemplateProcessingFacadeImplTest {
         assertThat(actualVariables).isEqualTo(expectedVariables);
         verify(templateProcessorResolver).resolve(format);
         verify(templateProcessor).extractVariables(content);
+    }
+
+    @Test
+    @DisplayName("Фасад обработки шаблона делегирует генерацию подходящему процессору")
+    void givenFormatContentAndValues_whenGenerate_thenDelegateToResolvedProcessor() {
+        // given
+        TemplateFormat format = TemplateFormat.DOCX;
+        byte[] content = {1, 2, 3};
+        Map<String, String> values = Map.of("deal_number", "123");
+        byte[] expected = {4, 5, 6};
+        given(templateProcessorResolver.resolve(format)).willReturn(templateProcessor);
+        given(templateProcessor.generate(content, values)).willReturn(expected);
+
+        // when
+        byte[] actual = templateProcessingFacade.generate(format, content, values);
+
+        // then
+        assertThat(actual).isEqualTo(expected);
+        verify(templateProcessorResolver).resolve(format);
+        verify(templateProcessor).generate(content, values);
     }
 }

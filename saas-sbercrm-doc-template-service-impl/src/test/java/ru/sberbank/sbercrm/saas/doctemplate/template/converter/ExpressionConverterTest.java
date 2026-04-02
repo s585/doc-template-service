@@ -2,10 +2,9 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.sberbank.sbercrm.doctemplate.template.dto.expression.ExpressionDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.expression.OperationExpressionDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.expression.PrimitiveExpressionDto;
-import ru.sberbank.sbercrm.saas.doctemplate.template.converter.ExpressionConverter;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.expression.ExpressionDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.expression.OperationExpressionDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.expression.PrimitiveExpressionDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.Expression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.ExpressionOperator;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.OperationExpression;

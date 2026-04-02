@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
+import java.util.Map;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,5 +16,10 @@ public class TemplateProcessingFacadeImpl implements TemplateProcessingFacade {
     @Override
     public List<TemplateVariableInfo> extractVariables(TemplateFormat format, byte[] content) {
         return templateProcessorResolver.resolve(format).extractVariables(content);
+    }
+
+    @Override
+    public byte[] generate(TemplateFormat format, byte[] content, Map<String, String> values) {
+        return templateProcessorResolver.resolve(format).generate(content, values);
     }
 }

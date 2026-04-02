@@ -3,7 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDefinitionDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDefinitionDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;

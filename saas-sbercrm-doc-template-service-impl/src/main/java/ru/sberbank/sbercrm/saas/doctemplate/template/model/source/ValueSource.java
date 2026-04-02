@@ -3,7 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.model.source;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateApiConstants;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "kind")
 @JsonSubTypes({

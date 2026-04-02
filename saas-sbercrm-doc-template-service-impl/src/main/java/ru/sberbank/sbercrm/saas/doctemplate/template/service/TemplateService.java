@@ -1,6 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.service;
 
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
@@ -19,6 +19,8 @@ public interface TemplateService {
     void delete(UUID tenantId, UUID templateId);
 
     Optional<Template> findById(UUID tenantId, UUID templateId);
+
+    boolean exists(UUID tenantId, UUID templateId);
 
     Optional<Template> findAggregateById(UUID tenantId, UUID templateId);
 

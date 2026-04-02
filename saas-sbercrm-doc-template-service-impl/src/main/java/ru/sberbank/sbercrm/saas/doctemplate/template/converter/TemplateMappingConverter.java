@@ -1,7 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
 import org.mapstruct.Mapper;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateMappingDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 
 @Mapper(componentModel = "spring", uses = TemplateMappingDefinitionConverter.class)

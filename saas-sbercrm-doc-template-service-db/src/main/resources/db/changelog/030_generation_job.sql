@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS t_generation_job (
   entity_id         UUID NOT NULL,
   object_id         UUID NOT NULL,
 
-  requested_formats VARCHAR(16)[] NOT NULL,
+  format            VARCHAR(16) NOT NULL,
   status            VARCHAR(32) NOT NULL,
 
   locked_by         UUID,
@@ -36,6 +36,9 @@ CREATE INDEX IF NOT EXISTS idx_t_generation_job_lock
 CREATE INDEX IF NOT EXISTS idx_t_generation_job_document
   ON t_generation_job (document_id);
 
+CREATE INDEX IF NOT EXISTS idx_t_generation_job_document_format
+  ON t_generation_job (document_id, format);
+
 CREATE INDEX IF NOT EXISTS idx_t_generation_job_tenant
   ON t_generation_job (tenant_id);
 
@@ -51,7 +54,7 @@ COMMENT ON COLUMN t_generation_job.document_id IS 'Идентификатор ge
 COMMENT ON COLUMN t_generation_job.template_id IS 'Идентификатор шаблона, используемого для генерации.';
 COMMENT ON COLUMN t_generation_job.entity_id IS 'Идентификатор сущности исходного объекта.';
 COMMENT ON COLUMN t_generation_job.object_id IS 'Идентификатор исходного объекта, по которому выполняется генерация.';
-COMMENT ON COLUMN t_generation_job.requested_formats IS 'Список форматов, которые необходимо сгенерировать по документу.';
+COMMENT ON COLUMN t_generation_job.format IS 'Формат, для которого создано конкретное задание на генерацию. Одно задание соответствует одному формату.';
 COMMENT ON COLUMN t_generation_job.status IS 'Текущий статус задания на генерацию.';
 COMMENT ON COLUMN t_generation_job.locked_by IS 'Идентификатор воркера, который в данный момент удерживает задание.';
 COMMENT ON COLUMN t_generation_job.locked_until IS 'Время окончания lease-блокировки. После него другое приложение может забрать задание.';

@@ -1,11 +1,11 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.adapter;
 
 import org.springframework.web.multipart.MultipartFile;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateCreationRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 
 import java.util.UUID;
 

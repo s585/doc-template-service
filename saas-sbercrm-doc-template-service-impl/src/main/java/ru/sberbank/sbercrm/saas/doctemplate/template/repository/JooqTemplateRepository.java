@@ -6,7 +6,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.application.jooq.JsonbHelper;
 import ru.sberbank.sbercrm.saas.doctemplate.application.jooq.JooqQueryBuilder;
 import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateMappingRecordConverter;
@@ -100,6 +100,15 @@ public class JooqTemplateRepository implements TemplateRepository {
                 template.setMappings(record.get(mappingsField));
                 return template;
             });
+    }
+
+    @Override
+    public boolean exists(UUID tenantId, UUID templateId) {
+        return dslContext.fetchExists(
+            T_TEMPLATE,
+            T_TEMPLATE.TENANT_ID.eq(tenantId)
+                .and(T_TEMPLATE.ID.eq(templateId))
+        );
     }
 
     @Override

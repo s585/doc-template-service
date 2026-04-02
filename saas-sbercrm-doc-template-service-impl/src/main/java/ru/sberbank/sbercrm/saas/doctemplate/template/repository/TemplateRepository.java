@@ -1,6 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.repository;
 
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 
 import java.util.List;
@@ -13,6 +13,8 @@ public interface TemplateRepository {
     Template update(UUID tenantId, Template template);
 
     Optional<Template> findById(UUID tenantId, UUID templateId);
+
+    boolean exists(UUID tenantId, UUID templateId);
 
     List<Template> findAll(UUID tenantId, CommonRqDto request);
 

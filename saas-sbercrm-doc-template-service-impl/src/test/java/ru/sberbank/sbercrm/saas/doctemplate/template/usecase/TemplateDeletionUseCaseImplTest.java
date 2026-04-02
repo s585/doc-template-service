@@ -13,12 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
-import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCaseImpl;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateDeletionUseCaseImplTest {

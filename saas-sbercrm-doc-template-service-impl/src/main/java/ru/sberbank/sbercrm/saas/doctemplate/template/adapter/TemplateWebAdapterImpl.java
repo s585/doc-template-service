@@ -3,13 +3,13 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.adapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.CommonRsDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.CommonPageResponseBuilder;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateCreationRq;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateRs;
-import ru.sberbank.sbercrm.doctemplate.template.dto.TemplateUpdateRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateCreationRq;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCase;
@@ -57,19 +57,10 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
 
     @Override
     public CommonRsDto listTemplates(UUID tenantId, CommonRqDto request) {
-        PageResult<Template> result = listTemplatesUseCase.execute(tenantId, request);
-        long pageSize = request.getPaging().getSize();
-
-        return CommonRsDto.builder()
-            .data(result.getData().stream().map(templateConverter::convertToRs).toList())
-            .paging(
-                PagingRsDto.builder()
-                    .currentPage(request.getPaging().getPage().longValue())
-                    .recordsOnPage((long) result.getData().size())
-                    .totalRecordsAmount(result.getTotalRecordsAmount())
-                    .totalPageAmount(pageSize == 0 ? 0L : (result.getTotalRecordsAmount() + pageSize - 1) / pageSize)
-                    .build()
-            )
-            .build();
+        return CommonPageResponseBuilder.build(
+            request,
+            listTemplatesUseCase.execute(tenantId, request),
+            templateConverter::convertToRs
+        );
     }
 }

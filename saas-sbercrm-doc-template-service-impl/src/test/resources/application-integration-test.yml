@@ -27,6 +27,7 @@ saas:
     file-storage:
       source: doc-template-service
       folder: /doc-template
+      stub-enabled: false
     template:
       variable:
         placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'

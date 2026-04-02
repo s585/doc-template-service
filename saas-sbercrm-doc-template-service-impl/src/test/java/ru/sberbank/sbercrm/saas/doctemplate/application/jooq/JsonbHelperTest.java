@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.FilterDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.PagingRqDto;
-import ru.sberbank.sbercrm.doctemplate.shared.dto.SortTypeDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
 import java.util.List;

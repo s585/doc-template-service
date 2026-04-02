@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.doctemplate.template.constant.TemplateApiConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateApiConstants;
 
 @Data
 @Builder(toBuilder = true)
