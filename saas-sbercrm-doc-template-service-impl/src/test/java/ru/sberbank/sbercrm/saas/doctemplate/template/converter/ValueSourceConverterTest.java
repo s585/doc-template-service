@@ -17,14 +17,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig(classes = ValueSourceConverterImpl.class)
 class ValueSourceConverterTest {
+    private static final UUID ENTITY_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
     @Autowired
-    private ValueSourceConverter converter;
+    private ValueSourceConverter systemUnderTest;
 
     @Test
     void shouldConvertReferenceValueSourceDtoToModel() {
         ReferenceValueSourceDto dto = ReferenceValueSourceDto.builder()
             .targetPath("source.document$c.dealProduct$c")
-            .entityId(UUID.randomUUID())
+            .entityId(ENTITY_ID)
             .referenceFieldName("document$c")
             .referenceValuePath("source.document$c.id")
             .path("reference.product.name")
@@ -32,7 +34,7 @@ class ValueSourceConverterTest {
             .paging(PagingRqDto.builder().page(0).size(100).build())
             .build();
 
-        ValueSource model = converter.convertToModel(dto);
+        ValueSource model = systemUnderTest.convertToModel(dto);
 
         assertThat(model).isInstanceOf(ReferenceValueSource.class);
         ReferenceValueSource referenceValueSource = (ReferenceValueSource) model;
@@ -46,7 +48,7 @@ class ValueSourceConverterTest {
     void shouldConvertReferenceValueSourceModelToDto() {
         ReferenceValueSource model = ReferenceValueSource.builder()
             .targetPath("source.document$c.dealProduct$c")
-            .entityId(UUID.randomUUID())
+            .entityId(ENTITY_ID)
             .referenceFieldName("document$c")
             .referenceValuePath("source.document$c.id")
             .path("reference.product.name")
@@ -54,7 +56,7 @@ class ValueSourceConverterTest {
             .paging(PagingRqDto.builder().page(1).size(50).build())
             .build();
 
-        ValueSourceDto dto = converter.convertToDto(model);
+        ValueSourceDto dto = systemUnderTest.convertToDto(model);
 
         assertThat(dto).isInstanceOf(ReferenceValueSourceDto.class);
         ReferenceValueSourceDto referenceValueSourceDto = (ReferenceValueSourceDto) dto;

@@ -17,7 +17,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JsonbHelperTest {
-    private final JsonbHelper jsonbHelper = new JsonbHelper(new ObjectMapper());
+    private static final UUID ENTITY_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
+    private final JsonbHelper systemUnderTest = new JsonbHelper(new ObjectMapper());
 
     @Test
     void shouldRoundTripTemplateMappingDefinition() {
@@ -26,7 +28,7 @@ class JsonbHelperTest {
             .type(TemplateValueType.STRING)
             .source(ReferenceValueSource.builder()
                 .targetPath("source.document$c.dealProduct$c")
-                .entityId(UUID.randomUUID())
+                .entityId(ENTITY_ID)
                 .referenceFieldName("document$c")
                 .referenceValuePath("source.document$c.id")
                 .path("reference.product.name")
@@ -35,8 +37,8 @@ class JsonbHelperTest {
                 .build())
             .build();
 
-        JSONB jsonb = jsonbHelper.toJsonb(model);
-        TemplateMappingDefinition restored = jsonbHelper.fromJsonb(jsonb, TemplateMappingDefinition.class);
+        JSONB jsonb = systemUnderTest.toJsonb(model);
+        TemplateMappingDefinition restored = systemUnderTest.fromJsonb(jsonb, TemplateMappingDefinition.class);
 
         assertThat(restored).isEqualTo(model);
     }
@@ -49,8 +51,8 @@ class JsonbHelperTest {
             .value(List.of("ACTIVE"))
             .build();
 
-        JSONB jsonb = jsonbHelper.toJsonb(model);
-        FilterDto restored = jsonbHelper.fromJsonb(jsonb, FilterDto.class);
+        JSONB jsonb = systemUnderTest.toJsonb(model);
+        FilterDto restored = systemUnderTest.fromJsonb(jsonb, FilterDto.class);
 
         assertThat(restored).isEqualTo(model);
     }

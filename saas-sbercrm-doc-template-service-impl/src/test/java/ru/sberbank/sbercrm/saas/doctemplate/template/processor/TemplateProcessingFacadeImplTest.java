@@ -29,7 +29,7 @@ class TemplateProcessingFacadeImplTest {
     private FormatAwareTemplateProcessor templateProcessor;
 
     @InjectMocks
-    private TemplateProcessingFacadeImpl templateProcessingFacade;
+    private TemplateProcessingFacadeImpl systemUnderTest;
 
     @Test
     @DisplayName("Фасад обработки шаблона делегирует извлечение переменных подходящему процессору")
@@ -47,7 +47,7 @@ class TemplateProcessingFacadeImplTest {
         given(templateProcessor.extractVariables(content)).willReturn(expectedVariables);
 
         // when
-        List<TemplateVariableInfo> actualVariables = templateProcessingFacade.extractVariables(format, content);
+        List<TemplateVariableInfo> actualVariables = systemUnderTest.extractVariables(format, content);
 
         // then
         assertThat(actualVariables).isEqualTo(expectedVariables);
@@ -67,7 +67,7 @@ class TemplateProcessingFacadeImplTest {
         given(templateProcessor.generate(content, values)).willReturn(expected);
 
         // when
-        byte[] actual = templateProcessingFacade.generate(format, content, values);
+        byte[] actual = systemUnderTest.generate(format, content, values);
 
         // then
         assertThat(actual).isEqualTo(expected);

@@ -31,7 +31,7 @@ class TemplateDeletionUseCaseImplTest {
     private FileStorageGateway fileStorageGateway;
 
     @InjectMocks
-    private TemplateDeletionUseCaseImpl deleteTemplateUseCase;
+    private TemplateDeletionUseCaseImpl systemUnderTest;
 
     @Test
     @DisplayName("Удаление шаблона выбрасывает 404, если шаблон не найден")
@@ -40,13 +40,19 @@ class TemplateDeletionUseCaseImplTest {
         given(templateService.findById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.empty());
 
         // expected
-        assertThatThrownBy(() -> deleteTemplateUseCase.execute(TENANT_ID, USER_ID, TEMPLATE_ID))
+        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, TEMPLATE_ID))
             .isInstanceOf(NotFoundCrmException.class)
-            .satisfies(ex -> org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
-                .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND));
+            .satisfies(ex ->
+                org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND)
+            );
 
         verify(templateService).findById(TENANT_ID, TEMPLATE_ID);
-        verify(fileStorageGateway, never()).deleteFile(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(fileStorageGateway, never()).deleteFile(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any()
+        );
         verify(templateService, never()).delete(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }

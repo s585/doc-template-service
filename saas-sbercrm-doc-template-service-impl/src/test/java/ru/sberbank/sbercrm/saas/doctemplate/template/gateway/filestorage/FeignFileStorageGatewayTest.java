@@ -30,7 +30,7 @@ class FeignFileStorageGatewayTest {
     private TemplateProperties templateProperties;
 
     @InjectMocks
-    private FeignFileStorageGateway fileStorageGateway;
+    private FeignFileStorageGateway systemUnderTest;
 
     @BeforeEach
     void setUp() {
@@ -66,7 +66,7 @@ class FeignFileStorageGatewayTest {
         ).given(fileStorageClient).deleteFile("doc-template-service", fileKey, TENANT_ID, USER_ID);
 
         // expected
-        fileStorageGateway.deleteFile(TENANT_ID, USER_ID, fileKey);
+        systemUnderTest.deleteFile(TENANT_ID, USER_ID, fileKey);
 
         verify(fileStorageClient).deleteFile("doc-template-service", fileKey, TENANT_ID, USER_ID);
         verifyNoMoreInteractions(fileStorageClient);

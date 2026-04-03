@@ -210,7 +210,8 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
         // when
         String responseBody = mockMvc.perform(
-                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .put("/v1/doc/template/{templateId}", createdTemplate.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsBytes(request))
                     .header("X-Tenant-Id", TENANT_ID)

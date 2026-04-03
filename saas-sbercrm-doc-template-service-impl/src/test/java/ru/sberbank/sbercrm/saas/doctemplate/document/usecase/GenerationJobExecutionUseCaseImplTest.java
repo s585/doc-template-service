@@ -66,7 +66,7 @@ class GenerationJobExecutionUseCaseImplTest {
     private TemplateProperties.FileStorage fileStorageProperties;
 
     @InjectMocks
-    private GenerationJobExecutionUseCaseImpl useCase;
+    private GenerationJobExecutionUseCaseImpl systemUnderTest;
 
     @TempDir
     Path tempDir;
@@ -83,15 +83,36 @@ class GenerationJobExecutionUseCaseImplTest {
         given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
-            .willReturn(FileRs.builder().key("templates/template.docx").path(sourceFile.toString()).fileName("template.docx").build());
-        given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any())).willReturn("generated".getBytes());
+            .willReturn(
+                FileRs.builder()
+                    .key("templates/template.docx")
+                    .path(sourceFile.toString())
+                    .fileName("template.docx")
+                    .build()
+            );
+        given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
+            .willReturn("generated".getBytes());
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
-            .willReturn(FileRs.builder().key("generated/result.docx").path(tempDir.resolve("result.docx").toString()).fileName("result.docx").build());
+            .willReturn(
+                FileRs.builder()
+                    .key("generated/result.docx")
+                    .path(tempDir.resolve("result.docx").toString())
+                    .fileName("result.docx")
+                    .build()
+            );
 
-        useCase.execute(job);
+        systemUnderTest.execute(job);
 
         verify(generatedFileService).markProcessing(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX");
-        verify(generatedFileService).markCompleted(eq(TENANT_ID), eq(USER_ID), eq(DOCUMENT_ID), eq("DOCX"), eq("generated/result.docx"), any(), eq(9L));
+        verify(generatedFileService).markCompleted(
+            eq(TENANT_ID),
+            eq(USER_ID),
+            eq(DOCUMENT_ID),
+            eq("DOCX"),
+            eq("generated/result.docx"),
+            any(),
+            eq(9L)
+        );
         verify(generationJobService).markCompleted(TENANT_ID, USER_ID, JOB_ID);
         verify(generationJobService, never()).markFailed(eq(TENANT_ID), eq(USER_ID), eq(JOB_ID), any(), any());
     }
@@ -104,7 +125,7 @@ class GenerationJobExecutionUseCaseImplTest {
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID))
             .willThrow(new IllegalStateException("boom"));
 
-        useCase.execute(job);
+        systemUnderTest.execute(job);
 
         verify(generatedFileService).markProcessing(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX");
         verify(generatedFileService).markFailed(

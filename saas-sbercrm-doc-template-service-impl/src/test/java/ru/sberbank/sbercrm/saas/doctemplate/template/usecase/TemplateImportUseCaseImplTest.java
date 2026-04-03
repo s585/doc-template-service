@@ -47,7 +47,7 @@ class TemplateImportUseCaseImplTest {
     private TemplateProcessingFacade templateProcessingFacade;
 
     @InjectMocks
-    private TemplateImportUseCaseImpl importTemplateUseCase;
+    private TemplateImportUseCaseImpl systemUnderTest;
 
     @Test
     @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")
@@ -55,7 +55,7 @@ class TemplateImportUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new TemplateImportUseCaseImpl(
+        systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,
@@ -82,7 +82,7 @@ class TemplateImportUseCaseImplTest {
             );
 
         // expected
-        assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))
+        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, command, file))
             .isInstanceOf(BusinessCrmException.class)
             .satisfies(ex -> {
                 BusinessCrmException exception = (BusinessCrmException) ex;
@@ -100,7 +100,7 @@ class TemplateImportUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new TemplateImportUseCaseImpl(
+        systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,
@@ -130,7 +130,7 @@ class TemplateImportUseCaseImplTest {
             .willThrow(new RuntimeException("db error"));
 
         // expected
-        assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))
+        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, command, file))
             .isInstanceOf(SystemCrmException.class)
             .satisfies(ex -> {
                 SystemCrmException exception = (SystemCrmException) ex;
@@ -149,7 +149,7 @@ class TemplateImportUseCaseImplTest {
         // given
         TemplateProperties templateProperties = new TemplateProperties();
         templateProperties.getFileStorage().setFolder("/doc-template");
-        importTemplateUseCase = new TemplateImportUseCaseImpl(
+        systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
             templateProperties,
@@ -178,7 +178,7 @@ class TemplateImportUseCaseImplTest {
             .when(fileStorageGateway).deleteFile(TENANT_ID, USER_ID, uploadedKey);
 
         // expected
-        assertThatThrownBy(() -> importTemplateUseCase.execute(TENANT_ID, USER_ID, command, file))
+        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, command, file))
             .isInstanceOf(RuntimeException.class)
             .hasMessage("cleanup error");
     }

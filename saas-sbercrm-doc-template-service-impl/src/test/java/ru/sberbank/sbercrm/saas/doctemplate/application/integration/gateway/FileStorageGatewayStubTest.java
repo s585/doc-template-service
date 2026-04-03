@@ -26,12 +26,12 @@ class FileStorageGatewayStubTest {
         TemplateProperties properties = new TemplateProperties();
         properties.getFileStorage().setSource("doc-template-service");
         properties.getFileStorage().setStubRootPath(tempDir.toString());
-        FileStorageGatewayStub gateway = new FileStorageGatewayStub(properties);
+        FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile file = new MockMultipartFile("file", "template.docx", null, "hello".getBytes());
 
         // when
-        FileRs uploaded = gateway.upload(TENANT_ID, USER_ID, "/doc-template/123", "test", file);
-        FileRs downloaded = gateway.download(TENANT_ID, USER_ID, uploaded.getKey());
+        FileRs uploaded = systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/123", "test", file);
+        FileRs downloaded = systemUnderTest.download(TENANT_ID, USER_ID, uploaded.getKey());
 
         // then
         assertThat(downloaded.getKey()).isEqualTo(uploaded.getKey());

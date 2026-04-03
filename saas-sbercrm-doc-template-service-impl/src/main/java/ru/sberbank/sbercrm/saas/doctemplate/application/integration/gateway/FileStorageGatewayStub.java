@@ -84,8 +84,8 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         String normalizedPath = normalizeRelativePath(path);
         String sanitizedFileName = Path.of(fileName).getFileName().toString();
         return normalizedPath.isBlank()
-            ? "%s_%s".formatted(UUID.randomUUID(), sanitizedFileName)
-            : "%s/%s_%s".formatted(normalizedPath, UUID.randomUUID(), sanitizedFileName);
+            ? UUID.randomUUID() + "_" + sanitizedFileName
+            : normalizedPath + "/" + UUID.randomUUID() + "_" + sanitizedFileName;
     }
 
     private String extractPathFromKey(String key) {

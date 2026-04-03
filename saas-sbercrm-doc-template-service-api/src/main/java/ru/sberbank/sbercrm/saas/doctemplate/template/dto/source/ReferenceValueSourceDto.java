@@ -27,7 +27,16 @@ import java.util.UUID;
 @JsonTypeName(TemplateApiConstants.ValueSourceJsonKinds.REFERENCE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"kind", "targetPath", "entityId", "referenceFieldName", "referenceValuePath", "path", "sort", "paging"})
+@JsonPropertyOrder({
+    "kind",
+    "targetPath",
+    "entityId",
+    "referenceFieldName",
+    "referenceValuePath",
+    "path",
+    "sort",
+    "paging"
+})
 @Schema(description = "Источник значения, которое загружается отдельным запросом по обратной ссылке")
 public class ReferenceValueSourceDto implements ValueSourceDto {
 
@@ -44,7 +53,10 @@ public class ReferenceValueSourceDto implements ValueSourceDto {
     private String referenceFieldName;
 
     @NotBlank
-    @Schema(description = "Путь в исходном объекте, откуда берется значение для фильтра reference-запроса", example = "source.document$c.id")
+    @Schema(
+        description = "Путь в исходном объекте, откуда берется значение для фильтра reference-запроса",
+        example = "source.document$c.id"
+    )
     private String referenceValuePath;
 
     @NotBlank

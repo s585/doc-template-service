@@ -28,7 +28,7 @@ class TemplateServiceImplTest {
     private TemplateMappingRepository templateMappingRepository;
 
     @InjectMocks
-    private TemplateServiceImpl templateService;
+    private TemplateServiceImpl systemUnderTest;
 
     @Test
     @DisplayName("findById использует агрегирующий метод и возвращает шаблон из репозитория")
@@ -38,7 +38,7 @@ class TemplateServiceImplTest {
         given(templateRepository.findById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
 
         // when
-        Optional<Template> result = templateService.findById(TENANT_ID, TEMPLATE_ID);
+        Optional<Template> result = systemUnderTest.findById(TENANT_ID, TEMPLATE_ID);
 
         // then
         assertThat(result).contains(template);
@@ -52,7 +52,7 @@ class TemplateServiceImplTest {
         given(templateRepository.exists(TENANT_ID, TEMPLATE_ID)).willReturn(true);
 
         // when
-        boolean result = templateService.exists(TENANT_ID, TEMPLATE_ID);
+        boolean result = systemUnderTest.exists(TENANT_ID, TEMPLATE_ID);
 
         // then
         assertThat(result).isTrue();

@@ -21,6 +21,9 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobServic
 
 @ExtendWith(MockitoExtension.class)
 class GenerationJobDispatchUseCaseImplTest {
+    private static final UUID FIRST_JOB_ID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static final UUID SECOND_JOB_ID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
     @Mock
     private GenerationJobService generationJobService;
 
@@ -31,7 +34,7 @@ class GenerationJobDispatchUseCaseImplTest {
     private ThreadPoolTaskExecutor generationJobTaskExecutor;
 
     @InjectMocks
-    private GenerationJobDispatchUseCaseImpl useCase;
+    private GenerationJobDispatchUseCaseImpl systemUnderTest;
 
     @Test
     @DisplayName("Dispatch не запрашивает job, если свободных worker slots нет")
@@ -39,7 +42,7 @@ class GenerationJobDispatchUseCaseImplTest {
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(4);
 
-        useCase.dispatch();
+        systemUnderTest.dispatch();
 
         verify(generationJobService, never()).claimNextJobs(any(), any(Integer.class));
         verify(generationJobTaskExecutor, never()).execute(any(Runnable.class));
@@ -48,13 +51,13 @@ class GenerationJobDispatchUseCaseImplTest {
     @Test
     @DisplayName("Dispatch запрашивает job по capacity и отправляет каждую в executor")
     void givenAvailableSlots_whenDispatch_thenClaimAndSubmitJobs() {
-        GenerationJob firstJob = GenerationJob.builder().id(UUID.randomUUID()).build();
-        GenerationJob secondJob = GenerationJob.builder().id(UUID.randomUUID()).build();
+        GenerationJob firstJob = GenerationJob.builder().id(FIRST_JOB_ID).build();
+        GenerationJob secondJob = GenerationJob.builder().id(SECOND_JOB_ID).build();
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(2);
         given(generationJobService.claimNextJobs(any(), eq(2))).willReturn(List.of(firstJob, secondJob));
 
-        useCase.dispatch();
+        systemUnderTest.dispatch();
 
         verify(generationJobService).claimNextJobs(any(), eq(2));
         verify(generationJobTaskExecutor, times(2)).execute(any(Runnable.class));

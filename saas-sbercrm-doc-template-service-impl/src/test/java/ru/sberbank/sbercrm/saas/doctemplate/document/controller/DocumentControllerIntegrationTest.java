@@ -42,6 +42,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperti
     "saas.doc-template.generation.enabled=false"
 })
 class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
+    private static final UUID REQUEST_ID = UUID.fromString("aaaaaaaa-1111-1111-1111-111111111111");
+    private static final UUID TEMPLATE_ID_SUFFIX = UUID.fromString("bbbbbbbb-2222-2222-2222-222222222222");
     private static final UUID OBJECT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
 
     @Autowired
@@ -59,9 +61,9 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Генерация документа создает реальный DOCX файл с подставленными значениями")
     void givenDocxTemplate_whenGenerateDocument_thenPersistDoneFileAndRealDocxContent() throws Exception {
-        UUID requestId = UUID.randomUUID();
-        UUID templateIdSuffix = UUID.randomUUID();
-        String templateKey = "templates/%s/generation-%s.docx".formatted(ENTITY_ID, templateIdSuffix);
+        UUID requestId = REQUEST_ID;
+        UUID templateIdSuffix = TEMPLATE_ID_SUFFIX;
+        String templateKey = "templates/" + ENTITY_ID + "/generation-" + templateIdSuffix + ".docx";
         writeTemplateToStubStorage(templateKey, createDocx("Contract for ${customer_name}"));
 
         Template template = templateMother.createTemplateWithMappings(
@@ -146,7 +148,7 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
         DocumentRs generatedDocument = objectMapper.readValue(getResponseBody, DocumentRs.class);
 
         String generatedKey = generatedDocument.getFiles().getFirst().getS3Key();
-        assertThat(generatedKey).startsWith("doc-template/generated/%s/%s/".formatted(ENTITY_ID, OBJECT_ID));
+        assertThat(generatedKey).startsWith("doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/");
         assertThat(generatedKey).endsWith("_ready-contract.docx");
 
         FileRs generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
@@ -163,7 +165,10 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     private byte[] createDocx(String text) throws Exception {
-        try (XWPFDocument document = new XWPFDocument(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (
+            XWPFDocument document = new XWPFDocument();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        ) {
             document.createParagraph().createRun().setText(text);
             document.write(outputStream);
             return outputStream.toByteArray();

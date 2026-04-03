@@ -29,7 +29,7 @@ class TemplateUpdateUseCaseImplTest {
     private TemplateService templateService;
 
     @InjectMocks
-    private TemplateUpdateUseCaseImpl updateTemplateUseCase;
+    private TemplateUpdateUseCaseImpl systemUnderTest;
 
     @Test
     @DisplayName("Обновление шаблона выбрасывает 404, если шаблон не найден")
@@ -42,10 +42,12 @@ class TemplateUpdateUseCaseImplTest {
         given(templateService.findById(TENANT_ID, TEMPLATE_ID)).willReturn(java.util.Optional.empty());
 
         // expected
-        assertThatThrownBy(() -> updateTemplateUseCase.execute(TENANT_ID, USER_ID, TEMPLATE_ID, request))
+        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, TEMPLATE_ID, request))
             .isInstanceOf(NotFoundCrmException.class)
-            .satisfies(ex -> org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
-                .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND));
+            .satisfies(ex ->
+                org.assertj.core.api.Assertions.assertThat(((NotFoundCrmException) ex).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND)
+            );
 
         verify(templateService).findById(TENANT_ID, TEMPLATE_ID);
         verify(templateService, never()).update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());

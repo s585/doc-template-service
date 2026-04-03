@@ -35,6 +35,9 @@ class TemplateVariableUtilsTest {
         // when // then
         assertThatThrownBy(() -> TemplateVariableUtils.compilePlaceholderPattern(placeholderRegex))
             .isInstanceOf(SystemCrmException.class)
-            .satisfies(ex -> assertThat(((SystemCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID));
+            .satisfies(ex ->
+                assertThat(((SystemCrmException) ex).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID)
+            );
     }
 }

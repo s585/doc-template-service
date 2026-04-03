@@ -31,7 +31,10 @@ class TemplateFileUtilsTest {
         "template.xlsx, XLSX"
     })
     @DisplayName("Определение формата возвращает ожидаемый формат для поддерживаемого расширения")
-    void givenSupportedExtension_whenResolveFormat_thenReturnTemplateFormat(String fileName, TemplateFormat expectedFormat) {
+    void givenSupportedExtension_whenResolveFormat_thenReturnTemplateFormat(
+        String fileName,
+        TemplateFormat expectedFormat
+    ) {
         // given
         
         // when
@@ -66,7 +69,10 @@ class TemplateFileUtilsTest {
         // expected
         assertThatThrownBy(() -> TemplateFileUtils.resolveOriginalFileName(multipartFile))
             .isInstanceOf(BusinessCrmException.class)
-            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID));
+            .satisfies(ex ->
+                assertThat(((BusinessCrmException) ex).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID)
+            );
     }
 
     @Test
@@ -78,6 +84,9 @@ class TemplateFileUtilsTest {
         // expected
         assertThatThrownBy(() -> TemplateFileUtils.readBytes(multipartFile))
             .isInstanceOf(BusinessCrmException.class)
-            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID));
+            .satisfies(ex ->
+                assertThat(((BusinessCrmException) ex).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID)
+            );
     }
 }

@@ -92,10 +92,14 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
                 }
             }
             if (document.getHeaderList() != null) {
-                document.getHeaderList().forEach(header -> header.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values)));
+                document.getHeaderList().forEach(
+                    header -> header.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values))
+                );
             }
             if (document.getFooterList() != null) {
-                document.getFooterList().forEach(footer -> footer.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values)));
+                document.getFooterList().forEach(
+                    footer -> footer.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values))
+                );
             }
             document.write(outputStream);
             return outputStream.toByteArray();

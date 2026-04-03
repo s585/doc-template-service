@@ -107,7 +107,7 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     }
 
     private String buildFolderPath(UUID entityId) {
-        return "%s/%s".formatted(templateProperties.getFileStorage().getFolder(), entityId);
+        return templateProperties.getFileStorage().getFolder() + "/" + entityId;
     }
 
     private List<TemplateMapping> buildMappings(String templateName, TemplateFormat format, byte[] content) {

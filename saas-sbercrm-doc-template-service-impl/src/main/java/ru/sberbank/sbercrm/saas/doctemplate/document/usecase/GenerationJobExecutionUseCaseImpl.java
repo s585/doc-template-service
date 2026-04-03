@@ -141,17 +141,18 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             return "";
         }
         return switch (mapping.getDefinition().getSource()) {
-            case ConstantValueSource constantValueSource -> constantValueSource.getValue() == null ? "" : String.valueOf(constantValueSource.getValue());
+            case ConstantValueSource constantValueSource ->
+                constantValueSource.getValue() == null ? "" : String.valueOf(constantValueSource.getValue());
             default -> throw new IllegalStateException("Unsupported mapping source for key: " + mapping.getKey());
         };
     }
 
     private String buildGeneratedFolderPath(GenerationJob job) {
-        return "%s/generated/%s/%s".formatted(
-            templateProperties.getFileStorage().getFolder(),
-            job.getEntityId(),
-            job.getObjectId()
-        );
+        return templateProperties.getFileStorage().getFolder()
+            + "/generated/"
+            + job.getEntityId()
+            + "/"
+            + job.getObjectId();
     }
 
     private String calculateChecksum(byte[] content) {
