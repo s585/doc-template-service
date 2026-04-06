@@ -5,8 +5,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jooq.Field;
 
-import static ru.sberbank.sbercrm.jooq.tables.TGeneratedDocument.T_GENERATED_DOCUMENT;
-import static ru.sberbank.sbercrm.jooq.tables.TGenerationJob.T_GENERATION_JOB;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedDocument.T_GENERATED_DOCUMENT;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGenerationJob.T_GENERATION_JOB;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DocumentConstants {
@@ -14,6 +14,7 @@ public final class DocumentConstants {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ErrorCodes {
         public static final String DOCUMENT_NOT_FOUND = "document.not_found";
+        public static final String GENERATION_MAPPING_SOURCE_UNSUPPORTED = "generation.mapping_source_unsupported";
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

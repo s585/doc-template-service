@@ -6,7 +6,7 @@ import org.jooq.Field;
 
 import java.util.Map;
 
-import static ru.sberbank.sbercrm.jooq.tables.TTemplate.T_TEMPLATE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplate.T_TEMPLATE;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TemplateConstants {
@@ -18,6 +18,7 @@ public final class TemplateConstants {
         public static final String TEMPLATE_FORMAT_UNSUPPORTED = "template.format_unsupported";
         public static final String TEMPLATE_NOT_FOUND = "template.not_found";
         public static final String TEMPLATE_PARSING_FAILED = "template.parsing_failed";
+        public static final String TEMPLATE_PROCESSOR_DUPLICATE = "template.processor.duplicate";
         public static final String TEMPLATE_PROCESSOR_MISSING = "template.processor.missing";
         public static final String TEMPLATE_VARIABLE_INVALID = "template.variable.invalid";
         public static final String TEMPLATE_VARIABLE_PATTERN_INVALID = "template.variable.pattern_invalid";

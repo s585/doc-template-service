@@ -1,10 +1,15 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage;
 
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import feign.FeignException;
+import feign.Request;
+import feign.Response;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,5 +75,38 @@ class FeignFileStorageGatewayTest {
 
         verify(fileStorageClient).deleteFile("doc-template-service", fileKey, TENANT_ID, USER_ID);
         verifyNoMoreInteractions(fileStorageClient);
+    }
+
+    @Test
+    @DisplayName("Скачивание файла материализует feign response во временный файл")
+    void givenDownloadResponse_whenDownload_thenReturnTemporaryFile() throws Exception {
+        // given
+        String fileKey = "templates/test.docx";
+        Response response = Response.builder()
+            .status(200)
+            .reason("OK")
+            .request(
+                Request.create(
+                    Request.HttpMethod.GET,
+                    "http://localhost/internal/v1/file/download",
+                    java.util.Map.of(),
+                    new byte[0],
+                    StandardCharsets.UTF_8,
+                    null
+                )
+            )
+            .headers(java.util.Map.of())
+            .body("hello".getBytes(StandardCharsets.UTF_8))
+            .build();
+        given(fileStorageClient.download("doc-template-service", fileKey, TENANT_ID, USER_ID)).willReturn(response);
+
+        // when
+        File downloaded = systemUnderTest.download(TENANT_ID, USER_ID, fileKey);
+
+        // then
+        assertThat(downloaded).exists();
+        assertThat(downloaded.getName()).endsWith(".docx");
+        assertThat(java.nio.file.Files.readString(downloaded.toPath())).isEqualTo("hello");
+        verify(fileStorageClient).download("doc-template-service", fileKey, TENANT_ID, USER_ID);
     }
 }

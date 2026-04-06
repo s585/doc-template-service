@@ -3,6 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 
+import java.io.File;
 import java.util.UUID;
 
 public interface FileStorageGateway {
@@ -14,10 +15,10 @@ public interface FileStorageGateway {
         MultipartFile file
     );
 
-    FileRs download(
-            UUID tenantId,
-            UUID userId,
-            String key
+    File download(
+        UUID tenantId,
+        UUID userId,
+        String key
     );
 
     void deleteFile(UUID tenantId, UUID userId, String key);

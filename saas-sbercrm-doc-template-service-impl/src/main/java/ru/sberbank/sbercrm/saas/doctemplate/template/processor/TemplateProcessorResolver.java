@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 
 @Component
@@ -36,10 +38,10 @@ public class TemplateProcessorResolver {
             .filter(candidate -> candidate.supports(format))
             .toList();
         if (supportedProcessors.isEmpty()) {
-            throw new IllegalStateException("Template processor is not configured for format: " + format);
+            throw new SystemCrmException(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_MISSING, format.value());
         }
         if (supportedProcessors.size() > 1) {
-            throw new IllegalStateException("Multiple template processors configured for format: " + format);
+            throw new SystemCrmException(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_DUPLICATE, format.value());
         }
         return supportedProcessors.getFirst();
     }

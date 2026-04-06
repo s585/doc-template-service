@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.File;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -20,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
-import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentCreationRq;
@@ -151,8 +151,8 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(generatedKey).startsWith("doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/");
         assertThat(generatedKey).endsWith("_ready-contract.docx");
 
-        FileRs generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
-        String generatedText = readDocxText(Path.of(generatedFile.getPath()));
+        File generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
+        String generatedText = readDocxText(generatedFile.toPath());
 
         assertThat(generatedText).contains("Contract for Romashka LLC");
         assertThat(generatedText).doesNotContain("${customer_name}");

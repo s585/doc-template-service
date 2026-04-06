@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static ru.sberbank.sbercrm.jooq.tables.TTemplate.T_TEMPLATE;
-import static ru.sberbank.sbercrm.jooq.tables.TTemplateMapping.T_TEMPLATE_MAPPING;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplate.T_TEMPLATE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplateMapping.T_TEMPLATE_MAPPING;
 
 @Repository
 @RequiredArgsConstructor

@@ -10,7 +10,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GeneratedFileRecordConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
 
-import static ru.sberbank.sbercrm.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
 
 @Repository
 @RequiredArgsConstructor

@@ -124,7 +124,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>ru/sberbank/sbercrm/jooq/**</exclude>
+                <exclude>ru/sberbank/sbercrm/saas/doctemplate/jooq/**</exclude>
           </excludes>
         </configuration>
         <executions>
@@ -136,7 +136,7 @@
             </goals>
             <configuration>
               <excludes>
-                <exclude>ru/sberbank/sbercrm/jooq/**</exclude>
+                <exclude>ru/sberbank/sbercrm/saas/doctemplate/jooq/**</exclude>
               </excludes>
               <rules>
                 <rule>
@@ -280,7 +280,7 @@
               <routines>false</routines>
             </generate>
             <target>
-              <packageName>ru.sberbank.sbercrm.jooq</packageName>
+              <packageName>ru.sberbank.sbercrm.saas.doctemplate.jooq</packageName>
               <directory>${project.build.directory}/generated-sources/jooq</directory>
             </target>
           </generator>

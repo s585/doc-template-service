@@ -19,8 +19,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedDocument;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 
-import static ru.sberbank.sbercrm.jooq.tables.TGeneratedDocument.T_GENERATED_DOCUMENT;
-import static ru.sberbank.sbercrm.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedDocument.T_GENERATED_DOCUMENT;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
 
 @Repository
 @RequiredArgsConstructor

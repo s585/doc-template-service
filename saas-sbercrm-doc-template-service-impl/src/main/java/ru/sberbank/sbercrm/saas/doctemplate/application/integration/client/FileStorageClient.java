@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.client;
 
+import feign.Response;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -27,11 +28,11 @@ public interface FileStorageClient {
     ) throws IOException;
 
     @GetMapping(value = "/internal/v1/file/download")
-    FileRs download(
-            @RequestHeader(value = "source", required = false) String source,
-            @RequestParam("key") String key,
-            @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
-            @RequestHeader(USER_ID_HEADER) UUID userId
+    Response download(
+        @RequestHeader(value = "source", required = false) String source,
+        @RequestParam("key") String key,
+        @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+        @RequestHeader(USER_ID_HEADER) UUID userId
     ) throws IOException;
 
     @DeleteMapping("/internal/v1/file")

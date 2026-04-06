@@ -15,7 +15,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 
 import static java.util.stream.Collectors.groupingBy;
-import static ru.sberbank.sbercrm.jooq.tables.TGenerationJob.T_GENERATION_JOB;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGenerationJob.T_GENERATION_JOB;
 
 @Repository
 @RequiredArgsConstructor

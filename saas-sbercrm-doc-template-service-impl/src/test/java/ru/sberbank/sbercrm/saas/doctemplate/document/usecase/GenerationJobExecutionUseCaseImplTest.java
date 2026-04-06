@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -83,13 +84,7 @@ class GenerationJobExecutionUseCaseImplTest {
         given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
-            .willReturn(
-                FileRs.builder()
-                    .key("templates/template.docx")
-                    .path(sourceFile.toString())
-                    .fileName("template.docx")
-                    .build()
-            );
+            .willReturn(sourceFile.toFile());
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
             .willReturn("generated".getBytes());
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))

@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +45,7 @@ class TemplateProcessorResolverTest {
 
     @Test
     @DisplayName("Резолвер падает на старте, если процессор для формата не настроен")
-    void givenMissingProcessor_whenCreateResolver_thenThrowIllegalStateException() {
+    void givenMissingProcessor_whenCreateResolver_thenThrowSystemCrmException() {
         // given
         given(docxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
         given(docxProcessor.supports(TemplateFormat.XLSX)).willReturn(false);
@@ -51,13 +53,16 @@ class TemplateProcessorResolverTest {
 
         // expected
         assertThatThrownBy(() -> new TemplateProcessorResolver(processors))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessage("Template processor is not configured for format: XLSX");
+            .isInstanceOf(SystemCrmException.class)
+            .satisfies(exception ->
+                assertThat(((SystemCrmException) exception).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_MISSING)
+            );
     }
 
     @Test
     @DisplayName("Резолвер падает на старте, если для формата настроено несколько процессоров")
-    void givenDuplicateProcessors_whenCreateResolver_thenThrowIllegalStateException() {
+    void givenDuplicateProcessors_whenCreateResolver_thenThrowSystemCrmException() {
         // given
         given(docxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
         given(duplicateDocxProcessor.supports(TemplateFormat.DOCX)).willReturn(true);
@@ -65,7 +70,10 @@ class TemplateProcessorResolverTest {
 
         // expected
         assertThatThrownBy(() -> new TemplateProcessorResolver(processors))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessage("Multiple template processors configured for format: DOCX");
+            .isInstanceOf(SystemCrmException.class)
+            .satisfies(exception ->
+                assertThat(((SystemCrmException) exception).getCode())
+                    .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_DUPLICATE)
+            );
     }
 }

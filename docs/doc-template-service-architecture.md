@@ -148,6 +148,15 @@ Use case не должен ходить в repository напрямую.
 
 `userId` передаётся наравне с `tenantId`.
 
+### 7. В сервисе не используются `IllegalStateException`
+
+Runtime-код сервиса не должен выбрасывать `IllegalStateException` наружу.
+
+Если возникает ошибка:
+
+- бизнес-ошибка должна выражаться через `BusinessCrmException` или `NotFoundCrmException`;
+- системная или инфраструктурная ошибка должна выражаться через `SystemCrmException`.
+
 ## File storage
 
 Сервис использует gateway над file storage:
@@ -160,7 +169,7 @@ Use case не должен ходить в repository напрямую.
 Stub поддерживает:
 
 - `upload`;
-- `download`;
+- `download` c возвратом `java.io.File`;
 - `delete`.
 
 ## Внешний API документов

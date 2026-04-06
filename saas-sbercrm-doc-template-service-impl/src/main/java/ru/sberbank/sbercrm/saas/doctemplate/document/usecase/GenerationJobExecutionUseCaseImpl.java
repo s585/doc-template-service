@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.usecase;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -12,9 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GeneratedFileService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
@@ -71,8 +75,8 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
 
     private void process(GenerationJob job, UUID effectiveUserId) {
         Template template = templateService.findAggregateById(job.getTenantId(), job.getTemplateId())
-            .orElseThrow(() -> new IllegalStateException("Template not found: " + job.getTemplateId()));
-        FileRs templateFile = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
+            .orElseThrow(() -> new NotFoundCrmException(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND, job.getTemplateId()));
+        File templateFile = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
         byte[] templateContent = readBytes(templateFile);
         Map<String, String> values = resolveValues(template);
         byte[] generatedContent = templateProcessingFacade.generate(template.getFormat(), templateContent, values);
@@ -100,11 +104,11 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         return new InMemoryMultipartFile(fileName, fileName, null, content);
     }
 
-    private byte[] readBytes(FileRs templateFile) {
+    private byte[] readBytes(File templateFile) {
         try {
-            return Files.readAllBytes(Path.of(templateFile.getPath()));
+            return Files.readAllBytes(templateFile.toPath());
         } catch (Exception ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, templateFile.getKey());
+            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, templateFile.getAbsolutePath());
         }
     }
 
@@ -143,7 +147,10 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         return switch (mapping.getDefinition().getSource()) {
             case ConstantValueSource constantValueSource ->
                 constantValueSource.getValue() == null ? "" : String.valueOf(constantValueSource.getValue());
-            default -> throw new IllegalStateException("Unsupported mapping source for key: " + mapping.getKey());
+            default -> throw new BusinessCrmException(
+                DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED,
+                mapping.getKey()
+            );
         };
     }
 
@@ -164,7 +171,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             }
             return builder.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException(ex);
+            throw new SystemCrmException(ex, CrmErrorCodes.SYSTEM_UNEXPECTED, "SHA-256");
         }
     }
 

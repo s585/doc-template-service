@@ -5,11 +5,11 @@ import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import ru.sberbank.sbercrm.jooq.tables.records.TTemplateRecord;
+import ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.records.TTemplateRecord;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 
-import static ru.sberbank.sbercrm.jooq.tables.TTemplate.T_TEMPLATE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplate.T_TEMPLATE;
 
 @Mapper(componentModel = "spring", uses = TemplateRecordAfterConverter.class)
 public interface TemplateRecordConverter extends RecordMapper<Record, Template> {

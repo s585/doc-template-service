@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.MappingTarget;
 import org.springframework.stereotype.Component;
-import ru.sberbank.sbercrm.jooq.tables.records.TTemplateMappingRecord;
+import ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.records.TTemplateMappingRecord;
 import ru.sberbank.sbercrm.saas.doctemplate.application.jooq.JsonbHelper;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;

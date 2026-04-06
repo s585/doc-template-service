@@ -229,7 +229,7 @@ class JooqQueryBuilderTest {
             .build();
 
         // when
-        Condition condition = queryBuilder.buildCondition(
+        Condition condition = systemUnderTest.buildCondition(
             Set.of(monthFilter, dayFilter, yearFilter, notEqualFilter, isNullFilter, isNotNullFilter, notFilter),
             fieldMapping
         );
@@ -254,7 +254,7 @@ class JooqQueryBuilderTest {
         Set<FilterDto> filters,
         String expectedMessagePart
     ) {
-        assertThatThrownBy(() -> queryBuilder.buildCondition(filters, fieldMapping))
+        assertThatThrownBy(() -> systemUnderTest.buildCondition(filters, fieldMapping))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining(expectedMessagePart);
     }
@@ -272,9 +272,9 @@ class JooqQueryBuilderTest {
             .build();
 
         // when
-        List<SortField<?>> orderBy = queryBuilder.buildOrderBy(sort, fieldMapping);
-        int limit = queryBuilder.buildLimit(request);
-        int offset = queryBuilder.buildOffset(request);
+        List<SortField<?>> orderBy = systemUnderTest.buildOrderBy(sort, fieldMapping);
+        int limit = systemUnderTest.buildLimit(request);
+        int offset = systemUnderTest.buildOffset(request);
 
         // then
         assertThat(orderBy).hasSize(2);

@@ -4,10 +4,10 @@ import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.sberbank.sbercrm.jooq.tables.records.TGeneratedFileRecord;
+import ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.records.TGeneratedFileRecord;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
 
-import static ru.sberbank.sbercrm.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
+import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
 
 @Mapper(componentModel = "spring")
 public interface GeneratedFileRecordConverter extends RecordMapper<Record, GeneratedFile> {

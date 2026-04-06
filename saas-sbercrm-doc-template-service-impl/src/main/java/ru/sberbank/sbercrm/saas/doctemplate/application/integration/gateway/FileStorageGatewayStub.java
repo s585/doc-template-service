@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -41,16 +42,13 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     }
 
     @Override
-    public FileRs download(UUID tenantId, UUID userId, String key) {
+    public File download(UUID tenantId, UUID userId, String key) {
         try {
             Path targetPath = resolveStoragePath(key);
             if (!Files.exists(targetPath) || !Files.isRegularFile(targetPath)) {
                 throw new IOException("File not found by key: " + key);
             }
-
-            String fileName = targetPath.getFileName().toString();
-            String path = extractPathFromKey(key);
-            return buildResponse(key, path, targetPath, fileName);
+            return targetPath.toFile();
         } catch (IOException ex) {
             throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
         }
@@ -86,12 +84,6 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         return normalizedPath.isBlank()
             ? UUID.randomUUID() + "_" + sanitizedFileName
             : normalizedPath + "/" + UUID.randomUUID() + "_" + sanitizedFileName;
-    }
-
-    private String extractPathFromKey(String key) {
-        String normalizedKey = normalizeRelativePath(key);
-        int separatorIndex = normalizedKey.lastIndexOf('/');
-        return separatorIndex < 0 ? "" : normalizedKey.substring(0, separatorIndex);
     }
 
     private String normalizeRelativePath(String value) {
