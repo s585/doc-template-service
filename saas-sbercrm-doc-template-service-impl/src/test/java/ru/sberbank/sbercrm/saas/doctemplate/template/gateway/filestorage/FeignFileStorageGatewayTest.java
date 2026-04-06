@@ -8,8 +8,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import feign.FeignException;
 import feign.Request;
-import feign.Response;
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FeignFileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
@@ -78,35 +80,21 @@ class FeignFileStorageGatewayTest {
     }
 
     @Test
-    @DisplayName("Скачивание файла материализует feign response во временный файл")
-    void givenDownloadResponse_whenDownload_thenReturnTemporaryFile() throws Exception {
+    @DisplayName("Скачивание файла вычитывает response body в byte array")
+    void givenDownloadResponse_whenDownload_thenReturnBytes() {
         // given
         String fileKey = "templates/test.docx";
-        Response response = Response.builder()
-            .status(200)
-            .reason("OK")
-            .request(
-                Request.create(
-                    Request.HttpMethod.GET,
-                    "http://localhost/internal/v1/file/download",
-                    java.util.Map.of(),
-                    new byte[0],
-                    StandardCharsets.UTF_8,
-                    null
-                )
-            )
-            .headers(java.util.Map.of())
-            .body("hello".getBytes(StandardCharsets.UTF_8))
-            .build();
+        ResponseEntity<InputStreamResource> response = new ResponseEntity<>(
+            new InputStreamResource(new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8))),
+            HttpStatus.OK
+        );
         given(fileStorageClient.download("doc-template-service", fileKey, TENANT_ID, USER_ID)).willReturn(response);
 
         // when
-        File downloaded = systemUnderTest.download(TENANT_ID, USER_ID, fileKey);
+        byte[] downloaded = systemUnderTest.download(TENANT_ID, USER_ID, fileKey);
 
         // then
-        assertThat(downloaded).exists();
-        assertThat(downloaded.getName()).endsWith(".docx");
-        assertThat(java.nio.file.Files.readString(downloaded.toPath())).isEqualTo("hello");
+        assertThat(downloaded).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
         verify(fileStorageClient).download("doc-template-service", fileKey, TENANT_ID, USER_ID);
     }
 }

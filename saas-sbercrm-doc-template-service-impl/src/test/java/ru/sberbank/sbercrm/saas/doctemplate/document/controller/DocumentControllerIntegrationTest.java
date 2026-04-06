@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.io.File;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -151,8 +150,8 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(generatedKey).startsWith("doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/");
         assertThat(generatedKey).endsWith("_ready-contract.docx");
 
-        File generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
-        String generatedText = readDocxText(generatedFile.toPath());
+        byte[] generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
+        String generatedText = readDocxText(generatedFile);
 
         assertThat(generatedText).contains("Contract for Romashka LLC");
         assertThat(generatedText).doesNotContain("${customer_name}");
@@ -175,8 +174,8 @@ class DocumentControllerIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
-    private String readDocxText(Path path) throws Exception {
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Files.readAllBytes(path));
+    private String readDocxText(byte[] content) throws Exception {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
              XWPFDocument document = new XWPFDocument(inputStream)) {
             return document.getParagraphs().stream()
                 .map(paragraph -> paragraph.getText() == null ? "" : paragraph.getText())

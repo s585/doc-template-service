@@ -2,7 +2,6 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -32,10 +31,9 @@ class FileStorageGatewayStubTest {
 
         // when
         FileRs uploaded = systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/123", "test", file);
-        File downloaded = systemUnderTest.download(TENANT_ID, USER_ID, uploaded.getKey());
+        byte[] downloaded = systemUnderTest.download(TENANT_ID, USER_ID, uploaded.getKey());
 
         // then
-        assertThat(downloaded.getName()).endsWith("template.docx");
-        assertThat(Files.readString(downloaded.toPath())).isEqualTo("hello");
+        assertThat(new String(downloaded)).isEqualTo("hello");
     }
 }

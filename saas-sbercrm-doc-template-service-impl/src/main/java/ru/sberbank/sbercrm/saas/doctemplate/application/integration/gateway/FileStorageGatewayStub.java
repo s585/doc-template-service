@@ -2,7 +2,6 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -42,13 +41,13 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     }
 
     @Override
-    public File download(UUID tenantId, UUID userId, String key) {
+    public byte[] download(UUID tenantId, UUID userId, String key) {
         try {
             Path targetPath = resolveStoragePath(key);
             if (!Files.exists(targetPath) || !Files.isRegularFile(targetPath)) {
                 throw new IOException("File not found by key: " + key);
             }
-            return targetPath.toFile();
+            return Files.readAllBytes(targetPath);
         } catch (IOException ex) {
             throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
         }

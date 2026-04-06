@@ -1,13 +1,18 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.client;
 
-import feign.Response;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.util.UUID;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 @FeignClient(name = "file-storage-client")
 public interface FileStorageClient {
@@ -28,12 +33,12 @@ public interface FileStorageClient {
     ) throws IOException;
 
     @GetMapping(value = "/internal/v1/file/download")
-    Response download(
+    ResponseEntity<InputStreamResource> download(
         @RequestHeader(value = "source", required = false) String source,
         @RequestParam("key") String key,
         @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
         @RequestHeader(USER_ID_HEADER) UUID userId
-    ) throws IOException;
+    );
 
     @DeleteMapping("/internal/v1/file")
     void deleteFile(

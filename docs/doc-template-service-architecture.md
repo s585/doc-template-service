@@ -169,7 +169,7 @@ Runtime-код сервиса не должен выбрасывать `IllegalS
 Stub поддерживает:
 
 - `upload`;
-- `download` c возвратом `java.io.File`;
+- `download` c возвратом `byte[]`;
 - `delete`.
 
 ## Внешний API документов

@@ -1,10 +1,8 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
+import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
-
-import java.io.File;
-import java.util.UUID;
 
 public interface FileStorageGateway {
     FileRs upload(
@@ -15,7 +13,7 @@ public interface FileStorageGateway {
         MultipartFile file
     );
 
-    File download(
+    byte[] download(
         UUID tenantId,
         UUID userId,
         String key

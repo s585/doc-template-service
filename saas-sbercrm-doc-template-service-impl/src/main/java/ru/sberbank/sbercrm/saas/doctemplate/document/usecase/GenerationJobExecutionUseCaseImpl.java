@@ -1,8 +1,5 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.usecase;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
@@ -76,8 +73,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     private void process(GenerationJob job, UUID effectiveUserId) {
         Template template = templateService.findAggregateById(job.getTenantId(), job.getTemplateId())
             .orElseThrow(() -> new NotFoundCrmException(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND, job.getTemplateId()));
-        File templateFile = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
-        byte[] templateContent = readBytes(templateFile);
+        byte[] templateContent = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
         Map<String, String> values = resolveValues(template);
         byte[] generatedContent = templateProcessingFacade.generate(template.getFormat(), templateContent, values);
         String fileName = resolveGeneratedFileName(template);
@@ -102,14 +98,6 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
 
     private MultipartFile buildMultipartFile(String fileName, byte[] content) {
         return new InMemoryMultipartFile(fileName, fileName, null, content);
-    }
-
-    private byte[] readBytes(File templateFile) {
-        try {
-            return Files.readAllBytes(templateFile.toPath());
-        } catch (Exception ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, templateFile.getAbsolutePath());
-        }
     }
 
     private Map<String, String> resolveValues(Template template) {
