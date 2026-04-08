@@ -127,6 +127,11 @@
 
 Use case не должен ходить в repository напрямую.
 
+Это правило распространяется и на read-side:
+
+- use case чтения ходят в query service;
+- query service уже работает с query repository.
+
 ### 4. Агрегация на read-side отдельно от command-side
 
 Для чтения агрегата документа используется отдельный query/read подход.
@@ -242,6 +247,8 @@ Scheduler не выполняет job сам.
 - retry policy;
 - recovery зависших `PROCESSING` job;
 - attempt-история в runtime flow;
+- конфигурируемый lease timeout для `generation_job.locked_until`
+  вместо хардкода `5 minutes` в `claim`;
 - централизованный `Clock`;
 - расширенная observability worker lifecycle;
 - локальный debug runner для генерации документа.

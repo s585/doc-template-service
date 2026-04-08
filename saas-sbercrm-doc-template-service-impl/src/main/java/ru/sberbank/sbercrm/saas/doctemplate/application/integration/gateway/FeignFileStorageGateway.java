@@ -15,14 +15,14 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileR
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 @Component
 @ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "false", matchIfMissing = true)
 @RequiredArgsConstructor
 public class FeignFileStorageGateway implements FileStorageGateway {
     private final FileStorageClient fileStorageClient;
-    private final TemplateProperties templateProperties;
+    private final DocTemplateProperties docTemplateProperties;
 
     @Override
     public FileRs upload(
@@ -34,10 +34,10 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     ) {
         try {
             return fileStorageClient.upload(
-                templateProperties.getFileStorage().getSource(),
+                docTemplateProperties.getFileStorage().getSource(),
                 FileRq.builder()
                     .path(path)
-                    .source(templateProperties.getFileStorage().getSource())
+                    .source(docTemplateProperties.getFileStorage().getSource())
                     .description(description)
                     .build(),
                 file,
@@ -52,7 +52,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     @Override
     public void deleteFile(UUID tenantId, UUID userId, String key) {
         try {
-            fileStorageClient.deleteFile(templateProperties.getFileStorage().getSource(), key, tenantId, userId);
+            fileStorageClient.deleteFile(docTemplateProperties.getFileStorage().getSource(), key, tenantId, userId);
         } catch (FeignException.NotFound ex) {
             // Delete is idempotent for file storage: missing file must not block template deletion.
         } catch (FeignException ex) {
@@ -64,7 +64,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     public byte[] download(UUID tenantId, UUID userId, String key) {
         try {
             ResponseEntity<InputStreamResource> response = fileStorageClient.download(
-                templateProperties.getFileStorage().getSource(),
+                docTemplateProperties.getFileStorage().getSource(),
                 key,
                 tenantId,
                 userId

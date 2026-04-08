@@ -12,7 +12,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.Business
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.InMemoryMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
@@ -38,7 +38,7 @@ import java.util.UUID;
 public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     private final TemplateService templateService;
     private final FileStorageGateway fileStorageGateway;
-    private final TemplateProperties templateProperties;
+    private final DocTemplateProperties docTemplateProperties;
     private final TemplateProcessingFacade templateProcessingFacade;
 
     @Override
@@ -107,7 +107,7 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     }
 
     private String buildFolderPath(UUID entityId) {
-        return templateProperties.getFileStorage().getFolder() + "/" + entityId;
+        return docTemplateProperties.getFileStorage().getFolder() + "/" + entityId;
     }
 
     private List<TemplateMapping> buildMappings(String templateName, TemplateFormat format, byte[] content) {

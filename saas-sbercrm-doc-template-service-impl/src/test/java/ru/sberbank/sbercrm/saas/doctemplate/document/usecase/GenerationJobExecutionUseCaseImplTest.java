@@ -31,7 +31,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,10 +60,10 @@ class GenerationJobExecutionUseCaseImplTest {
     private TemplateProcessingFacade templateProcessingFacade;
 
     @Mock
-    private TemplateProperties templateProperties;
+    private DocTemplateProperties docTemplateProperties;
 
     @Mock
-    private TemplateProperties.FileStorage fileStorageProperties;
+    private DocTemplateProperties.FileStorage fileStorageProperties;
 
     @InjectMocks
     private GenerationJobExecutionUseCaseImpl systemUnderTest;
@@ -79,7 +79,7 @@ class GenerationJobExecutionUseCaseImplTest {
         Path sourceFile = tempDir.resolve("template.docx");
         Files.writeString(sourceFile, "template-content");
 
-        given(templateProperties.getFileStorage()).willReturn(fileStorageProperties);
+        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
         given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))

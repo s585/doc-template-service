@@ -3,13 +3,13 @@ package ru.sberbank.sbercrm.saas.doctemplate.document.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 @Configuration
 public class GenerationJobExecutorConfig {
     @Bean
-    public ThreadPoolTaskExecutor generationJobTaskExecutor(TemplateProperties templateProperties) {
-        int poolSize = templateProperties.getGeneration().getWorkerPoolSize();
+    public ThreadPoolTaskExecutor generationJobTaskExecutor(DocTemplateProperties docTemplateProperties) {
+        int poolSize = docTemplateProperties.getGeneration().getWorkerPoolSize();
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("generation-job-");
         executor.setCorePoolSize(poolSize);

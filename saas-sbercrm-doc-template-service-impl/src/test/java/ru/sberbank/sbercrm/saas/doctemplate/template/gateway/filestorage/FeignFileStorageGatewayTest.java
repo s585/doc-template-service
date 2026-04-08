@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import feign.FeignException;
-import feign.Request;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -23,7 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FeignFileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 @ExtendWith(MockitoExtension.class)
 class FeignFileStorageGatewayTest {
@@ -34,16 +34,16 @@ class FeignFileStorageGatewayTest {
     private FileStorageClient fileStorageClient;
 
     @Mock
-    private TemplateProperties templateProperties;
+    private DocTemplateProperties docTemplateProperties;
 
     @InjectMocks
     private FeignFileStorageGateway systemUnderTest;
 
     @BeforeEach
     void setUp() {
-        TemplateProperties.FileStorage fileStorage = new TemplateProperties.FileStorage();
+        DocTemplateProperties.FileStorage fileStorage = new DocTemplateProperties.FileStorage();
         fileStorage.setSource("doc-template-service");
-        org.mockito.BDDMockito.given(templateProperties.getFileStorage()).willReturn(fileStorage);
+        org.mockito.BDDMockito.given(docTemplateProperties.getFileStorage()).willReturn(fileStorage);
     }
 
     @Test

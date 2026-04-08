@@ -13,10 +13,9 @@ import org.apache.poi.xwpf.usermodel.XWPFFooter;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
-import ru.sberbank.sbercrm.saas.doctemplate.template.processor.DocxTemplateProcessor;
 
 class DocxTemplateProcessorTest {
 
@@ -24,9 +23,9 @@ class DocxTemplateProcessorTest {
     @DisplayName("DOCX процессор извлекает переменные из текста, таблиц, header и footer")
     void givenDocxContent_whenExtractVariables_thenReturnVariablesWithExpectedScopes() throws IOException {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        DocxTemplateProcessor processor = new DocxTemplateProcessor(templateProperties);
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        DocxTemplateProcessor processor = new DocxTemplateProcessor(docTemplateProperties);
         byte[] content = createDocxContent();
 
         // when
@@ -47,9 +46,9 @@ class DocxTemplateProcessorTest {
     @DisplayName("DOCX процессор подставляет значения переменных при генерации")
     void givenDocxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        DocxTemplateProcessor processor = new DocxTemplateProcessor(templateProperties);
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        DocxTemplateProcessor processor = new DocxTemplateProcessor(docTemplateProperties);
         byte[] content = createDocxContent();
 
         // when

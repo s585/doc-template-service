@@ -22,10 +22,11 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobServic
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.InMemoryMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
 @Slf4j
@@ -37,7 +38,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     private final TemplateService templateService;
     private final FileStorageGateway fileStorageGateway;
     private final TemplateProcessingFacade templateProcessingFacade;
-    private final TemplateProperties templateProperties;
+    private final DocTemplateProperties docTemplateProperties;
 
     @Override
     public void execute(GenerationJob job) {
@@ -82,7 +83,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             effectiveUserId,
             buildGeneratedFolderPath(job),
             template.getDescription(),
-            buildMultipartFile(fileName, generatedContent)
+            buildMultipartFile(fileName, template.getFormat(), generatedContent)
         );
         generatedFileService.markCompleted(
             job.getTenantId(),
@@ -96,8 +97,15 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         generationJobService.markCompleted(job.getTenantId(), effectiveUserId, job.getId());
     }
 
-    private MultipartFile buildMultipartFile(String fileName, byte[] content) {
-        return new InMemoryMultipartFile(fileName, fileName, null, content);
+    private MultipartFile buildMultipartFile(String fileName, TemplateFormat format, byte[] content) {
+        return new InMemoryMultipartFile(fileName, fileName, resolveContentType(format), content);
+    }
+
+    private String resolveContentType(TemplateFormat format) {
+        return switch (format) {
+            case DOCX -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case XLSX -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        };
     }
 
     private Map<String, String> resolveValues(Template template) {
@@ -143,7 +151,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     }
 
     private String buildGeneratedFolderPath(GenerationJob job) {
-        return templateProperties.getFileStorage().getFolder()
+        return docTemplateProperties.getFileStorage().getFolder()
             + "/generated/"
             + job.getEntityId()
             + "/"

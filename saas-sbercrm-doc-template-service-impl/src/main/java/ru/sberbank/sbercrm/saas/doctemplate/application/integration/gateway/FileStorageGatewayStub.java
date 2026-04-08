@@ -13,14 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
 
 @Component
 @ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class FileStorageGatewayStub implements FileStorageGateway {
-    private final TemplateProperties templateProperties;
+    private final DocTemplateProperties docTemplateProperties;
 
     @Override
     public FileRs upload(UUID tenantId, UUID userId, String path, String description, MultipartFile file) {
@@ -66,13 +66,13 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         return FileRs.builder()
             .key(key)
             .path(targetPath.toAbsolutePath().toString())
-            .source(templateProperties.getFileStorage().getSource())
+            .source(docTemplateProperties.getFileStorage().getSource())
             .fileName(fileName)
             .build();
     }
 
     private Path resolveStoragePath(String key) {
-        return Path.of(templateProperties.getFileStorage().getStubRootPath())
+        return Path.of(docTemplateProperties.getFileStorage().getStubRootPath())
             .resolve(normalizeRelativePath(key))
             .normalize();
     }

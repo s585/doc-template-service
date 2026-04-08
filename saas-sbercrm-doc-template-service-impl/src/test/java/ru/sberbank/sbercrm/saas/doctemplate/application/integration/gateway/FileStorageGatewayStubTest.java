@@ -2,7 +2,6 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 class FileStorageGatewayStubTest {
     private static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -23,7 +22,7 @@ class FileStorageGatewayStubTest {
     @DisplayName("Stub сохраняет файл локально и позволяет скачать его по key")
     void givenUploadedFile_whenDownload_thenReturnStoredFileInfo() throws Exception {
         // given
-        TemplateProperties properties = new TemplateProperties();
+        DocTemplateProperties properties = new DocTemplateProperties();
         properties.getFileStorage().setSource("doc-template-service");
         properties.getFileStorage().setStubRootPath(tempDir.toString());
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);

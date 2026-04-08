@@ -9,10 +9,9 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.springframework.stereotype.Component;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
@@ -29,7 +28,7 @@ import java.util.regex.Pattern;
 @Component
 @RequiredArgsConstructor
 public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
-    private final TemplateProperties templateProperties;
+    private final DocTemplateProperties docTemplateProperties;
 
     @Override
     public boolean supports(TemplateFormat format) {
@@ -110,7 +109,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
 
     private Pattern getPlaceholderPattern() {
         return TemplateVariableUtils.compilePlaceholderPattern(
-            templateProperties.getTemplate().getVariable().getPlaceholderRegex()
+            docTemplateProperties.getTemplate().getVariable().getPlaceholderRegex()
         );
     }
 

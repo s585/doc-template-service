@@ -24,7 +24,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.Business
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -53,12 +53,12 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")
     void givenVariableWithDifferentScopes_whenExecute_thenThrowBusinessException() {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getFileStorage().setFolder("/doc-template");
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-            templateProperties,
+                docTemplateProperties,
             templateProcessingFacade
         );
         TemplateCreationCmd command = TemplateCreationCmd.builder()
@@ -98,12 +98,12 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт удаляет файл из file storage, если создание шаблона завершается ошибкой")
     void givenUploadedFileAndCreateFailure_whenExecute_thenDeleteUploadedFile() {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getFileStorage().setFolder("/doc-template");
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-            templateProperties,
+                docTemplateProperties,
             templateProcessingFacade
         );
         String templateName = "Договор";
@@ -147,12 +147,12 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт пробрасывает ошибку rollback, если удаление загруженного файла завершается runtime-ошибкой")
     void givenCleanupFailure_whenExecute_thenPropagatePrimaryException() {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getFileStorage().setFolder("/doc-template");
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-            templateProperties,
+                docTemplateProperties,
             templateProcessingFacade
         );
         String uploadedKey = "templates/template.docx";

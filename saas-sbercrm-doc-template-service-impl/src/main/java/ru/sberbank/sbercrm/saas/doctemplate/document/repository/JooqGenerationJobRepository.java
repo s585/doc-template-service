@@ -77,41 +77,53 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
 
         return dslContext.transactionResult(configuration -> {
             DSLContext tx = DSL.using(configuration);
-            List<UUID> jobIds = tx.select(T_GENERATION_JOB.ID)
-                .from(T_GENERATION_JOB)
-                .where(
-                    T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.QUEUED),
-                    T_GENERATION_JOB.LOCKED_UNTIL.isNull().or(T_GENERATION_JOB.LOCKED_UNTIL.lt(DSL.currentOffsetDateTime()))
-                )
-                .orderBy(T_GENERATION_JOB.CREATED_AT.asc(), T_GENERATION_JOB.ID.asc())
-                .limit(limit)
-                .forUpdate()
-                .skipLocked()
-                .fetch(T_GENERATION_JOB.ID);
+            List<UUID> jobIds = findNextClaimableJobIds(tx, limit);
 
             if (jobIds.isEmpty()) {
                 return List.<GenerationJob>of();
             }
 
-            tx.update(T_GENERATION_JOB)
-                .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.PROCESSING)
-                .set(T_GENERATION_JOB.LOCKED_BY, workerId)
-                .set(
-                    T_GENERATION_JOB.LOCKED_UNTIL,
-                    DSL.field("{0} + interval '5 minutes'", java.time.OffsetDateTime.class, DSL.currentOffsetDateTime())
-                )
-                .set(T_GENERATION_JOB.ERROR_CODE, (String) null)
-                .set(T_GENERATION_JOB.ERROR_MESSAGE, (String) null)
-                .set(T_GENERATION_JOB.UPDATED_BY, workerId)
-                .set(T_GENERATION_JOB.UPDATED_AT, DSL.currentOffsetDateTime())
-                .where(T_GENERATION_JOB.ID.in(jobIds))
-                .execute();
+            markJobsProcessing(tx, workerId, jobIds);
 
-            return tx.selectFrom(T_GENERATION_JOB)
-                .where(T_GENERATION_JOB.ID.in(jobIds))
-                .orderBy(T_GENERATION_JOB.CREATED_AT.asc(), T_GENERATION_JOB.ID.asc())
-                .fetch(generationJobRecordConverter);
+            return findClaimedJobs(tx, jobIds);
         });
+    }
+
+    private List<UUID> findNextClaimableJobIds(DSLContext tx, int limit) {
+        return tx.select(T_GENERATION_JOB.ID)
+            .from(T_GENERATION_JOB)
+            .where(
+                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.QUEUED),
+                T_GENERATION_JOB.LOCKED_UNTIL.isNull().or(T_GENERATION_JOB.LOCKED_UNTIL.lt(DSL.currentOffsetDateTime()))
+            )
+            .orderBy(T_GENERATION_JOB.CREATED_AT.asc(), T_GENERATION_JOB.ID.asc())
+            .limit(limit)
+            .forUpdate()
+            .skipLocked()
+            .fetch(T_GENERATION_JOB.ID);
+    }
+
+    private void markJobsProcessing(DSLContext tx, UUID workerId, List<UUID> jobIds) {
+        tx.update(T_GENERATION_JOB)
+            .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.PROCESSING)
+            .set(T_GENERATION_JOB.LOCKED_BY, workerId)
+            .set(
+                T_GENERATION_JOB.LOCKED_UNTIL,
+                DSL.field("{0} + interval '5 minutes'", java.time.OffsetDateTime.class, DSL.currentOffsetDateTime())
+            )
+            .set(T_GENERATION_JOB.ERROR_CODE, (String) null)
+            .set(T_GENERATION_JOB.ERROR_MESSAGE, (String) null)
+            .set(T_GENERATION_JOB.UPDATED_BY, workerId)
+            .set(T_GENERATION_JOB.UPDATED_AT, DSL.currentOffsetDateTime())
+            .where(T_GENERATION_JOB.ID.in(jobIds))
+            .execute();
+    }
+
+    private List<GenerationJob> findClaimedJobs(DSLContext tx, List<UUID> jobIds) {
+        return tx.selectFrom(T_GENERATION_JOB)
+            .where(T_GENERATION_JOB.ID.in(jobIds))
+            .orderBy(T_GENERATION_JOB.CREATED_AT.asc(), T_GENERATION_JOB.ID.asc())
+            .fetch(generationJobRecordConverter);
     }
 
     @Override

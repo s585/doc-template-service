@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = "saas.doc-template")
-public class TemplateProperties {
+public class DocTemplateProperties {
     private final Template template = new Template();
     private final FileStorage fileStorage = new FileStorage();
     private final Generation generation = new Generation();

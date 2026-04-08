@@ -11,10 +11,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.TemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
-import ru.sberbank.sbercrm.saas.doctemplate.template.processor.XlsxTemplateProcessor;
 
 class XlsxTemplateProcessorTest {
 
@@ -22,9 +21,9 @@ class XlsxTemplateProcessorTest {
     @DisplayName("XLSX процессор извлекает переменные из ячеек и помечает их scope TABLE")
     void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithTableScope() throws IOException {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(templateProperties);
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(docTemplateProperties);
         byte[] content = createXlsxContent();
 
         // when
@@ -43,9 +42,9 @@ class XlsxTemplateProcessorTest {
     @DisplayName("XLSX процессор подставляет значения переменных при генерации")
     void givenXlsxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
         // given
-        TemplateProperties templateProperties = new TemplateProperties();
-        templateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(templateProperties);
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(docTemplateProperties);
         byte[] content = createXlsxContent();
 
         // when

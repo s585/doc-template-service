@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
 import ru.sberbank.sbercrm.saas.doctemplate.document.repository.GeneratedFileRepository;
 
 @Service
@@ -15,16 +14,6 @@ public class GeneratedFileServiceImpl implements GeneratedFileService {
     @Override
     public void createAll(UUID tenantId, UUID userId, UUID documentId, List<String> formats) {
         generatedFileRepository.createAll(tenantId, userId, documentId, formats);
-    }
-
-    @Override
-    public List<GeneratedFile> findByDocumentId(UUID tenantId, UUID documentId) {
-        return generatedFileRepository.findByDocumentId(tenantId, documentId);
-    }
-
-    @Override
-    public List<GeneratedFile> findByDocumentIds(UUID tenantId, List<UUID> documentIds) {
-        return generatedFileRepository.findByDocumentIds(tenantId, documentIds);
     }
 
     @Override
