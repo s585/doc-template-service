@@ -202,6 +202,9 @@ Stub поддерживает:
 
 Scheduler не выполняет job сам.
 
+Сам bean `GenerationJobScheduler` создаётся только при
+`saas.doc-template.generation.enabled=true`.
+
 Он вызывает dispatch use case, который:
 
 1. вычисляет свободные worker slots;
