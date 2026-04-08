@@ -20,7 +20,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 class DocxTemplateProcessorTest {
 
     @Test
-    @DisplayName("DOCX процессор извлекает переменные из текста, таблиц, header и footer")
+    @DisplayName("Процессор DOCX извлекает переменные из текста, таблиц, верхнего и нижнего колонтитулов")
     void givenDocxContent_whenExtractVariables_thenReturnVariablesWithExpectedScopes() throws IOException {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
@@ -43,7 +43,7 @@ class DocxTemplateProcessorTest {
     }
 
     @Test
-    @DisplayName("DOCX процессор подставляет значения переменных при генерации")
+    @DisplayName("Процессор DOCX подставляет значения переменных при генерации")
     void givenDocxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();

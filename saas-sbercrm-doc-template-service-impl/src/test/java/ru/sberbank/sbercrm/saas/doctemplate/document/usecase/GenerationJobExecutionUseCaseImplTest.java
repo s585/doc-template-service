@@ -72,7 +72,7 @@ class GenerationJobExecutionUseCaseImplTest {
     Path tempDir;
 
     @Test
-    @DisplayName("Execution use case обрабатывает одну job и завершает файл и job в DONE")
+    @DisplayName("Сценарий исполнения обрабатывает одну задачу и завершает файл и задачу в DONE")
     void givenQueuedJob_whenExecute_thenCompleteGeneration() throws Exception {
         GenerationJob job = buildJob();
         Template template = buildTemplate();
@@ -112,7 +112,7 @@ class GenerationJobExecutionUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Execution use case помечает файл и job в ERROR при исключении")
+    @DisplayName("Сценарий исполнения помечает файл и задачу в ERROR при исключении")
     void givenJob_whenExecutionFails_thenMarkFileAndJobFailed() {
         GenerationJob job = buildJob();
 

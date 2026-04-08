@@ -18,7 +18,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 class XlsxTemplateProcessorTest {
 
     @Test
-    @DisplayName("XLSX процессор извлекает переменные из ячеек и помечает их scope TABLE")
+    @DisplayName("Процессор XLSX извлекает переменные из ячеек и помечает их областью TABLE")
     void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithTableScope() throws IOException {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
@@ -39,7 +39,7 @@ class XlsxTemplateProcessorTest {
     }
 
     @Test
-    @DisplayName("XLSX процессор подставляет значения переменных при генерации")
+    @DisplayName("Процессор XLSX подставляет значения переменных при генерации")
     void givenXlsxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();

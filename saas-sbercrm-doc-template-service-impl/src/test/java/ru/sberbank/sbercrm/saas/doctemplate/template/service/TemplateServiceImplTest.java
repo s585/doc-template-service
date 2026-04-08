@@ -31,7 +31,7 @@ class TemplateServiceImplTest {
     private TemplateServiceImpl systemUnderTest;
 
     @Test
-    @DisplayName("findById использует агрегирующий метод и возвращает шаблон из репозитория")
+    @DisplayName("Поиск по идентификатору использует агрегирующий метод и возвращает шаблон из репозитория")
     void whenFindById_thenDelegateToAggregateLookup() {
         // given
         Template template = Template.builder().id(TEMPLATE_ID).build();
@@ -46,7 +46,7 @@ class TemplateServiceImplTest {
     }
 
     @Test
-    @DisplayName("exists делегирует cheap existence check в репозиторий")
+    @DisplayName("Проверка существования делегирует дешевую проверку в репозиторий")
     void whenExists_thenDelegateToRepository() {
         // given
         given(templateRepository.exists(TENANT_ID, TEMPLATE_ID)).willReturn(true);

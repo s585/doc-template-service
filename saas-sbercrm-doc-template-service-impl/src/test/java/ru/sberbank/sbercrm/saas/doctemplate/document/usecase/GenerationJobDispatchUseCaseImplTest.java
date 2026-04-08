@@ -37,7 +37,7 @@ class GenerationJobDispatchUseCaseImplTest {
     private GenerationJobDispatchUseCaseImpl systemUnderTest;
 
     @Test
-    @DisplayName("Dispatch не запрашивает job, если свободных worker slots нет")
+    @DisplayName("Диспетчер не запрашивает задачи, если свободных слотов воркера нет")
     void givenNoAvailableSlots_whenDispatch_thenSkipClaim() {
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(4);
@@ -49,7 +49,7 @@ class GenerationJobDispatchUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Dispatch запрашивает job по capacity и отправляет каждую в executor")
+    @DisplayName("Диспетчер запрашивает задачи по доступной емкости и отправляет каждую в исполнитель")
     void givenAvailableSlots_whenDispatch_thenClaimAndSubmitJobs() {
         GenerationJob firstJob = GenerationJob.builder().id(FIRST_JOB_ID).build();
         GenerationJob secondJob = GenerationJob.builder().id(SECOND_JOB_ID).build();

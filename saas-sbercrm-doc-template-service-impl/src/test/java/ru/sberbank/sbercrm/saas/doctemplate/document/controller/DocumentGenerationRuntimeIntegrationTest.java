@@ -23,7 +23,7 @@ class DocumentGenerationRuntimeIntegrationTest extends AbstractDocumentGeneratio
     private static final UUID OBJECT_ID = UUID.fromString("34343434-3333-3333-3333-333333333333");
 
     @Test
-    @DisplayName("Scheduler and dispatcher process generation job end-to-end")
+    @DisplayName("Шедулер и диспетчер обрабатывают задачу генерации до конечного результата")
     void givenGeneratedDocument_whenSchedulerRuns_thenJobIsClaimedAndFileBecomesDone() throws Exception {
         UUID templateIdSuffix = TEMPLATE_ID_SUFFIX;
         String templateKey = "templates/" + ENTITY_ID + "/runtime-generation-" + templateIdSuffix + ".docx";

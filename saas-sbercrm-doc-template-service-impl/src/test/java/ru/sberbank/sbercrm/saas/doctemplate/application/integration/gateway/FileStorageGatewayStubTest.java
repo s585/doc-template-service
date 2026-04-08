@@ -19,7 +19,7 @@ class FileStorageGatewayStubTest {
     Path tempDir;
 
     @Test
-    @DisplayName("Stub сохраняет файл локально и позволяет скачать его по key")
+    @DisplayName("Заглушка сохраняет файл локально и позволяет скачать его по ключу")
     void givenUploadedFile_whenDownload_thenReturnStoredFileInfo() throws Exception {
         // given
         DocTemplateProperties properties = new DocTemplateProperties();

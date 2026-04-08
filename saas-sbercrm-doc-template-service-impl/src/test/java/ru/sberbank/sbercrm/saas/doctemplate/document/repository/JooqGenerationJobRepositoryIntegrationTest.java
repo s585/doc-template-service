@@ -39,7 +39,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("claimNextJobs respects limit and marks jobs as processing with lock")
+    @DisplayName("Получение следующих задач соблюдает ограничение и переводит их в обработку с установкой лока")
     void givenQueuedJobs_whenClaimNextJobs_thenRespectLimitAndSetProcessingLock() {
         systemUnderTest.createAll(
             TENANT_ID,
@@ -83,7 +83,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("claimNextJobs does not reclaim already locked jobs")
+    @DisplayName("Получение следующих задач не забирает повторно уже залоченные задачи")
     void givenClaimedJobs_whenClaimNextJobsAgain_thenSkipAlreadyClaimedJobs() {
         systemUnderTest.createAll(
             TENANT_ID,
@@ -108,7 +108,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("claimNextJobs returns jobs ordered by createdAt and id")
+    @DisplayName("Получение следующих задач возвращает их в порядке времени создания и идентификатора")
     void givenQueuedJobsWithKnownOrder_whenClaimNextJobs_thenReturnOrderedJobs() {
         systemUnderTest.createAll(
             TENANT_ID,
@@ -148,10 +148,135 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("claimNextJobs returns empty list when limit is not positive")
+    @DisplayName("Получение следующих задач возвращает пустой список при неположительном ограничении")
     void givenNonPositiveLimit_whenClaimNextJobs_thenReturnEmptyList() {
         assertThat(systemUnderTest.claimNextJobs(WORKER_ID, 0)).isEmpty();
         assertThat(systemUnderTest.claimNextJobs(WORKER_ID, -1)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Создание и методы чтения возвращают задачи, созданные для документа")
+    void givenCreatedJobs_whenFindMethodsCalled_thenReturnOrderedJobs() {
+        UUID firstDocumentId = UUID.fromString("12121212-1212-1212-1212-121212121212");
+        UUID secondDocumentId = UUID.fromString("13131313-1313-1313-1313-131313131313");
+        UUID firstRequestId = UUID.fromString("14141414-1414-1414-1414-141414141414");
+        UUID secondRequestId = UUID.fromString("15151515-1515-1515-1515-151515151515");
+
+        systemUnderTest.createAll(
+            TENANT_ID,
+            USER_ID,
+            firstDocumentId,
+            buildCreationCommand(firstDocumentId, firstRequestId, List.of("DOCX", "XLSX"))
+        );
+        systemUnderTest.createAll(
+            TENANT_ID,
+            USER_ID,
+            secondDocumentId,
+            buildCreationCommand(secondDocumentId, secondRequestId, List.of("PDF"))
+        );
+
+        assertThat(systemUnderTest.findByDocumentId(TENANT_ID, firstDocumentId))
+            .extracting(GenerationJob::getFormat)
+            .containsExactlyInAnyOrder("DOCX", "XLSX");
+
+        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)))
+            .containsOnlyKeys(firstDocumentId, secondDocumentId);
+        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)).get(firstDocumentId))
+            .extracting(GenerationJob::getFormat)
+            .containsExactlyInAnyOrder("DOCX", "XLSX");
+        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)).get(secondDocumentId))
+            .extracting(GenerationJob::getFormat)
+            .containsExactly("PDF");
+    }
+
+    @Test
+    @DisplayName("Поиск по идентификаторам документов возвращает пустую карту при пустом наборе")
+    void givenEmptyDocumentIds_whenFindByDocumentIds_thenReturnEmptyMap() {
+        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of())).isEmpty();
+        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Завершение задачи снимает лок, очищает ошибки и переводит её в завершенное состояние")
+    void givenProcessingJob_whenMarkCompleted_thenPersistDoneState() {
+        systemUnderTest.createAll(
+            TENANT_ID,
+            USER_ID,
+            CLAIM_DOCUMENT_ID,
+            buildCreationCommand(CLAIM_DOCUMENT_ID, REQUEST_ID, List.of("DOCX"))
+        );
+
+        GenerationJob claimedJob = systemUnderTest.claimNextJobs(WORKER_ID, 1).getFirst();
+        dslContext.update(T_GENERATION_JOB)
+            .set(T_GENERATION_JOB.ERROR_CODE, "some.error")
+            .set(T_GENERATION_JOB.ERROR_MESSAGE, "some message")
+            .where(T_GENERATION_JOB.ID.eq(claimedJob.getId()))
+            .execute();
+
+        systemUnderTest.markCompleted(TENANT_ID, USER_ID, claimedJob.getId());
+
+        GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
+        assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.DONE);
+        assertThat(persistedJob.getErrorCode()).isNull();
+        assertThat(persistedJob.getErrorMessage()).isNull();
+        assertThat(persistedJob.getUpdatedBy()).isEqualTo(USER_ID);
+        assertThat(
+            dslContext.select(T_GENERATION_JOB.LOCKED_BY, T_GENERATION_JOB.LOCKED_UNTIL)
+                .from(T_GENERATION_JOB)
+                .where(T_GENERATION_JOB.ID.eq(claimedJob.getId()))
+                .fetchSingle()
+        )
+            .satisfies(record -> {
+                assertThat(record.get(T_GENERATION_JOB.LOCKED_BY)).isNull();
+                assertThat(record.get(T_GENERATION_JOB.LOCKED_UNTIL)).isNull();
+            });
+    }
+
+    @Test
+    @DisplayName("Фиксация ошибки снимает лок и сохраняет детали ошибки")
+    void givenProcessingJob_whenMarkFailed_thenPersistErrorState() {
+        systemUnderTest.createAll(
+            TENANT_ID,
+            USER_ID,
+            CLAIM_DOCUMENT_ID,
+            buildCreationCommand(CLAIM_DOCUMENT_ID, REQUEST_ID, List.of("DOCX"))
+        );
+
+        GenerationJob claimedJob = systemUnderTest.claimNextJobs(WORKER_ID, 1).getFirst();
+
+        systemUnderTest.markFailed(
+            TENANT_ID,
+            USER_ID,
+            claimedJob.getId(),
+            "generation.failed",
+            "Generation failed"
+        );
+
+        GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
+        assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.ERROR);
+        assertThat(persistedJob.getErrorCode()).isEqualTo("generation.failed");
+        assertThat(persistedJob.getErrorMessage()).isEqualTo("Generation failed");
+        assertThat(persistedJob.getUpdatedBy()).isEqualTo(USER_ID);
+        assertThat(
+            dslContext.select(T_GENERATION_JOB.LOCKED_BY, T_GENERATION_JOB.LOCKED_UNTIL)
+                .from(T_GENERATION_JOB)
+                .where(T_GENERATION_JOB.ID.eq(claimedJob.getId()))
+                .fetchSingle()
+        )
+            .satisfies(record -> {
+                assertThat(record.get(T_GENERATION_JOB.LOCKED_BY)).isNull();
+                assertThat(record.get(T_GENERATION_JOB.LOCKED_UNTIL)).isNull();
+            });
+    }
+
+    private DocumentCreationCmd buildCreationCommand(UUID objectId, UUID requestId, List<String> formats) {
+        return DocumentCreationCmd.builder()
+            .templateId(TEMPLATE_ID)
+            .entityId(ENTITY_ID)
+            .objectId(objectId)
+            .requestId(requestId)
+            .formats(formats)
+            .build();
     }
 
     private UUID findJobIdByFormat(UUID documentId, String format) {
