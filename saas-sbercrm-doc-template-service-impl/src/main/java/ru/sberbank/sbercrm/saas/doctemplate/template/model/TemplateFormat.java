@@ -3,20 +3,18 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 public enum TemplateFormat {
     DOCX("DOCX"),
     XLSX("XLSX");
 
-    private static final Map<String, TemplateFormat> CONSTANTS = new HashMap<>();
-
-    static {
-        for (TemplateFormat format : values()) {
-            CONSTANTS.put(format.value, format);
-        }
-    }
+    private static final Map<String, TemplateFormat> CONSTANTS = Arrays.stream(values())
+        .collect(toUnmodifiableMap(TemplateFormat::value, Function.identity()));
 
     private final String value;
 

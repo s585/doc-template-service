@@ -91,7 +91,12 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
             throw ex;
         } catch (RuntimeException ex) {
             rollbackUploadedFile(tenantId, userId, uploadedKey);
-            throw new SystemCrmException(ex, CrmErrorCodes.SYSTEM_UNEXPECTED, ex.getClass().getSimpleName());
+            throw new SystemCrmException(
+                CrmErrorCodes.SYSTEM_UNEXPECTED,
+                CrmErrorCodes.SYSTEM_UNEXPECTED,
+                ex,
+                ex.getClass().getSimpleName()
+            );
         }
     }
 
@@ -115,7 +120,11 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
         for (TemplateVariableInfo occurrence : templateProcessingFacade.extractVariables(format, content)) {
             MappingScope currentScope = variableToScope.get(occurrence.getKey());
             if (currentScope != null && currentScope != occurrence.getScope()) {
-                throw new BusinessCrmException(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID, occurrence.getKey());
+                throw new BusinessCrmException(
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
+                    occurrence.getKey()
+                );
             }
             variableToScope.putIfAbsent(occurrence.getKey(), occurrence.getScope());
         }

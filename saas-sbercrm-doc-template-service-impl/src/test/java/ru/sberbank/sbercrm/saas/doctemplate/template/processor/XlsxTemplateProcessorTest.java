@@ -23,11 +23,11 @@ class XlsxTemplateProcessorTest {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
         docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(docTemplateProperties);
+        XlsxTemplateProcessor systemUnderTest = new XlsxTemplateProcessor(docTemplateProperties);
         byte[] content = createXlsxContent();
 
         // when
-        List<TemplateVariableInfo> variables = processor.extractVariables(content);
+        List<TemplateVariableInfo> variables = systemUnderTest.extractVariables(content);
 
         // then
         assertThat(variables)
@@ -44,11 +44,11 @@ class XlsxTemplateProcessorTest {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
         docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor processor = new XlsxTemplateProcessor(docTemplateProperties);
+        XlsxTemplateProcessor systemUnderTest = new XlsxTemplateProcessor(docTemplateProperties);
         byte[] content = createXlsxContent();
 
         // when
-        byte[] generated = processor.generate(content, Map.of(
+        byte[] generated = systemUnderTest.generate(content, Map.of(
             "deal_number", "42",
             "product_name", "Product"
         ));

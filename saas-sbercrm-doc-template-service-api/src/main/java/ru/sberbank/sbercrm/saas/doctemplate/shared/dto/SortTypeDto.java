@@ -13,8 +13,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 @Data
 @Builder(toBuilder = true)
@@ -39,13 +42,8 @@ public class SortTypeDto {
         ASC("ASC"),
         DESC("DESC");
 
-        private static final Map<String, Direction> CONSTANTS = new HashMap<>();
-
-        static {
-            for (Direction direction : values()) {
-                CONSTANTS.put(direction.value, direction);
-            }
-        }
+        private static final Map<String, Direction> CONSTANTS = Arrays.stream(values())
+            .collect(toUnmodifiableMap(Direction::value, Function.identity()));
 
         private final String value;
 

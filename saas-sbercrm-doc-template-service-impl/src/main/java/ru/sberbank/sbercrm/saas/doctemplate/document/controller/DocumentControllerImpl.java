@@ -52,13 +52,13 @@ public class DocumentControllerImpl implements DocumentController {
     private UUID getRequiredUuidHeader(String headerName) {
         String value = httpServletRequest.getHeader(headerName);
         if (value == null || value.isBlank()) {
-            throw new BusinessCrmException(CrmErrorCodes.REQUEST_HEADER_MISSING, headerName);
+            throw new BusinessCrmException(CrmErrorCodes.REQUEST_HEADER_MISSING, CrmErrorCodes.REQUEST_HEADER_MISSING, headerName);
         }
 
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException ex) {
-            throw new BusinessCrmException(ex, CrmErrorCodes.REQUEST_HEADER_INVALID, headerName);
+            throw new BusinessCrmException(CrmErrorCodes.REQUEST_HEADER_INVALID, CrmErrorCodes.REQUEST_HEADER_INVALID, ex, headerName);
         }
     }
 }

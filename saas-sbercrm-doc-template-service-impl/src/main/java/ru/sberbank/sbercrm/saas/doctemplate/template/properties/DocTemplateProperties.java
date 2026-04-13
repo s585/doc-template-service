@@ -1,5 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.properties;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -35,5 +37,9 @@ public class DocTemplateProperties {
         private boolean enabled = true;
         private long dispatchFixedDelayMs = 250;
         private int workerPoolSize = 4;
+        private int maxAttempts = 4;
+        private List<Long> retryBackoffSeconds = new ArrayList<>(List.of(10L, 30L, 120L, 600L));
+        private long lockTimeoutSeconds = 300;
     }
+
 }

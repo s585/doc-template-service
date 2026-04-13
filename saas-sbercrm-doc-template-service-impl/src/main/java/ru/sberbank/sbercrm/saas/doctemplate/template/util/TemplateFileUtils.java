@@ -17,14 +17,21 @@ public final class TemplateFileUtils {
         try {
             return file.getBytes();
         } catch (IOException ex) {
-            throw new BusinessCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID);
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID,
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID,
+                ex
+            );
         }
     }
 
     public static String resolveOriginalFileName(MultipartFile file) {
         String originalFileName = file.getOriginalFilename();
         if (originalFileName == null || originalFileName.isBlank()) {
-            throw new BusinessCrmException(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID);
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID,
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID
+            );
         }
         return originalFileName;
     }
@@ -32,14 +39,21 @@ public final class TemplateFileUtils {
     public static TemplateFormat resolveFormat(String originalFileName) {
         int extensionIndex = originalFileName.lastIndexOf('.');
         if (extensionIndex < 0 || extensionIndex == originalFileName.length() - 1) {
-            throw new BusinessCrmException(TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID);
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID,
+                TemplateConstants.ErrorCodes.TEMPLATE_FILE_INVALID
+            );
         }
 
         String extension = originalFileName.substring(extensionIndex + 1).toLowerCase(Locale.ROOT);
         return switch (extension) {
             case "docx" -> TemplateFormat.DOCX;
             case "xlsx" -> TemplateFormat.XLSX;
-            default -> throw new BusinessCrmException(TemplateConstants.ErrorCodes.TEMPLATE_FORMAT_UNSUPPORTED, extension);
+            default -> throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_FORMAT_UNSUPPORTED,
+                TemplateConstants.ErrorCodes.TEMPLATE_FORMAT_UNSUPPORTED,
+                extension
+            );
         };
     }
 }

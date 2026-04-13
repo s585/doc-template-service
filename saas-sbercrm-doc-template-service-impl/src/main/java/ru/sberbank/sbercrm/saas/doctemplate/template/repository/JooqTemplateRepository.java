@@ -1,5 +1,10 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.repository;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -15,10 +20,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplate.T_TEMPLATE;
 import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplateMapping.T_TEMPLATE_MAPPING;
 
@@ -26,6 +27,7 @@ import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TTemplateMapping.
 @RequiredArgsConstructor
 public class JooqTemplateRepository implements TemplateRepository {
     private final DSLContext dslContext;
+    private final Clock clock;
     private final JsonbHelper jsonbHelper;
     private final JooqQueryBuilder jooqQueryBuilder;
     private final TemplateRecordConverter templateRecordConverter;
@@ -33,6 +35,7 @@ public class JooqTemplateRepository implements TemplateRepository {
 
     @Override
     public Template create(UUID tenantId, Template template) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
         return templateRecordConverter.map(
             dslContext.insertInto(T_TEMPLATE)
                 .set(T_TEMPLATE.TENANT_ID, tenantId)
@@ -46,6 +49,8 @@ public class JooqTemplateRepository implements TemplateRepository {
                 .set(T_TEMPLATE.DISPLAY_CONDITION, jsonbHelper.toJsonb(template.getDisplayCondition()))
                 .set(T_TEMPLATE.CREATED_BY, template.getCreatedBy())
                 .set(T_TEMPLATE.UPDATED_BY, template.getUpdatedBy())
+                .set(T_TEMPLATE.CREATED_AT, now)
+                .set(T_TEMPLATE.UPDATED_AT, now)
                 .returning()
                 .fetchOne()
         );
@@ -53,6 +58,7 @@ public class JooqTemplateRepository implements TemplateRepository {
 
     @Override
     public Template update(UUID tenantId, Template template) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
         return templateRecordConverter.map(
             dslContext.update(T_TEMPLATE)
                 .set(T_TEMPLATE.ENTITY_ID, template.getEntityId())
@@ -64,7 +70,7 @@ public class JooqTemplateRepository implements TemplateRepository {
                 .set(T_TEMPLATE.ACTIVE, template.isActive())
                 .set(T_TEMPLATE.DISPLAY_CONDITION, jsonbHelper.toJsonb(template.getDisplayCondition()))
                 .set(T_TEMPLATE.UPDATED_BY, template.getUpdatedBy())
-                .set(T_TEMPLATE.UPDATED_AT, DSL.currentOffsetDateTime())
+                .set(T_TEMPLATE.UPDATED_AT, now)
                 .where(
                     T_TEMPLATE.TENANT_ID.eq(tenantId),
                     T_TEMPLATE.ID.eq(template.getId())

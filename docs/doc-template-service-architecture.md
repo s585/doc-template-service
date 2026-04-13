@@ -2,11 +2,13 @@
 
 ## Статус документа
 
-- Этот документ является рабочим описанием архитектуры generation flow в текущей ветке.
-- Для ветки `codex/generation-api-contract` он должен рассматриваться как локальный source of truth.
-- Если реализация generation flow начинает расходиться с этим документом, сначала должен обновляться документ, затем код.
-- После внесения изменений, влияющих на поведение generation flow, архитектуру, модель данных, обработку задач,
-  статусы или интеграции, соответствующие изменения должны фиксироваться в этом документе в рамках той же задачи.
+- Этот документ является рабочим архитектурным описанием сервиса.
+- Для всех последующих изменений в generation flow он должен рассматриваться как текущий source of truth.
+- Если реализация начинает расходиться с этим документом, сначала должен обновляться документ, затем код.
+- После внесения любых изменений, влияющих на поведение сервиса, архитектуру,
+  модель данных, обработку задач, статусы, интеграции или контракт взаимодействия
+  между внутренними слоями, соответствующие изменения должны быть обязательно
+  зафиксированы в этом документе в рамках той же задачи.
 
 ## Назначение сервиса
 
@@ -18,8 +20,9 @@
 - асинхронную генерацию файлов по шаблонам;
 - хранение результатов генерации и статусов файлов.
 
-Сервис не является источником бизнес-данных объекта. Он использует `entityId` и `objectId` как внешние
-идентификаторы доменного объекта, для которого создаётся документ.
+Сервис не является источником бизнес-данных объекта. Он использует `entityId`
+и `objectId` как внешние идентификаторы доменного объекта, для которого
+генерируется документ.
 
 ## Границы модулей
 
@@ -29,7 +32,7 @@
 
 - контроллеры;
 - request/response DTO;
-- публичные enum и контракты.
+- публичные enum/контракты, необходимые клиенту.
 
 ### `saas-sbercrm-doc-template-service-db`
 
@@ -46,15 +49,15 @@
 
 Содержит прикладную и доменную реализацию:
 
-- controller implementation и web adapter;
+- web adapter / controller implementation;
 - use case;
 - service;
 - repository;
-- интеграции с file storage;
+- интеграции с внешними системами;
 - процессинг шаблонов;
-- scheduler и worker execution.
+- scheduler / worker execution.
 
-## Доменные сущности
+## Доменные сущности и их смысл
 
 ### Template
 
@@ -75,7 +78,7 @@
 - метаданные созданного документа;
 - список связанных `GeneratedFile`.
 
-У `Document` нет собственного статуса. Источник правды о ходе генерации находится на уровне файлов.
+`Document` не имеет собственного статуса. Источник правды о ходе генерации находится на уровне файлов.
 
 ### GeneratedFile
 
@@ -102,6 +105,22 @@
 - `PROCESSING`
 - `DONE`
 - `ERROR`
+
+Дополнительные runtime-поля:
+
+- `attempt_count`
+- `next_retry_at`
+
+### GenerationJobAttempt
+
+Журнал попыток выполнения `GenerationJob`.
+
+На текущий момент `generation_job_attempt` уже встроен в runtime flow:
+
+- при старте обработки job создаётся attempt со статусом `PROCESSING`;
+- при успешном завершении attempt переводится в `DONE`;
+- при неуспешном завершении attempt переводится в `ERROR`;
+- при timeout recovery активная attempt переводится в `TIMEOUT`.
 
 ## Ключевые архитектурные соглашения
 
@@ -140,7 +159,7 @@ Use case не должен ходить в repository напрямую.
 
 ### 5. Конвертация jOOQ record в модель
 
-Конвертация `jooq.Record -> model` вынесена в отдельные converter/mapper-классы по аналогии с доменом `template`.
+Конвертация `jooq.Record -> model` должна быть вынесена в отдельные converter/mapper-классы по аналогии с доменом `template`.
 
 ### 6. Audit-поля обязательны в доменной модели
 
@@ -160,14 +179,50 @@ Runtime-код сервиса не должен выбрасывать `IllegalS
 Если возникает ошибка:
 
 - бизнес-ошибка должна выражаться через `BusinessCrmException` или `NotFoundCrmException`;
-- системная или инфраструктурная ошибка должна выражаться через `SystemCrmException`.
+- системная, инфраструктурная или конфигурационная ошибка должна выражаться через `SystemCrmException`;
+- все исключения сервиса должны наследоваться от `AbstractCrmException`.
+
+Это правило распространяется в том числе на:
+
+- use case;
+- service;
+- repository helper;
+- processor resolver;
+- state machine;
+- внутренние utility-компоненты, влияющие на runtime поведение сервиса.
+
+Дополнительное правило для наследников `AbstractCrmException`:
+
+- конструкторы исключений должны передавать `cause` и `params` в базовый класс без искажений;
+- отсутствие параметров должно сохраняться как пустой массив параметров, а не как вложенный массив;
+- отсутствие `cause` не должно приводить к тому, что `Throwable` попадает в `params`.
+
+### 8. Время в сервисе централизовано через `Clock`
+
+В `impl`-модуле создаётся единый Spring bean:
+
+- `Clock.systemUTC()`
+
+Все runtime-временные метки, которые сервис вычисляет сам, должны ставиться через:
+
+- `OffsetDateTime.now(clock)`
+
+Это правило распространяется в том числе на:
+
+- расчёт `nextRetryAt`;
+- lease/timeout метки generation job;
+- `updatedAt`, когда время выставляется из Java-кода;
+- `finishedAt` для `generation_job_attempt`.
+
+Использование `OffsetDateTime.now()` без `clock` и `DSL.currentOffsetDateTime()`
+для прикладных timestamp-полей в сервисном коде не допускается.
 
 ## File storage
 
 Сервис использует gateway над file storage:
 
 - production-вариант через внешний клиент;
-- локальный stub-вариант для разработки и тестов.
+- локальный stub-вариант для разработки и интеграционных тестов.
 
 `FileStorageGatewayStub` нужен для работы с локальными файлами без внешнего file storage.
 
@@ -187,7 +242,7 @@ Stub поддерживает:
 
 Список документов использует общий пагинируемый контракт сервиса.
 
-## Поток обработки generation в текущей ветке
+## Поток обработки generation сейчас
 
 ### Создание документа
 
@@ -200,60 +255,410 @@ Stub поддерживает:
 
 ### Dispatch
 
-Scheduler не выполняет job сам.
+Scheduler работает часто и не выполняет job сам.
 
 Сам bean `GenerationJobScheduler` создаётся только при
 `saas.doc-template.generation.enabled=true`.
 
 Он вызывает dispatch use case, который:
 
-1. вычисляет свободные worker slots;
-2. claim-ит из БД только нужное число job;
-3. отправляет каждую job в `ThreadPoolTaskExecutor`.
+1. делает recovery просроченных `PROCESSING` job;
+2. вычисляет свободные worker slots;
+3. claim-ит из БД только нужное число job;
+4. отправляет каждую job в `ThreadPoolTaskExecutor`.
 
-Для claim используется один runtime `workerId`, сгенерированный в `GenerationJobDispatchUseCaseImpl`.
+Для worker execution используется отдельная runtime identity:
 
-### Выполнение job
+- `workerId` хранится в БД в `generation_job.locked_by` и `generation_job_attempt.worker_id`;
+- `workerId` является стабильным `UUID` конкретного runtime-инстанса сервиса на протяжении его жизни;
+- для расследования инцидентов используется не только `workerId`, но и человекочитаемый `workerName` в логах;
+- `workerName` имеет вид `applicationName@host:pid`, а в execution-логах дополняется именем потока.
 
-`GenerationJobExecutionUseCase` обрабатывает одну job:
+В claim попадают только job, для которых:
 
-1. переводит соответствующий `generated_file` в `PROCESSING`;
-2. читает шаблон из file storage;
-3. собирает map значений из mapping-правил шаблона;
-4. генерирует файл через `TemplateProcessingFacade`;
-5. загружает результат в file storage;
-6. обновляет `generated_file` в `DONE`;
-7. обновляет `generation_job` в `DONE`.
+- `status = QUEUED`;
+- `next_retry_at is null` или `next_retry_at <= now()`;
+- lease-блокировка не активна.
 
-При ошибке:
+### Execution
 
-- `generated_file` переводится в `ERROR`;
-- `generation_job` переводится в `ERROR`;
-- код ошибки сейчас нормализуется в `system.unexpected`.
+Один execution use case обрабатывает одну job:
 
-## Подстановка значений в шаблон
+1. через транзакционный transition service атомарно создаёт `generation_job_attempt`
+   и переводит связанный `generated_file` в `PROCESSING`;
+2. нормализует ошибку через `GenerationErrorClassifier`, который поднимается по
+   cause chain до `AbstractCrmException` и принимает решение по `errorCode`;
+3. строит явный `GenerationRetryDecision` c действием `RETRY_NOW`, `RETRY_LATER` или `FAIL_FINAL`;
+4. при ошибке до успешного создания attempt сразу передаёт retry/fail decision в transition service;
+5. при `RETRY_NOW/RETRY_LATER` возвращает job в `QUEUED` с `next_retry_at`;
+6. при `FAIL_FINAL` завершает job в `ERROR`;
+7. при успехе завершает `generated_file + generation_job + generation_job_attempt` через транзакционный transition service.
 
-В текущей ветке generation flow умеет полноценно работать только с `ConstantValueSource`.
+## State machine generation job
 
-Если mapping:
+Для `generation_job` используется lightweight state machine в коде.
 
-- не содержит source, подставляется пустая строка;
-- содержит неподдерживаемый source, выполнение завершается ошибкой.
+Это не внешняя библиотека и не generic engine. Это локальная модель допустимых переходов.
 
-То есть `DirectValueSource` и `ReferenceValueSource` в этой ветке ещё не реализованы как рабочий data resolver.
+### События
 
-## Ограничения текущей реализации
+- `CLAIM`
+- `TIMEOUT`
+- `RETRY`
+- `COMPLETE`
+- `FAIL`
 
-В текущей ветке ещё отсутствуют:
+### Разрешённые переходы
 
-- state machine для `generation_job`;
-- retry policy;
-- recovery зависших `PROCESSING` job;
-- attempt-история в runtime flow;
-- конфигурируемый lease timeout для `generation_job.locked_until`
-  вместо хардкода `5 minutes` в `claim`;
-- централизованный `Clock`;
-- расширенная observability worker lifecycle;
-- локальный debug runner для генерации документа.
+- `QUEUED --CLAIM--> PROCESSING`
+- `PROCESSING --TIMEOUT--> QUEUED`
+- `PROCESSING --RETRY--> QUEUED`
+- `PROCESSING --COMPLETE--> DONE`
+- `PROCESSING --FAIL--> ERROR`
 
-Эти возможности считаются следующими слоями эволюции generation flow и реализуются в последующих ветках.
+Любой другой переход считается ошибкой реализации и должен завершаться исключением.
+
+## Согласованность данных
+
+Полная атомарность всего pipeline невозможна, потому что в процессе участвует внешний file storage.
+
+Поэтому используется следующее правило:
+
+- внешние side effects выполняются вне DB-транзакции;
+- финальная фиксация статусов в БД должна выполняться короткой транзакцией;
+- обновление `generated_file` и `generation_job` должно происходить согласованно в одном transaction boundary.
+
+Для этого используется `GenerationJobTransitionService`.
+
+Сейчас через него проходят:
+
+- старт attempt и перевод файла в `PROCESSING`;
+- обработка ошибки до создания attempt;
+- успешное завершение генерации;
+- завершение с ошибкой;
+- планирование retry;
+- возврат просроченной job обратно в очередь;
+- синхронное обновление `generation_job_attempt` в том же transition boundary.
+
+Внутренний контракт transition-слоя должен передаваться не россыпью аргументов, а через
+явные parameter object:
+
+- `GenerationTransitionContext` для общего контекста перехода;
+- `GenerationJobPreAttemptContext` для переходов, выполняемых до создания attempt;
+- `GeneratedFileResult` для результата успешной генерации.
+
+## Recovery зависших job
+
+Сервис считает job зависшей, если:
+
+- `generation_job.status = PROCESSING`
+- `locked_until < now()`
+
+Recovery работает перед каждым dispatch cycle.
+
+При recovery:
+
+1. активная attempt переводится в `TIMEOUT`;
+2. timeout нормализуется тем же `GenerationErrorClassifier`, что и обычная execution error;
+3. по нему строится тот же `GenerationRetryDecision`, что и для runtime-ошибок worker;
+4. если решение равно `RETRY_NOW/RETRY_LATER`, state machine валидирует переход
+   `PROCESSING -> QUEUED`, `generated_file` переводится в `PENDING`, а
+   `generation_job` получает новый `next_retry_at`;
+5. если решение равно `FAIL_FINAL`, job и файл завершаются в `ERROR`.
+
+Цель recovery:
+
+- вернуть в работу job, брошенные упавшим worker;
+- не оставлять публичный файл в вечном `PROCESSING`.
+
+## Почему job может зависнуть
+
+Типовые причины:
+
+- падение инстанса приложения после claim;
+- аварийное завершение JVM/контейнера;
+- зависание или долгий timeout внешнего file storage;
+- зависание процессинга шаблона;
+- сбой после внешнего side effect и до финального обновления БД.
+
+## Retry-модель
+
+Retry-модель уже частично реализована и является обязательной частью generation flow.
+
+### Цели retry
+
+- повторять только временные ошибки;
+- не зацикливать job на детерминированно плохом входе;
+- хранить историю попыток;
+- управлять backoff.
+
+### Классы ошибок
+
+#### Retriable
+
+- временные сетевые ошибки;
+- timeout внешнего вызова;
+- временная недоступность file storage;
+- инфраструктурные `5xx`.
+
+#### Non-retriable
+
+- битый или неподдерживаемый шаблон;
+- неподдерживаемый формат;
+- ошибка маппинга;
+- отсутствие обязательных данных;
+- детерминированная ошибка процессинга.
+
+### Планируемая модель хранения retry
+
+В `generation_job` используются агрегированные runtime-поля:
+
+- `attempt_count`;
+- `next_retry_at`;
+
+Лимит попыток хранится в конфигурации сервиса.
+
+В `generation_job_attempt` пишется история каждой попытки:
+
+- номер попытки;
+- время старта;
+- время завершения;
+- статус попытки;
+- код и текст ошибки;
+- при необходимости `worker_id`.
+
+### Правила retry
+
+При ошибке выполнения:
+
+1. ошибка классифицируется;
+2. если ошибка non-retriable, job завершается в `ERROR`;
+3. если ошибка retriable и лимит попыток не исчерпан, job возвращается в `QUEUED`;
+4. повторный запуск должен учитывать `next_retry_at`;
+5. если лимит исчерпан, job завершается в `ERROR`.
+
+Текущая реализация использует:
+
+- `GenerationErrorClassifier`;
+- `GenerationRetryPolicy`;
+- `attempt_count` как количество уже завершённых попыток;
+- `attempt_no` из `generation_job_attempt` как номер текущей попытки;
+- `next_retry_at` как барьер допуска job в следующий claim.
+
+`GenerationErrorClassifier` не должен принимать retry-решение по "сырым" Java-исключениям вроде `IOException`.
+Решение о retriable/non-retriable должно приниматься по нормализованным
+исключениям сервиса, наследующим `AbstractCrmException`, и их error code.
+
+### Точки улучшения retry policy
+
+Следующие улучшения считаются целевыми и могут реализовываться поэтапно:
+
+1. Добавить jitter к backoff.
+   При массовых временных сбоях повторный запуск не должен происходить строго в
+   одну и ту же секунду. Допустим небольшой случайный разброс поверх базового
+   backoff, чтобы избежать burst-нагрузки после восстановления внешней системы.
+
+2. Поддержать policy по типу ошибки, а не только общий `maxAttempts`.
+   Разные классы ошибок могут требовать разного лимита попыток и разного
+   backoff. Например, storage timeout и generic system error не обязаны жить по
+   одной и той же retry-схеме.
+
+3. Улучшить observability exhausted retries.
+   При финальном переходе в `ERROR` после исчерпания попыток должны быть хорошо видны:
+   - номер последней попытки;
+   - общее число попыток;
+   - last error code;
+   - `jobId`, `attemptId`, `workerId`.
+
+4. Явно определить поведение side effects при retry.
+   Если внешний side effect уже произошёл, а финальная фиксация в БД не успела
+   завершиться, retry должен быть безопасным. Для этого нужна зафиксированная
+   стратегия работы с уже загруженным артефактом:
+   - детерминированный file key;
+   - overwrite-safe upload;
+   - или явная cleanup/reuse политика.
+   
+   Рекомендуемое направление реализации:
+   - целевой `file key` должен вычисляться детерминированно на основе `documentId + format`;
+   - повторная попытка должна писать в тот же key, а не создавать новый случайный артефакт;
+   - upload в storage должен быть overwrite-safe;
+   - следующим усилением модели считается `reuse existing artifact`, когда retry
+     после неоднозначного сбоя может не загружать файл повторно, а догонять
+     состояние БД по уже существующему артефакту.
+
+5. Добавить метрики retry lifecycle.
+   Минимально нужны:
+   - количество стартовавших попыток;
+   - количество запланированных retry;
+   - количество timeout recovery;
+   - количество финальных ошибок;
+   - количество exhausted retries.
+
+6. Поддержать формат-специфичные timeout/backoff при необходимости.
+   При необходимости `docx` и `xlsx` могут получить разные значения processing
+   timeout или retry backoff, если реальные профили выполнения окажутся
+   разными.
+
+7. Усилить идемпотентность retry на уровне результата генерации.
+   Повторный запуск одной и той же job не должен создавать неоднозначность на уровне `generated_file` и артефакта в storage.
+
+### Backoff
+
+Рекомендуется экспоненциальный или ступенчатый backoff.
+
+Базовый вариант:
+
+- попытка 1: `10s`
+- попытка 2: `30s`
+- попытка 3: `2m`
+- попытка 4: `10m`
+
+### Важное ограничение
+
+Recovery зависших `PROCESSING` job и бизнес-retry не должны развиваться как две разные независимые модели.
+
+Текущая реализация уже следует этому правилу:
+
+- timeout worker-а считается одной из причин неуспешной попытки;
+- retry decision принимается в одном месте;
+- `generation_job_attempt` хранит историю и timeout, и обычных execution failure.
+- recovery timed out jobs обрабатывается по схеме `одна job = одна отдельная транзакция`,
+  чтобы сбой на одной записи не откатывал весь batch.
+
+## Что считать обязательным инвариантом сервиса
+
+- один формат результата соответствует одному `generated_file` и одной `generation_job`;
+- публичный статус находится у файла, не у документа;
+- scheduler не выполняет job сам, а только диспетчеризует;
+- worker обрабатывает одну job;
+- финальные переходы статусов проходят через transition service;
+- недопустимые переходы `generation_job` запрещаются state machine;
+- просроченный `PROCESSING` не должен оставаться в системе бесконечно;
+- любые изменения generation flow должны проверяться тестами на happy path и recovery path.
+
+## Тестовое покрытие generation
+
+Сейчас generation flow покрыт не только unit-тестами, но и интеграционными сценариями уровня документа.
+
+Интеграционно подтверждены:
+
+- happy path генерации `docx` с реальным сохранением результата и проверкой содержимого файла;
+- retriable failure path: первая попытка завершается временной ошибкой, job
+  возвращается в `QUEUED`, следующая попытка успешно завершает файл;
+- non-retriable failure path: детерминированная ошибка завершает `generated_file` и `generation_job` в `ERROR` без повторного claim.
+
+## Observability generation worker
+
+Для generation flow обязательны lifecycle-логи с привязкой к worker identity.
+
+Используемые уровни:
+
+- `INFO`:
+  - claim пачки job;
+  - старт attempt;
+  - успешное завершение job;
+- `WARN`:
+  - retriable failure с планированием retry;
+  - recovery timed out job с возвратом в `QUEUED`;
+- `ERROR`:
+  - финальное завершение job в `ERROR`;
+  - timeout с исчерпанным лимитом попыток.
+
+Минимальный набор полей для operational correlation:
+
+- `jobId`;
+- `attemptId`;
+- `attemptNo`;
+- `documentId`;
+- `templateId`;
+- `format`;
+- `workerId`;
+- `workerName`.
+
+### Как использовать `workerId` при расследовании инцидентов
+
+`workerId` должен трактоваться как технический correlation identifier runtime-инстанса generation worker.
+
+Что означает `workerId`:
+
+- это стабильный `UUID` конкретного runtime-инстанса сервиса на протяжении его жизни;
+- он записывается в `generation_job.locked_by` при claim job;
+- он записывается в `generation_job_attempt.worker_id` для попытки, начатой этим worker;
+- он не является `userId`;
+- он не является бизнес-идентификатором инициатора генерации;
+- он не является человекочитаемым идентификатором хоста или pod.
+
+Что даёт `workerId` в расследовании:
+
+- позволяет связать claim в `generation_job` и конкретную запись в `generation_job_attempt`;
+- позволяет понять, что timeout, retry или completion относятся к одному и тому же runtime worker;
+- позволяет связать состояние в БД с lifecycle-логами по тому же `workerId`.
+
+Что не даёт `workerId` сам по себе:
+
+- по одному только `workerId` нельзя понять, на каком именно хосте или pod работала job;
+- по одному только `workerId` нельзя понять, какой пользователь инициировал генерацию;
+- `workerId` не предназначен для внешнего API и не должен использоваться как публичный идентификатор.
+
+Как расследовать инцидент:
+
+1. найти проблемную `generation_job` или `generation_job_attempt`;
+2. взять `jobId`, `attemptId`, `attemptNo`, `workerId`;
+3. найти в логах события с тем же `workerId`;
+4. использовать `workerName` из логов для выхода на конкретный `application@host:pid[:thread]`;
+5. по связке `workerId + workerName + jobId + attemptId` восстановить полный lifecycle execution.
+
+Операционное правило:
+
+- для расследования `workerId` всегда используется вместе с `workerName` и идентификаторами `job/attempt`;
+- `workerId` без логов считается недостаточным источником для forensic-анализа;
+- `workerName` является человекочитаемым представлением runtime-исполнителя и должен присутствовать во всех lifecycle-логах generation flow.
+
+### Защита от устаревших попыток
+
+- финальные переходы `generation_job` выполняются через guarded update с ожидаемыми
+  `status=PROCESSING` и `attempt_count`;
+- stale worker не должен иметь возможность завершить или зафейлить job после того,
+  как timeout recovery уже вернул её в очередь или новая попытка была claimed;
+- `generated_file` и `generation_job_attempt` обновляются только после успешного guarded
+  перехода `generation_job`, чтобы старый worker не затёр состояние новой попытки.
+
+### Идемпотентность результата генерации
+
+- generation flow на стороне сервиса формирует детерминированный folder path для generated
+  artifacts: `.../generated/{entityId}/{objectId}/{documentId}`;
+- имя generated файла определяется шаблоном и его mapping-ами, поэтому при поиске reuse
+  используется связка `prefixKey + originalFileName`;
+- этого недостаточно для полной идемпотентности в рабочем контуре, потому что текущий
+  контракт file storage при повторном `upload` существующего файла не перезаписывает его,
+  а создаёт новый файл с timestamp suffix;
+- поэтому при `attemptNo > 1` execution flow сначала делает поиск уже загруженного
+  generated artifact через `getWithFilter(prefixKey + originalFileName)`;
+- если найден существующий файл, generation не выполняется повторно:
+  сервис скачивает найденный файл, считает checksum и завершает job через reuse
+  существующего `key`;
+- если файл не найден, выполняется обычный `generate + upload`;
+- если найдено несколько файлов, используется самый свежий артефакт по
+  `updatedDate`, а ситуация логируется как неоднозначная;
+- такой reuse-path снижает риск повторной генерации после partial failure
+  `upload succeeded, DB commit failed`, но не устраняет already orphaned files,
+  которые могли остаться от старых попыток.
+
+### Ошибка до создания attempt
+
+- если execution падает до успешного создания `generation_job_attempt`, job не должна
+  оставаться в `PROCESSING` до lease-timeout;
+- в этом случае execution flow обязан сразу принять retry/fail decision и передать его
+  в `GenerationJobTransitionService` через отдельный `GenerationJobPreAttemptContext`;
+- transition service должен в одной транзакционной границе согласованно обновить
+  `generation_job` и `generated_file` без ожидания recovery.
+
+## Следующие шаги реализации
+
+После фиксации этого документа следующим этапом должны быть:
+
+1. перевод timeout lease в конфигурируемый runtime timeout вместо фиксированного значения;
+2. уточнение классификации retriable/non-retriable ошибок по реальным интеграциям;
+3. опциональная публикация attempt/history в технический read API или admin diagnostics;
+4. добавление `generation_job_attempt`-ориентированной observability и метрик;
+5. реализация data resolver для `DirectValueSource` и `ReferenceValueSource`.

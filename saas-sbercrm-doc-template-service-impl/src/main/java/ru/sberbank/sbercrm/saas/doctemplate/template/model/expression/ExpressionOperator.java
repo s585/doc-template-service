@@ -3,8 +3,11 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.model.expression;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 public enum ExpressionOperator {
     COALESCE("coalesce"),
@@ -13,13 +16,8 @@ public enum ExpressionOperator {
     LOWER("lower"),
     TRIM("trim");
 
-    private static final Map<String, ExpressionOperator> CONSTANTS = new HashMap<>();
-
-    static {
-        for (ExpressionOperator operator : values()) {
-            CONSTANTS.put(operator.value, operator);
-        }
-    }
+    private static final Map<String, ExpressionOperator> CONSTANTS = Arrays.stream(values())
+        .collect(toUnmodifiableMap(ExpressionOperator::value, Function.identity()));
 
     private final String value;
 

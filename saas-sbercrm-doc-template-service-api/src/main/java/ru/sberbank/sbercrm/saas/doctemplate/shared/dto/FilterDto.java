@@ -9,9 +9,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import ru.sberbank.sbercrm.saas.doctemplate.shared.contract.HasField;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 /**
  * Фильтр записей.
@@ -81,13 +84,8 @@ public class FilterDto implements HasField {
         TRUE("true"),
         FALSE("false");
 
-        private static final Map<String, Operation> CONSTANTS = new HashMap<>();
-
-        static {
-            for (Operation c : values()) {
-                CONSTANTS.put(c.value, c);
-            }
-        }
+        private static final Map<String, Operation> CONSTANTS = Arrays.stream(values())
+            .collect(toUnmodifiableMap(Operation::value, Function.identity()));
 
         private final String value;
         @Getter

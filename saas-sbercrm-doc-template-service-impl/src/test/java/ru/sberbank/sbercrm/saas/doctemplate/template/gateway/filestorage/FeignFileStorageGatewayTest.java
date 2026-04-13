@@ -10,6 +10,7 @@ import feign.FeignException;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +23,8 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FeignFileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
@@ -96,5 +99,24 @@ class FeignFileStorageGatewayTest {
         // then
         assertThat(downloaded).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
         verify(fileStorageClient).download("doc-template-service", fileKey, TENANT_ID, USER_ID);
+    }
+
+    @Test
+    @DisplayName("Поиск файлов по фильтру проксируется в file storage client")
+    void givenFilter_whenFindAllByFilter_thenReturnClientResponse() {
+        FileFilterRq filter = FileFilterRq.builder()
+            .prefixKey("doc-template/generated/document")
+            .originalFileName("result.docx")
+            .build();
+        List<FileRs> expectedFiles = List.of(
+            FileRs.builder().key("generated/result.docx").fileName("result.docx").build()
+        );
+        given(fileStorageClient.getWithFilter("doc-template-service", filter, TENANT_ID, USER_ID))
+            .willReturn(expectedFiles);
+
+        List<FileRs> files = systemUnderTest.findAllByFilter(TENANT_ID, USER_ID, filter);
+
+        assertThat(files).isEqualTo(expectedFiles);
+        verify(fileStorageClient).getWithFilter("doc-template-service", filter, TENANT_ID, USER_ID);
     }
 }

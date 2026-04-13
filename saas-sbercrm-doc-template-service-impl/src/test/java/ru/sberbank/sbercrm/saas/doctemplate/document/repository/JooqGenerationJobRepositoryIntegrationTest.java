@@ -213,7 +213,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
             .where(T_GENERATION_JOB.ID.eq(claimedJob.getId()))
             .execute();
 
-        systemUnderTest.markCompleted(TENANT_ID, USER_ID, claimedJob.getId());
+        assertThat(systemUnderTest.markCompleted(TENANT_ID, USER_ID, claimedJob.getId(), 0, 1)).isTrue();
 
         GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
         assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.DONE);
@@ -244,13 +244,17 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
 
         GenerationJob claimedJob = systemUnderTest.claimNextJobs(WORKER_ID, 1).getFirst();
 
-        systemUnderTest.markFailed(
-            TENANT_ID,
-            USER_ID,
-            claimedJob.getId(),
-            "generation.failed",
-            "Generation failed"
-        );
+        assertThat(
+            systemUnderTest.markFailed(
+                TENANT_ID,
+                USER_ID,
+                claimedJob.getId(),
+                0,
+                1,
+                "generation.failed",
+                "Generation failed"
+            )
+        ).isTrue();
 
         GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
         assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.ERROR);

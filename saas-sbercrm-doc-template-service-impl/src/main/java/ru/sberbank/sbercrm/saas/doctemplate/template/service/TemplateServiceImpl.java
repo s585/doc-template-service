@@ -25,7 +25,11 @@ public class TemplateServiceImpl implements TemplateService {
     @Override
     public void checkCodeUnique(UUID tenantId, String code, UUID excludedTemplateId) {
         if (templateRepository.existsByCode(tenantId, code, excludedTemplateId)) {
-            throw new BusinessCrmException(TemplateConstants.ErrorCodes.TEMPLATE_CODE_EXISTS, code);
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_CODE_EXISTS,
+                TemplateConstants.ErrorCodes.TEMPLATE_CODE_EXISTS,
+                code
+            );
         }
     }
 

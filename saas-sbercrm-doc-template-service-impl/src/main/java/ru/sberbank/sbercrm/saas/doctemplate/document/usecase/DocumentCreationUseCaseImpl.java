@@ -27,7 +27,11 @@ public class DocumentCreationUseCaseImpl implements DocumentCreationUseCase {
     @Transactional
     public Document execute(UUID tenantId, UUID userId, DocumentCreationCmd command) {
         if (!templateService.exists(tenantId, command.getTemplateId())) {
-            throw new NotFoundCrmException(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND, command.getTemplateId());
+            throw new NotFoundCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                command.getTemplateId()
+            );
         }
 
         GeneratedDocument document = generatedDocumentService.findByRequestId(tenantId, command.getRequestId())

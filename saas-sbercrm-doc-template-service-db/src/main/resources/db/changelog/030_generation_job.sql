@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS t_generation_job (
 
   format            VARCHAR(16) NOT NULL,
   status            VARCHAR(32) NOT NULL,
+  attempt_count     INT NOT NULL DEFAULT 0,
+  next_retry_at     TIMESTAMPTZ,
 
   locked_by         UUID,
   locked_until      TIMESTAMPTZ,
@@ -28,7 +30,7 @@ CREATE TABLE IF NOT EXISTS t_generation_job (
 );
 
 CREATE INDEX IF NOT EXISTS idx_t_generation_job_status
-  ON t_generation_job (status, created_at);
+  ON t_generation_job (status, next_retry_at, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_t_generation_job_lock
   ON t_generation_job (locked_until);
@@ -56,6 +58,8 @@ COMMENT ON COLUMN t_generation_job.entity_id IS 'Идентификатор су
 COMMENT ON COLUMN t_generation_job.object_id IS 'Идентификатор исходного объекта, по которому выполняется генерация.';
 COMMENT ON COLUMN t_generation_job.format IS 'Формат, для которого создано конкретное задание на генерацию. Одно задание соответствует одному формату.';
 COMMENT ON COLUMN t_generation_job.status IS 'Текущий статус задания на генерацию.';
+COMMENT ON COLUMN t_generation_job.attempt_count IS 'Количество завершенных попыток выполнения задания.';
+COMMENT ON COLUMN t_generation_job.next_retry_at IS 'Момент времени, после которого допускается повторная попытка выполнения задания.';
 COMMENT ON COLUMN t_generation_job.locked_by IS 'Идентификатор воркера, который в данный момент удерживает задание.';
 COMMENT ON COLUMN t_generation_job.locked_until IS 'Время окончания lease-блокировки. После него другое приложение может забрать задание.';
 COMMENT ON COLUMN t_generation_job.created_by IS 'Идентификатор пользователя, создавшего задание.';

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.JSONB;
 import org.springframework.stereotype.Component;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 
 @Component
 @RequiredArgsConstructor
@@ -19,7 +21,7 @@ public class JsonbHelper {
         try {
             return JSONB.valueOf(objectMapper.writeValueAsString(value));
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize value to JSONB", e);
+            throw new SystemCrmException(CrmErrorCodes.JSONB_SERIALIZATION_FAILED, CrmErrorCodes.JSONB_SERIALIZATION_FAILED, e);
         }
     }
 
@@ -31,7 +33,7 @@ public class JsonbHelper {
         try {
             return objectMapper.readValue(jsonb.data(), type);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to deserialize value from JSONB", e);
+            throw new SystemCrmException(CrmErrorCodes.JSONB_DESERIALIZATION_FAILED, CrmErrorCodes.JSONB_DESERIALIZATION_FAILED, e);
         }
     }
 }

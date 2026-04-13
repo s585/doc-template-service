@@ -38,10 +38,18 @@ public class TemplateProcessorResolver {
             .filter(candidate -> candidate.supports(format))
             .toList();
         if (supportedProcessors.isEmpty()) {
-            throw new SystemCrmException(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_MISSING, format.value());
+            throw new SystemCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_MISSING,
+                TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_MISSING,
+                format.name()
+            );
         }
         if (supportedProcessors.size() > 1) {
-            throw new SystemCrmException(TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_DUPLICATE, format.value());
+            throw new SystemCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_DUPLICATE,
+                TemplateConstants.ErrorCodes.TEMPLATE_PROCESSOR_DUPLICATE,
+                format.name()
+            );
         }
         return supportedProcessors.getFirst();
     }

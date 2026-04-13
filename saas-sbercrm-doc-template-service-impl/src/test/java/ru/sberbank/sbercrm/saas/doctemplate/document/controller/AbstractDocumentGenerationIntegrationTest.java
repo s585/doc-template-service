@@ -104,6 +104,11 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
         Files.write(filePath, content);
     }
 
+    protected void deleteTemplateFromStubStorage(String key) throws Exception {
+        Path filePath = Path.of(docTemplateProperties.getFileStorage().getStubRootPath()).resolve(key);
+        Files.deleteIfExists(filePath);
+    }
+
     protected byte[] createDocx(String text) throws Exception {
         try (
             XWPFDocument document = new XWPFDocument();

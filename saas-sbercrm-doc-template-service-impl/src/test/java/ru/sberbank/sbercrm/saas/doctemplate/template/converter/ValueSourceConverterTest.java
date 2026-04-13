@@ -17,16 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig(classes = ValueSourceConverterImpl.class)
 class ValueSourceConverterTest {
-    private static final UUID ENTITY_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID ENTITY_ID_DTO = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID ENTITY_ID_MODEL = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @Autowired
-    private ValueSourceConverter systemUnderTest;
+    private ValueSourceConverter converter;
 
     @Test
     void shouldConvertReferenceValueSourceDtoToModel() {
         ReferenceValueSourceDto dto = ReferenceValueSourceDto.builder()
             .targetPath("source.document$c.dealProduct$c")
-            .entityId(ENTITY_ID)
+            .entityId(ENTITY_ID_DTO)
             .referenceFieldName("document$c")
             .referenceValuePath("source.document$c.id")
             .path("reference.product.name")
@@ -34,7 +35,7 @@ class ValueSourceConverterTest {
             .paging(PagingRqDto.builder().page(0).size(100).build())
             .build();
 
-        ValueSource model = systemUnderTest.convertToModel(dto);
+        ValueSource model = converter.convertToModel(dto);
 
         assertThat(model).isInstanceOf(ReferenceValueSource.class);
         ReferenceValueSource referenceValueSource = (ReferenceValueSource) model;
@@ -48,7 +49,7 @@ class ValueSourceConverterTest {
     void shouldConvertReferenceValueSourceModelToDto() {
         ReferenceValueSource model = ReferenceValueSource.builder()
             .targetPath("source.document$c.dealProduct$c")
-            .entityId(ENTITY_ID)
+            .entityId(ENTITY_ID_MODEL)
             .referenceFieldName("document$c")
             .referenceValuePath("source.document$c.id")
             .path("reference.product.name")
@@ -56,7 +57,7 @@ class ValueSourceConverterTest {
             .paging(PagingRqDto.builder().page(1).size(50).build())
             .build();
 
-        ValueSourceDto dto = systemUnderTest.convertToDto(model);
+        ValueSourceDto dto = converter.convertToDto(model);
 
         assertThat(dto).isInstanceOf(ReferenceValueSourceDto.class);
         ReferenceValueSourceDto referenceValueSourceDto = (ReferenceValueSourceDto) dto;

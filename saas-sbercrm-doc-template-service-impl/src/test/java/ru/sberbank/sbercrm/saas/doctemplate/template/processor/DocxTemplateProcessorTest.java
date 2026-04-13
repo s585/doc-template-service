@@ -25,11 +25,11 @@ class DocxTemplateProcessorTest {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
         docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        DocxTemplateProcessor processor = new DocxTemplateProcessor(docTemplateProperties);
+        DocxTemplateProcessor systemUnderTest = new DocxTemplateProcessor(docTemplateProperties);
         byte[] content = createDocxContent();
 
         // when
-        List<TemplateVariableInfo> variables = processor.extractVariables(content);
+        List<TemplateVariableInfo> variables = systemUnderTest.extractVariables(content);
 
         // then
         assertThat(variables)
@@ -48,11 +48,11 @@ class DocxTemplateProcessorTest {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
         docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        DocxTemplateProcessor processor = new DocxTemplateProcessor(docTemplateProperties);
+        DocxTemplateProcessor systemUnderTest = new DocxTemplateProcessor(docTemplateProperties);
         byte[] content = createDocxContent();
 
         // when
-        byte[] generated = processor.generate(content, Map.of(
+        byte[] generated = systemUnderTest.generate(content, Map.of(
             "deal_number", "42",
             "header_number", "H-1",
             "footer_number", "F-1",

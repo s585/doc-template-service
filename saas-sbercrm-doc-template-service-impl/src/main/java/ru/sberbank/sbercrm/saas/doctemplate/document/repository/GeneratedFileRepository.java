@@ -11,6 +11,8 @@ public interface GeneratedFileRepository {
 
     List<GeneratedFile> findByDocumentIds(UUID tenantId, List<UUID> documentIds);
 
+    void markPending(UUID tenantId, UUID userId, UUID documentId, String format);
+
     void markProcessing(UUID tenantId, UUID userId, UUID documentId, String format);
 
     void markCompleted(

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -31,6 +32,18 @@ public interface FileStorageClient {
         @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
         @RequestHeader(USER_ID_HEADER) UUID userId
     ) throws IOException;
+
+    @PostMapping(
+        value = "/internal/v1/file/find",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    java.util.List<FileRs> getWithFilter(
+        @RequestHeader(value = "source", required = false) String source,
+        @RequestBody FileFilterRq fileFilterRq,
+        @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
+        @RequestHeader(USER_ID_HEADER) UUID userId
+    );
 
     @GetMapping(value = "/internal/v1/file/download")
     ResponseEntity<InputStreamResource> download(

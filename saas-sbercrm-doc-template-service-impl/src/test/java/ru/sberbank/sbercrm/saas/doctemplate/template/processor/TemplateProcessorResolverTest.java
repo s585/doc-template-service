@@ -35,8 +35,7 @@ class TemplateProcessorResolverTest {
         given(xlsxProcessor.supports(TemplateFormat.XLSX)).willReturn(true);
 
         // when
-        TemplateProcessorResolver systemUnderTest =
-            new TemplateProcessorResolver(List.of(docxProcessor, xlsxProcessor));
+        TemplateProcessorResolver systemUnderTest = new TemplateProcessorResolver(List.of(docxProcessor, xlsxProcessor));
 
         // then
         assertThat(systemUnderTest.resolve(TemplateFormat.DOCX)).isSameAs(docxProcessor);

@@ -18,14 +18,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobTransitionService;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
 
 @ExtendWith(MockitoExtension.class)
 class GenerationJobDispatchUseCaseImplTest {
-    private static final UUID FIRST_JOB_ID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-    private static final UUID SECOND_JOB_ID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    private static final UUID FIRST_JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID SECOND_JOB_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID WORKER_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
 
     @Mock
     private GenerationJobService generationJobService;
+
+    @Mock
+    private GenerationJobTransitionService generationJobTransitionService;
 
     @Mock
     private GenerationJobExecutionUseCase generationJobExecutionUseCase;
@@ -33,17 +39,22 @@ class GenerationJobDispatchUseCaseImplTest {
     @Mock
     private ThreadPoolTaskExecutor generationJobTaskExecutor;
 
+    @Mock
+    private GenerationWorkerIdentityProvider generationWorkerIdentityProvider;
+
     @InjectMocks
     private GenerationJobDispatchUseCaseImpl systemUnderTest;
 
     @Test
     @DisplayName("Диспетчер не запрашивает задачи, если свободных слотов воркера нет")
     void givenNoAvailableSlots_whenDispatch_thenSkipClaim() {
+        given(generationWorkerIdentityProvider.getWorkerId()).willReturn(WORKER_ID);
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(4);
 
         systemUnderTest.dispatch();
 
+        verify(generationJobTransitionService).requeueTimedOutJobs(WORKER_ID);
         verify(generationJobService, never()).claimNextJobs(any(), any(Integer.class));
         verify(generationJobTaskExecutor, never()).execute(any(Runnable.class));
     }
@@ -53,13 +64,16 @@ class GenerationJobDispatchUseCaseImplTest {
     void givenAvailableSlots_whenDispatch_thenClaimAndSubmitJobs() {
         GenerationJob firstJob = GenerationJob.builder().id(FIRST_JOB_ID).build();
         GenerationJob secondJob = GenerationJob.builder().id(SECOND_JOB_ID).build();
+        given(generationWorkerIdentityProvider.getWorkerId()).willReturn(WORKER_ID);
+        given(generationWorkerIdentityProvider.getWorkerName()).willReturn("doc-template@host:123");
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(2);
-        given(generationJobService.claimNextJobs(any(), eq(2))).willReturn(List.of(firstJob, secondJob));
+        given(generationJobService.claimNextJobs(WORKER_ID, 2)).willReturn(List.of(firstJob, secondJob));
 
         systemUnderTest.dispatch();
 
-        verify(generationJobService).claimNextJobs(any(), eq(2));
+        verify(generationJobTransitionService).requeueTimedOutJobs(WORKER_ID);
+        verify(generationJobService).claimNextJobs(WORKER_ID, 2);
         verify(generationJobTaskExecutor, times(2)).execute(any(Runnable.class));
     }
 }

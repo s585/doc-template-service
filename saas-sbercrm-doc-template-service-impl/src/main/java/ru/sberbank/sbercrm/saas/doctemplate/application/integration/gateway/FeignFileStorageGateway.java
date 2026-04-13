@@ -3,6 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 import feign.FeignException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
@@ -45,7 +47,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
                 userId
             );
         } catch (FeignException | IOException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, path);
+            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, path);
         }
     }
 
@@ -56,7 +58,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
         } catch (FeignException.NotFound ex) {
             // Delete is idempotent for file storage: missing file must not block template deletion.
         } catch (FeignException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, key);
         }
     }
 
@@ -71,21 +73,54 @@ public class FeignFileStorageGateway implements FileStorageGateway {
             );
             return readDownloadedContent(response, key);
         } catch (FeignException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                key
+            );
+        }
+    }
+
+    @Override
+    public List<FileRs> findAllByFilter(UUID tenantId, UUID userId, FileFilterRq filter) {
+        try {
+            return fileStorageClient.getWithFilter(
+                docTemplateProperties.getFileStorage().getSource(),
+                filter,
+                tenantId,
+                userId
+            );
+        } catch (FeignException ex) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                filter.getPrefixKey()
+            );
         }
     }
 
     private byte[] readDownloadedContent(ResponseEntity<InputStreamResource> response, String key) {
         InputStreamResource resource = response.getBody();
         if (resource == null) {
-            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                key
+            );
         }
         try {
             try (InputStream inputStream = resource.getInputStream()) {
                 return inputStream.readAllBytes();
             }
         } catch (IOException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                key
+            );
         }
     }
 }

@@ -17,6 +17,11 @@ public class GeneratedFileServiceImpl implements GeneratedFileService {
     }
 
     @Override
+    public void markPending(UUID tenantId, UUID userId, UUID documentId, String format) {
+        generatedFileRepository.markPending(tenantId, userId, documentId, format);
+    }
+
+    @Override
     public void markProcessing(UUID tenantId, UUID userId, UUID documentId, String format) {
         generatedFileRepository.markProcessing(tenantId, userId, documentId, format);
     }

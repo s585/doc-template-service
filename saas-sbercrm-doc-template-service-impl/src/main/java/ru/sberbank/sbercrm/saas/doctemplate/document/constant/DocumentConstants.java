@@ -14,6 +14,9 @@ public final class DocumentConstants {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ErrorCodes {
         public static final String DOCUMENT_NOT_FOUND = "document.not_found";
+        public static final String GENERATION_JOB_NOT_FOUND = "generation.job_not_found";
+        public static final String GENERATION_JOB_TRANSITION_INVALID = "generation.job_transition_invalid";
+        public static final String GENERATION_JOB_TIMEOUT = "generation.job_timeout";
         public static final String GENERATION_MAPPING_SOURCE_UNSUPPORTED = "generation.mapping_source_unsupported";
     }
 
@@ -36,6 +39,14 @@ public final class DocumentConstants {
         public static final String PROCESSING = "PROCESSING";
         public static final String DONE = "DONE";
         public static final String ERROR = "ERROR";
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static final class GenerationJobAttemptStatus {
+        public static final String PROCESSING = "PROCESSING";
+        public static final String DONE = "DONE";
+        public static final String ERROR = "ERROR";
+        public static final String TIMEOUT = "TIMEOUT";
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

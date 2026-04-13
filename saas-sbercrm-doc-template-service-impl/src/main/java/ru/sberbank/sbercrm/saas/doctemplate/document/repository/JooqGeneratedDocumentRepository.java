@@ -1,5 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.repository;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +22,13 @@ import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedDocumen
 @RequiredArgsConstructor
 public class JooqGeneratedDocumentRepository implements GeneratedDocumentRepository {
     private final DSLContext dslContext;
+    private final Clock clock;
     private final JooqQueryBuilder jooqQueryBuilder;
     private final GeneratedDocumentRecordConverter generatedDocumentRecordConverter;
 
     @Override
     public GeneratedDocument create(UUID tenantId, UUID userId, DocumentCreationCmd command) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
         return generatedDocumentRecordConverter.map(
             dslContext.insertInto(T_GENERATED_DOCUMENT)
                 .set(T_GENERATED_DOCUMENT.TENANT_ID, tenantId)
@@ -34,6 +38,8 @@ public class JooqGeneratedDocumentRepository implements GeneratedDocumentReposit
                 .set(T_GENERATED_DOCUMENT.REQUEST_ID, command.getRequestId())
                 .set(T_GENERATED_DOCUMENT.CREATED_BY, userId)
                 .set(T_GENERATED_DOCUMENT.UPDATED_BY, userId)
+                .set(T_GENERATED_DOCUMENT.CREATED_AT, now)
+                .set(T_GENERATED_DOCUMENT.UPDATED_AT, now)
                 .returning()
                 .fetchOne()
         );

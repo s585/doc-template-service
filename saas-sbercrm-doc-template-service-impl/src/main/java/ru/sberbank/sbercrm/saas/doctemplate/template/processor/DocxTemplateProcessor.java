@@ -70,7 +70,12 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             }
             return occurrences;
         } catch (IOException | InvalidFormatException ex) {
-            throw new BusinessCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED, TemplateFormat.DOCX.value());
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                ex,
+                TemplateFormat.DOCX.value()
+            );
         }
     }
 
@@ -92,18 +97,27 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             }
             if (document.getHeaderList() != null) {
                 document.getHeaderList().forEach(
-                    header -> header.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values))
+                    header -> header.getParagraphs().forEach(
+                        paragraph -> replaceParagraphText(paragraph, values)
+                    )
                 );
             }
             if (document.getFooterList() != null) {
                 document.getFooterList().forEach(
-                    footer -> footer.getParagraphs().forEach(paragraph -> replaceParagraphText(paragraph, values))
+                    footer -> footer.getParagraphs().forEach(
+                        paragraph -> replaceParagraphText(paragraph, values)
+                    )
                 );
             }
             document.write(outputStream);
             return outputStream.toByteArray();
         } catch (IOException | InvalidFormatException ex) {
-            throw new BusinessCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED, TemplateFormat.DOCX.value());
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                ex,
+                TemplateFormat.DOCX.value()
+            );
         }
     }
 

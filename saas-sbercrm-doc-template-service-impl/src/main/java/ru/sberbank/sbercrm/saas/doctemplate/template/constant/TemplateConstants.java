@@ -18,8 +18,8 @@ public final class TemplateConstants {
         public static final String TEMPLATE_FORMAT_UNSUPPORTED = "template.format_unsupported";
         public static final String TEMPLATE_NOT_FOUND = "template.not_found";
         public static final String TEMPLATE_PARSING_FAILED = "template.parsing_failed";
-        public static final String TEMPLATE_PROCESSOR_DUPLICATE = "template.processor.duplicate";
         public static final String TEMPLATE_PROCESSOR_MISSING = "template.processor.missing";
+        public static final String TEMPLATE_PROCESSOR_DUPLICATE = "template.processor.duplicate";
         public static final String TEMPLATE_VARIABLE_INVALID = "template.variable.invalid";
         public static final String TEMPLATE_VARIABLE_PATTERN_INVALID = "template.variable.pattern_invalid";
     }

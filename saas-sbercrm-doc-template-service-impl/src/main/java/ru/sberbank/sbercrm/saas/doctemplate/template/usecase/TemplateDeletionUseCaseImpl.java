@@ -21,7 +21,11 @@ public class TemplateDeletionUseCaseImpl implements TemplateDeletionUseCase {
     @Transactional
     public void execute(UUID tenantId, UUID userId, UUID templateId) {
         Template template = templateService.findById(tenantId, templateId)
-            .orElseThrow(() -> new NotFoundCrmException(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND, templateId));
+            .orElseThrow(() -> new NotFoundCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                templateId
+            ));
 
         fileStorageGateway.deleteFile(tenantId, userId, template.getS3Key());
         templateService.delete(tenantId, templateId);

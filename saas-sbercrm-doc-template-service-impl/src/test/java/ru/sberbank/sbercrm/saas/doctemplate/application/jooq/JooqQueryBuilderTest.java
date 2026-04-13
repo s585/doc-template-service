@@ -32,9 +32,7 @@ class JooqQueryBuilderTest {
     private static final OffsetDateTime TIMESTAMP = OffsetDateTime.parse("2026-03-25T10:15:30+03:00");
     private static final LocalDate DATE = LocalDate.parse("2026-03-25");
 
-    private final JooqQueryBuilder systemUnderTest = new JooqQueryBuilder(
-        new ObjectMapper().findAndRegisterModules()
-    );
+    private final JooqQueryBuilder systemUnderTest = new JooqQueryBuilder(new ObjectMapper().findAndRegisterModules());
     private final Map<String, Field<?>> fieldMapping = Map.of(
         "amount", DSL.field(DSL.name("amount"), BigDecimal.class),
         "active", DSL.field(DSL.name("active"), Boolean.class),

@@ -21,7 +21,11 @@ public class TemplateUpdateUseCaseImpl implements TemplateUpdateUseCase {
     @Transactional
     public Template execute(UUID tenantId, UUID userId, UUID templateId, TemplateUpdateCmd request) {
         Template currentTemplate = templateService.findById(tenantId, templateId)
-            .orElseThrow(() -> new NotFoundCrmException(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND, templateId));
+            .orElseThrow(() -> new NotFoundCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
+                templateId
+            ));
 
         Template updatedTemplate = templateService.update(
             tenantId,

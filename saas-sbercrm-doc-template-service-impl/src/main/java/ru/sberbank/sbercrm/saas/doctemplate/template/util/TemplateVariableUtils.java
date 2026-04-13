@@ -19,13 +19,20 @@ public final class TemplateVariableUtils {
         try {
             Pattern pattern = Pattern.compile(placeholderRegex);
             if (pattern.matcher("").groupCount() < 1) {
-                throw new SystemCrmException(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID);
+                throw new SystemCrmException(
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID,
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID
+                );
             }
             return pattern;
         } catch (SystemCrmException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new SystemCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID);
+            throw new SystemCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID,
+                TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_PATTERN_INVALID,
+                ex
+            );
         }
     }
 

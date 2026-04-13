@@ -3,8 +3,11 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 public enum TemplateValueType {
     STRING("STRING"),
@@ -13,13 +16,8 @@ public enum TemplateValueType {
     DATETIME("DATETIME"),
     BOOLEAN("BOOLEAN");
 
-    private static final Map<String, TemplateValueType> CONSTANTS = new HashMap<>();
-
-    static {
-        for (TemplateValueType type : values()) {
-            CONSTANTS.put(type.value, type);
-        }
-    }
+    private static final Map<String, TemplateValueType> CONSTANTS = Arrays.stream(values())
+        .collect(toUnmodifiableMap(TemplateValueType::value, Function.identity()));
 
     private final String value;
 

@@ -3,21 +3,19 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 public enum MappingScope {
     FILE_NAME("FILE_NAME"),
     VALUE("VALUE"),
     TABLE("TABLE");
 
-    private static final Map<String, MappingScope> CONSTANTS = new HashMap<>();
-
-    static {
-        for (MappingScope scope : values()) {
-            CONSTANTS.put(scope.value, scope);
-        }
-    }
+    private static final Map<String, MappingScope> CONSTANTS = Arrays.stream(values())
+        .collect(toUnmodifiableMap(MappingScope::value, Function.identity()));
 
     private final String value;
 

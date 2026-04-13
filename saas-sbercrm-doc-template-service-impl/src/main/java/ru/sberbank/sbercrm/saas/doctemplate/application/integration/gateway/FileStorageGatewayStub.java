@@ -2,16 +2,23 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
@@ -36,7 +43,7 @@ public class FileStorageGatewayStub implements FileStorageGateway {
 
             return buildResponse(key, path, targetPath, fileName);
         } catch (IOException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, path);
+            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, path);
         }
     }
 
@@ -49,7 +56,29 @@ public class FileStorageGatewayStub implements FileStorageGateway {
             }
             return Files.readAllBytes(targetPath);
         } catch (IOException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, key);
+        }
+    }
+
+    @Override
+    public List<FileRs> findAllByFilter(UUID tenantId, UUID userId, FileFilterRq filter) {
+        try (Stream<Path> stream = Files.walk(Path.of(docTemplateProperties.getFileStorage().getStubRootPath()))) {
+            return stream
+                .filter(Files::isRegularFile)
+                .map(this::buildStoredFileResponse)
+                .filter(file -> matchesFilter(file, filter))
+                .sorted(
+                    Comparator.comparing(FileRs::getUpdatedDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .reversed()
+                )
+                .toList();
+        } catch (IOException ex) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                filter.getPrefixKey()
+            );
         }
     }
 
@@ -58,16 +87,36 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         try {
             Files.deleteIfExists(resolveStoragePath(key));
         } catch (IOException ex) {
-            throw new SystemCrmException(ex, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, key);
+            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, key);
         }
     }
 
     private FileRs buildResponse(String key, String path, Path targetPath, String fileName) {
+        OffsetDateTime updatedDate = resolveUpdatedDate(targetPath);
         return FileRs.builder()
             .key(key)
             .path(targetPath.toAbsolutePath().toString())
             .source(docTemplateProperties.getFileStorage().getSource())
             .fileName(fileName)
+            .size(resolveFileSize(targetPath))
+            .createdDate(updatedDate)
+            .updatedDate(updatedDate)
+            .build();
+    }
+
+    private FileRs buildStoredFileResponse(Path targetPath) {
+        String key = normalizeRelativePath(
+            Path.of(docTemplateProperties.getFileStorage().getStubRootPath()).relativize(targetPath).toString()
+        );
+        OffsetDateTime updatedDate = resolveUpdatedDate(targetPath);
+        return FileRs.builder()
+            .key(key)
+            .path(targetPath.getParent() == null ? "" : targetPath.getParent().toString())
+            .source(docTemplateProperties.getFileStorage().getSource())
+            .fileName(resolveOriginalFileName(targetPath.getFileName().toString()))
+            .size(resolveFileSize(targetPath))
+            .createdDate(updatedDate)
+            .updatedDate(updatedDate)
             .build();
     }
 
@@ -80,9 +129,76 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     private String buildKey(String path, String fileName) {
         String normalizedPath = normalizeRelativePath(path);
         String sanitizedFileName = Path.of(fileName).getFileName().toString();
+        String randomPrefix = UUID.randomUUID().toString();
         return normalizedPath.isBlank()
-            ? UUID.randomUUID() + "_" + sanitizedFileName
-            : normalizedPath + "/" + UUID.randomUUID() + "_" + sanitizedFileName;
+            ? randomPrefix + "_" + sanitizedFileName
+            : normalizedPath + "/" + randomPrefix + "_" + sanitizedFileName;
+    }
+
+    private boolean matchesFilter(FileRs file, FileFilterRq filter) {
+        if (filter == null) {
+            return true;
+        }
+        return matchesPrefix(file.getKey(), filter.getPrefixKey())
+            && matchesOriginalFileName(file.getFileName(), filter.getOriginalFileName())
+            && matchesSource(file.getSource(), filter.getSource());
+    }
+
+    private boolean matchesPrefix(String key, String prefixKey) {
+        return prefixKey == null || prefixKey.isBlank() || key.startsWith(normalizeRelativePath(prefixKey));
+    }
+
+    private boolean matchesOriginalFileName(String fileName, String originalFileName) {
+        return originalFileName == null || originalFileName.isBlank() || originalFileName.equals(fileName);
+    }
+
+    private boolean matchesSource(String source, String expectedSource) {
+        return expectedSource == null || expectedSource.isBlank() || expectedSource.equals(source);
+    }
+
+    private long resolveFileSize(Path targetPath) {
+        try {
+            return Files.size(targetPath);
+        } catch (IOException ex) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                targetPath.toString()
+            );
+        }
+    }
+
+    private OffsetDateTime resolveUpdatedDate(Path targetPath) {
+        try {
+            FileTime lastModifiedTime = Files.getLastModifiedTime(targetPath);
+            return OffsetDateTime.ofInstant(lastModifiedTime.toInstant(), ZoneOffset.UTC);
+        } catch (IOException ex) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                targetPath.toString()
+            );
+        }
+    }
+
+    private String resolveOriginalFileName(String storedFileName) {
+        int delimiterIndex = storedFileName.indexOf('_');
+        if (delimiterIndex <= 0) {
+            return storedFileName;
+        }
+        String prefix = storedFileName.substring(0, delimiterIndex);
+        return isUuid(prefix) ? storedFileName.substring(delimiterIndex + 1) : storedFileName;
+    }
+
+    private boolean isUuid(String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private String normalizeRelativePath(String value) {

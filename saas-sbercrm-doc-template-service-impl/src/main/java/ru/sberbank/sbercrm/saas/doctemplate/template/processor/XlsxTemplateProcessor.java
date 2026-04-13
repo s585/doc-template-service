@@ -49,7 +49,12 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
             }
             return occurrences;
         } catch (IOException ex) {
-            throw new BusinessCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED, TemplateFormat.XLSX.value());
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                ex,
+                TemplateFormat.XLSX.value()
+            );
         }
     }
 
@@ -69,7 +74,12 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
             workbook.write(outputStream);
             return outputStream.toByteArray();
         } catch (IOException ex) {
-            throw new BusinessCrmException(ex, TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED, TemplateFormat.XLSX.value());
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
+                ex,
+                TemplateFormat.XLSX.value()
+            );
         }
     }
 

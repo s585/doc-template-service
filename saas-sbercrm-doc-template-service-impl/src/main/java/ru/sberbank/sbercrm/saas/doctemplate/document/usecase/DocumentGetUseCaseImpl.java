@@ -16,6 +16,10 @@ public class DocumentGetUseCaseImpl implements DocumentGetUseCase {
     @Override
     public Document execute(UUID tenantId, UUID documentId) {
         return documentQueryService.findById(tenantId, documentId)
-            .orElseThrow(() -> new NotFoundCrmException(DocumentConstants.ErrorCodes.DOCUMENT_NOT_FOUND, documentId));
+            .orElseThrow(() -> new NotFoundCrmException(
+                DocumentConstants.ErrorCodes.DOCUMENT_NOT_FOUND,
+                DocumentConstants.ErrorCodes.DOCUMENT_NOT_FOUND,
+                documentId
+            ));
     }
 }

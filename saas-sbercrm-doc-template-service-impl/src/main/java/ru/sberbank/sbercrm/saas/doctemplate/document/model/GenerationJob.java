@@ -21,6 +21,9 @@ public class GenerationJob {
     private UUID objectId;
     private String format;
     private String status;
+    private Integer attemptCount;
+    @Nullable
+    private OffsetDateTime nextRetryAt;
     @Nullable
     private String errorCode;
     @Nullable
@@ -29,4 +32,8 @@ public class GenerationJob {
     private UUID createdBy;
     private OffsetDateTime updatedAt;
     private UUID updatedBy;
+    @Nullable
+    private UUID lockedBy;
+    @Nullable
+    private OffsetDateTime lockedUntil;
 }

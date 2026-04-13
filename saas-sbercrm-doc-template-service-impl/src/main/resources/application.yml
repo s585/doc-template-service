@@ -31,6 +31,9 @@ saas:
       enabled: true
       dispatch-fixed-delay-ms: 250
       worker-pool-size: 4
+      max-attempts: 4
+      retry-backoff-seconds: [10, 30, 120, 600]
+      lock-timeout-seconds: 300
 
 server:
   port: 8080

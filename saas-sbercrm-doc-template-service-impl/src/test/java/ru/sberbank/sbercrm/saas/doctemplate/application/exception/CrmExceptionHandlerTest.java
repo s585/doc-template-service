@@ -28,7 +28,7 @@ class CrmExceptionHandlerTest {
     void givenNotFoundException_whenHandleNotFound_thenReturnLocalizedResponse() {
         // given
         CrmExceptionHandler handler = createHandler();
-        NotFoundCrmException exception = new NotFoundCrmException("template.not_found", "template-id");
+        NotFoundCrmException exception = new NotFoundCrmException("template.not_found", "template.not_found", "template-id");
         LocaleContextHolder.setLocale(LOCALE);
 
         // when
@@ -47,7 +47,7 @@ class CrmExceptionHandlerTest {
     void givenBusinessException_whenHandleBusiness_thenReturnBadRequestResponse() {
         // given
         CrmExceptionHandler handler = createHandler();
-        BusinessCrmException exception = new BusinessCrmException("template.variable.pattern_invalid");
+        BusinessCrmException exception = new BusinessCrmException("template.variable.pattern_invalid", "template.variable.pattern_invalid");
         LocaleContextHolder.setLocale(LOCALE);
 
         // when
@@ -66,7 +66,7 @@ class CrmExceptionHandlerTest {
     void givenSystemExceptionWithoutMessageTemplate_whenHandleSystem_thenReturnFallbackMessage() {
         // given
         CrmExceptionHandler handler = createHandler();
-        SystemCrmException exception = new SystemCrmException("unknown.code", (Object[]) null);
+        SystemCrmException exception = new SystemCrmException("unknown.code", "unknown.code");
         LocaleContextHolder.setLocale(LOCALE);
 
         // when
