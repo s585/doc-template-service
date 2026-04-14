@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.domain.GenerationJobStateMachine;
@@ -29,6 +30,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobEvent;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobPreAttemptContext;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobRetryCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryAction;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
@@ -122,21 +124,7 @@ class GenerationJobTransitionServiceImplTest {
             "temporary",
             OffsetDateTime.parse("2026-04-02T12:00:10Z")
         );
-        given(generationJobService.scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            JOB_ID,
-            0,
-            1,
-            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
-            "file_storage.request_failed",
-            "temporary"
-        )).willReturn(true);
-
-        systemUnderTest.scheduleRetryBeforeAttempt(buildPreAttemptContext(), retryDecision);
-
-        verify(generationJobService).scheduleRetry(
-            TENANT_ID,
+        GenerationJobRetryCmd retryCmd = buildRetryCmd(
             USER_ID,
             JOB_ID,
             0,
@@ -145,6 +133,11 @@ class GenerationJobTransitionServiceImplTest {
             "file_storage.request_failed",
             "temporary"
         );
+        given(generationJobService.scheduleRetry(retryCmd)).willReturn(true);
+
+        systemUnderTest.scheduleRetryBeforeAttempt(buildPreAttemptContext(), retryDecision);
+
+        verify(generationJobService).scheduleRetry(retryCmd);
         verify(generatedFileService).markPending(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX");
         verify(generationJobAttemptService, never()).markFailed(any(), any(), any(), any());
     }
@@ -194,6 +187,15 @@ class GenerationJobTransitionServiceImplTest {
     @DisplayName("Transition service возвращает просроченную job в очередь и сбрасывает файл в PENDING")
     void givenTimedOutJob_whenRequeueTimedOutJobs_thenUpdateFileAndJob() {
         mockRecoveryTransaction();
+        GenerationJobRetryCmd retryCmd = buildRetryCmd(
+            USER_ID,
+            JOB_ID,
+            0,
+            1,
+            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
+            "generation.job_timeout",
+            "Generation job timed out"
+        );
         given(generationWorkerIdentityProvider.getWorkerId()).willReturn(USER_ID);
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("doc-template@host:123:generation-1");
         given(generationJobService.findTimedOutJobs()).willReturn(java.util.List.of(buildProcessingJob()));
@@ -217,32 +219,14 @@ class GenerationJobTransitionServiceImplTest {
             ));
         given(generationJobStateMachine.transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.TIMEOUT))
             .willReturn(GenerationJobStatus.QUEUED);
-        given(generationJobService.scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            JOB_ID,
-            0,
-            1,
-            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
-            "generation.job_timeout",
-            "Generation job timed out"
-        )).willReturn(true);
+        given(generationJobService.scheduleRetry(retryCmd)).willReturn(true);
 
         assertThat(systemUnderTest.requeueTimedOutJobs(USER_ID)).isEqualTo(1);
 
         verify(generationJobStateMachine).transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.TIMEOUT);
         verify(generationJobAttemptService).markTimedOutActiveAttempt(USER_ID, JOB_ID);
         verify(generatedFileService).markPending(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX");
-        verify(generationJobService).scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            JOB_ID,
-            0,
-            1,
-            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
-            "generation.job_timeout",
-            "Generation job timed out"
-        );
+        verify(generationJobService).scheduleRetry(retryCmd);
     }
 
     @Test
@@ -300,6 +284,15 @@ class GenerationJobTransitionServiceImplTest {
     @DisplayName("Transition service переводит retriable ошибку в retry")
     void givenProcessingJob_whenRetryGeneration_thenScheduleRetry() {
         OffsetDateTime nextRetryAt = OffsetDateTime.parse("2026-04-02T12:00:10Z");
+        GenerationJobRetryCmd retryCmd = buildRetryCmd(
+            USER_ID,
+            JOB_ID,
+            0,
+            1,
+            nextRetryAt,
+            "file_storage.request_failed",
+            "temporary"
+        );
         GenerationRetryDecision retryDecision = new GenerationRetryDecision(
             GenerationRetryAction.RETRY_LATER,
             "file_storage.request_failed",
@@ -309,31 +302,13 @@ class GenerationJobTransitionServiceImplTest {
         given(generationJobService.findById(TENANT_ID, JOB_ID)).willReturn(Optional.of(buildProcessingJob()));
         given(generationJobStateMachine.transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.RETRY))
             .willReturn(GenerationJobStatus.QUEUED);
-        given(generationJobService.scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            JOB_ID,
-            0,
-            1,
-            nextRetryAt,
-            "file_storage.request_failed",
-            "temporary"
-        )).willReturn(true);
+        given(generationJobService.scheduleRetry(retryCmd)).willReturn(true);
 
         systemUnderTest.retryGeneration(buildTransitionContext(ATTEMPT_ID_RETRY), retryDecision);
 
         verify(generatedFileService).markPending(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX");
         verify(generationJobAttemptService).markFailed(eq(USER_ID), any(), eq("file_storage.request_failed"), eq("temporary"));
-        verify(generationJobService).scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            JOB_ID,
-            0,
-            1,
-            nextRetryAt,
-            "file_storage.request_failed",
-            "temporary"
-        );
+        verify(generationJobService).scheduleRetry(retryCmd);
     }
 
     @Test
@@ -359,20 +334,47 @@ class GenerationJobTransitionServiceImplTest {
     }
 
     @Test
+    @DisplayName("Transition service выбрасывает not found при отсутствии job")
+    void givenMissingJob_whenFailGeneration_thenThrowNotFound() {
+        GenerationRetryDecision retryDecision = new GenerationRetryDecision(
+            GenerationRetryAction.FAIL_FINAL,
+            "err",
+            "msg",
+            null
+        );
+        given(generationJobService.findById(TENANT_ID, JOB_ID)).willReturn(Optional.empty());
+        GenerationTransitionContext transitionContext = buildTransitionContext(ATTEMPT_ID_FAIL);
+
+        assertThatThrownBy(() -> systemUnderTest.failGeneration(transitionContext, retryDecision))
+            .isInstanceOf(NotFoundCrmException.class)
+            .extracting("code")
+            .isEqualTo(DocumentConstants.ErrorCodes.GENERATION_JOB_NOT_FOUND);
+
+        verify(generationJobStateMachine, never()).transit(any(), any());
+        verify(generationJobAttemptService, never()).markFailed(any(), any(), any(), any());
+        verify(generatedFileService, never()).markFailed(any(), any(), any(), any(), any(), any());
+        verify(generationJobService, never()).markFailed(any(), any(), any(), anyInt(), anyInt(), any(), any());
+    }
+
+    @Test
     @DisplayName("Transition service не обновляет таблицы при недопустимом переходе")
     void givenInvalidTransition_whenFailGeneration_thenDoNotUpdateTables() {
+        GenerationRetryDecision retryDecision = new GenerationRetryDecision(
+            GenerationRetryAction.FAIL_FINAL,
+            "err",
+            "msg",
+            null
+        );
         given(generationJobService.findById(TENANT_ID, JOB_ID)).willReturn(Optional.of(buildProcessingJob()));
         given(generationJobStateMachine.transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.FAIL))
             .willThrow(new SystemCrmException(
                 DocumentConstants.ErrorCodes.GENERATION_JOB_TRANSITION_INVALID,
                 DocumentConstants.ErrorCodes.GENERATION_JOB_TRANSITION_INVALID
             ));
+        GenerationTransitionContext transitionContext = buildTransitionContext(ATTEMPT_ID_FAIL);
 
         assertThatThrownBy(
-                () -> systemUnderTest.failGeneration(
-                    buildTransitionContext(ATTEMPT_ID_FAIL),
-                    new GenerationRetryDecision(GenerationRetryAction.FAIL_FINAL, "err", "msg", null)
-                )
+                () -> systemUnderTest.failGeneration(transitionContext, retryDecision)
             )
             .isInstanceOf(SystemCrmException.class)
             .extracting("code")
@@ -417,7 +419,7 @@ class GenerationJobTransitionServiceImplTest {
 
         verify(generationJobAttemptService, never()).markTimedOutActiveAttempt(any(), any());
         verify(generatedFileService, never()).markPending(any(), any(), any(), any());
-        verify(generationJobService, never()).scheduleRetry(any(), any(), any(), anyInt(), anyInt(), any(), any(), any());
+        verify(generationJobService, never()).scheduleRetry(any());
     }
 
     @Test
@@ -426,6 +428,15 @@ class GenerationJobTransitionServiceImplTest {
         mockRecoveryTransaction();
         UUID secondJobId = UUID.fromString("88888888-1111-2222-3333-444444444444");
         UUID secondDocumentId = UUID.fromString("99999999-1111-2222-3333-444444444444");
+        GenerationJobRetryCmd retryCmd = buildRetryCmd(
+            USER_ID,
+            secondJobId,
+            0,
+            1,
+            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
+            "generation.job_timeout",
+            "Generation job timed out"
+        );
         GenerationJob firstJob = buildProcessingJob();
         GenerationJob secondJob = buildProcessingJob().toBuilder()
             .id(secondJobId)
@@ -459,16 +470,7 @@ class GenerationJobTransitionServiceImplTest {
                 DocumentConstants.ErrorCodes.GENERATION_JOB_TRANSITION_INVALID
             ))
             .willReturn(GenerationJobStatus.QUEUED);
-        given(generationJobService.scheduleRetry(
-            TENANT_ID,
-            USER_ID,
-            secondJobId,
-            0,
-            1,
-            OffsetDateTime.parse("2026-04-02T12:00:10Z"),
-            "generation.job_timeout",
-            "Generation job timed out"
-        )).willReturn(true);
+        given(generationJobService.scheduleRetry(retryCmd)).willReturn(true);
 
         assertThat(systemUnderTest.requeueTimedOutJobs(USER_ID)).isEqualTo(1);
 
@@ -508,6 +510,27 @@ class GenerationJobTransitionServiceImplTest {
             .documentId(DOCUMENT_ID)
             .format("DOCX")
             .currentAttemptCount(0)
+            .build();
+    }
+
+    private GenerationJobRetryCmd buildRetryCmd(
+        UUID userId,
+        UUID jobId,
+        int expectedAttemptCount,
+        int attemptCount,
+        OffsetDateTime nextRetryAt,
+        String errorCode,
+        String errorMessage
+    ) {
+        return GenerationJobRetryCmd.builder()
+            .tenantId(TENANT_ID)
+            .userId(userId)
+            .jobId(jobId)
+            .expectedAttemptCount(expectedAttemptCount)
+            .attemptCount(attemptCount)
+            .nextRetryAt(nextRetryAt)
+            .errorCode(errorCode)
+            .errorMessage(errorMessage)
             .build();
     }
 

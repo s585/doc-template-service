@@ -1,13 +1,11 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
-import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobRetryCmd;
 
 /**
  * Сервис доступа к табличной модели {@code generation_job}.
@@ -21,10 +19,6 @@ public interface GenerationJobService {
 
     List<GenerationJob> findTimedOutJobs();
 
-    List<GenerationJob> findByDocumentId(UUID tenantId, UUID documentId);
-
-    Map<UUID, List<GenerationJob>> findByDocumentIds(UUID tenantId, Collection<UUID> documentIds);
-
     /**
      * Атомарно claim-ит следующую пачку job под конкретный worker.
      *
@@ -35,16 +29,7 @@ public interface GenerationJobService {
     /**
      * Планирует retriable повтор и увеличивает счётчик попыток только для ожидаемой активной job.
      */
-    boolean scheduleRetry(
-        UUID tenantId,
-        UUID userId,
-        UUID jobId,
-        int expectedAttemptCount,
-        int attemptCount,
-        OffsetDateTime nextRetryAt,
-        String errorCode,
-        String errorMessage
-    );
+    boolean scheduleRetry(GenerationJobRetryCmd retryCmd);
 
     /**
      * Фиксирует успешное завершение только если завершается актуальная активная попытка.

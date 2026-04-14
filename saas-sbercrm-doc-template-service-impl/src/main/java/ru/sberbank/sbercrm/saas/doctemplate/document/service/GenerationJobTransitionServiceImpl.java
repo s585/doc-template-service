@@ -14,6 +14,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobEvent;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobPreAttemptContext;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobRetryCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTransitionContext;
@@ -89,14 +90,14 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
     ) {
         int nextAttemptNo = context.currentAttemptCount() + 1;
         if (!generationJobService.scheduleRetry(
-                context.tenantId(),
-                context.userId(),
-                context.jobId(),
-                context.currentAttemptCount(),
-                nextAttemptNo,
-                retryDecision.nextRetryAt(),
-                retryDecision.errorCode(),
-                retryDecision.errorMessage())) {
+                buildRetryCmd(
+                    context.tenantId(),
+                    context.userId(),
+                    context.jobId(),
+                    context.currentAttemptCount(),
+                    nextAttemptNo,
+                    retryDecision
+                ))) {
             logStalePreAttemptTransition(context, nextAttemptNo, "init-failure-retry");
             return;
         }
@@ -146,14 +147,14 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
         );
 
         if (!generationJobService.scheduleRetry(
-                context.tenantId(),
-                context.userId(),
-                context.jobId(),
-                expectedAttemptCount(context.attemptNo()),
-                context.attemptNo(),
-                retryDecision.nextRetryAt(),
-                retryDecision.errorCode(),
-                retryDecision.errorMessage())) {
+                buildRetryCmd(
+                    context.tenantId(),
+                    context.userId(),
+                    context.jobId(),
+                    expectedAttemptCount(context.attemptNo()),
+                    context.attemptNo(),
+                    retryDecision
+                ))) {
             logStaleTransition(job, context.attemptNo(), "retry");
             return;
         }
@@ -298,6 +299,26 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
         return retryDecision.action().isRetry();
     }
 
+    private GenerationJobRetryCmd buildRetryCmd(
+            UUID tenantId,
+            UUID userId,
+            UUID jobId,
+            int expectedAttemptCount,
+            int attemptCount,
+            GenerationRetryDecision retryDecision
+    ) {
+        return GenerationJobRetryCmd.builder()
+                .tenantId(tenantId)
+                .userId(userId)
+                .jobId(jobId)
+                .expectedAttemptCount(expectedAttemptCount)
+                .attemptCount(attemptCount)
+                .nextRetryAt(retryDecision.nextRetryAt())
+                .errorCode(retryDecision.errorCode())
+                .errorMessage(retryDecision.errorMessage())
+                .build();
+    }
+
     private void scheduleTimedOutJobRetry(
             GenerationJob job,
             UUID userId,
@@ -309,14 +330,14 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
                 GenerationJobEvent.TIMEOUT
         );
         if (!generationJobService.scheduleRetry(
-                job.getTenantId(),
-                userId,
-                job.getId(),
-                job.getAttemptCount(),
-                currentAttemptNo,
-                retryDecision.nextRetryAt(),
-                retryDecision.errorCode(),
-                retryDecision.errorMessage())) {
+                buildRetryCmd(
+                    job.getTenantId(),
+                    userId,
+                    job.getId(),
+                    job.getAttemptCount(),
+                    currentAttemptNo,
+                    retryDecision
+                ))) {
             logStaleTransition(job, currentAttemptNo, "timeout-retry");
             return;
         }

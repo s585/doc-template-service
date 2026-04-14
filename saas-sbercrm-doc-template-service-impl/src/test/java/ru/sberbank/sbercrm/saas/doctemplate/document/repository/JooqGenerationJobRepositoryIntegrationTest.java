@@ -155,48 +155,6 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("Создание и методы чтения возвращают задачи, созданные для документа")
-    void givenCreatedJobs_whenFindMethodsCalled_thenReturnOrderedJobs() {
-        UUID firstDocumentId = UUID.fromString("12121212-1212-1212-1212-121212121212");
-        UUID secondDocumentId = UUID.fromString("13131313-1313-1313-1313-131313131313");
-        UUID firstRequestId = UUID.fromString("14141414-1414-1414-1414-141414141414");
-        UUID secondRequestId = UUID.fromString("15151515-1515-1515-1515-151515151515");
-
-        systemUnderTest.createAll(
-            TENANT_ID,
-            USER_ID,
-            firstDocumentId,
-            buildCreationCommand(firstDocumentId, firstRequestId, List.of("DOCX", "XLSX"))
-        );
-        systemUnderTest.createAll(
-            TENANT_ID,
-            USER_ID,
-            secondDocumentId,
-            buildCreationCommand(secondDocumentId, secondRequestId, List.of("PDF"))
-        );
-
-        assertThat(systemUnderTest.findByDocumentId(TENANT_ID, firstDocumentId))
-            .extracting(GenerationJob::getFormat)
-            .containsExactlyInAnyOrder("DOCX", "XLSX");
-
-        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)))
-            .containsOnlyKeys(firstDocumentId, secondDocumentId);
-        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)).get(firstDocumentId))
-            .extracting(GenerationJob::getFormat)
-            .containsExactlyInAnyOrder("DOCX", "XLSX");
-        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(firstDocumentId, secondDocumentId)).get(secondDocumentId))
-            .extracting(GenerationJob::getFormat)
-            .containsExactly("PDF");
-    }
-
-    @Test
-    @DisplayName("Поиск по идентификаторам документов возвращает пустую карту при пустом наборе")
-    void givenEmptyDocumentIds_whenFindByDocumentIds_thenReturnEmptyMap() {
-        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of())).isEmpty();
-        assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, null)).isEmpty();
-    }
-
-    @Test
     @DisplayName("Завершение задачи снимает лок, очищает ошибки и переводит её в завершенное состояние")
     void givenProcessingJob_whenMarkCompleted_thenPersistDoneState() {
         systemUnderTest.createAll(
@@ -215,7 +173,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
 
         assertThat(systemUnderTest.markCompleted(TENANT_ID, USER_ID, claimedJob.getId(), 0, 1)).isTrue();
 
-        GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
+        GenerationJob persistedJob = systemUnderTest.findById(TENANT_ID, claimedJob.getId()).orElseThrow();
         assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.DONE);
         assertThat(persistedJob.getErrorCode()).isNull();
         assertThat(persistedJob.getErrorMessage()).isNull();
@@ -256,7 +214,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
             )
         ).isTrue();
 
-        GenerationJob persistedJob = systemUnderTest.findByDocumentId(TENANT_ID, CLAIM_DOCUMENT_ID).getFirst();
+        GenerationJob persistedJob = systemUnderTest.findById(TENANT_ID, claimedJob.getId()).orElseThrow();
         assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.ERROR);
         assertThat(persistedJob.getErrorCode()).isEqualTo("generation.failed");
         assertThat(persistedJob.getErrorMessage()).isEqualTo("Generation failed");
