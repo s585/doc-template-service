@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.Document;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
@@ -63,8 +63,8 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
                 assertThat(document.getFiles())
                     .extracting(file -> file.getFormat(), file -> file.getStatus())
                     .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("DOCX", DocumentConstants.GeneratedFileStatus.PENDING),
-                        org.assertj.core.groups.Tuple.tuple("XLSX", DocumentConstants.GeneratedFileStatus.PENDING)
+                        org.assertj.core.groups.Tuple.tuple("DOCX", GeneratedFileStatus.PENDING.name()),
+                        org.assertj.core.groups.Tuple.tuple("XLSX", GeneratedFileStatus.PENDING.name())
                     );
             });
     }
@@ -161,7 +161,7 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
             .set(T_GENERATED_FILE.TENANT_ID, TENANT_ID)
             .set(T_GENERATED_FILE.DOCUMENT_ID, documentId)
             .set(T_GENERATED_FILE.FORMAT, format)
-            .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.PENDING)
+            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.PENDING.name())
             .set(T_GENERATED_FILE.CREATED_AT, OffsetDateTime.parse(createdAt))
             .set(T_GENERATED_FILE.UPDATED_AT, OffsetDateTime.parse(createdAt))
             .set(T_GENERATED_FILE.CREATED_BY, USER_ID)

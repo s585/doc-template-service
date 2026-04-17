@@ -7,9 +7,9 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GeneratedFileRecordConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 
 import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedFile.T_GENERATED_FILE;
 
@@ -29,7 +29,7 @@ public class JooqGeneratedFileRepository implements GeneratedFileRepository {
                     .set(T_GENERATED_FILE.TENANT_ID, tenantId)
                     .set(T_GENERATED_FILE.DOCUMENT_ID, documentId)
                     .set(T_GENERATED_FILE.FORMAT, format)
-                    .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.PENDING)
+                    .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.PENDING.name())
                     .set(T_GENERATED_FILE.CREATED_BY, userId)
                     .set(T_GENERATED_FILE.UPDATED_BY, userId)
                     .set(T_GENERATED_FILE.CREATED_AT, now)
@@ -68,7 +68,7 @@ public class JooqGeneratedFileRepository implements GeneratedFileRepository {
     public void markPending(UUID tenantId, UUID userId, UUID documentId, String format) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         dslContext.update(T_GENERATED_FILE)
-            .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.PENDING)
+            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.PENDING.name())
             .set(T_GENERATED_FILE.S3_KEY, (String) null)
             .set(T_GENERATED_FILE.CHECKSUM, (String) null)
             .set(T_GENERATED_FILE.SIZE_BYTES, (Long) null)
@@ -88,7 +88,7 @@ public class JooqGeneratedFileRepository implements GeneratedFileRepository {
     public void markProcessing(UUID tenantId, UUID userId, UUID documentId, String format) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         dslContext.update(T_GENERATED_FILE)
-            .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.PROCESSING)
+            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.PROCESSING.name())
             .set(T_GENERATED_FILE.ERROR_CODE, (String) null)
             .set(T_GENERATED_FILE.ERROR_MESSAGE, (String) null)
             .set(T_GENERATED_FILE.UPDATED_BY, userId)
@@ -113,7 +113,7 @@ public class JooqGeneratedFileRepository implements GeneratedFileRepository {
     ) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         dslContext.update(T_GENERATED_FILE)
-            .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.DONE)
+            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.DONE.name())
             .set(T_GENERATED_FILE.S3_KEY, s3Key)
             .set(T_GENERATED_FILE.CHECKSUM, checksum)
             .set(T_GENERATED_FILE.SIZE_BYTES, sizeBytes)
@@ -133,7 +133,7 @@ public class JooqGeneratedFileRepository implements GeneratedFileRepository {
     public void markFailed(UUID tenantId, UUID userId, UUID documentId, String format, String errorCode, String errorMessage) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         dslContext.update(T_GENERATED_FILE)
-            .set(T_GENERATED_FILE.STATUS, DocumentConstants.GeneratedFileStatus.ERROR)
+            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.ERROR.name())
             .set(T_GENERATED_FILE.ERROR_CODE, errorCode)
             .set(T_GENERATED_FILE.ERROR_MESSAGE, errorMessage)
             .set(T_GENERATED_FILE.UPDATED_BY, userId)

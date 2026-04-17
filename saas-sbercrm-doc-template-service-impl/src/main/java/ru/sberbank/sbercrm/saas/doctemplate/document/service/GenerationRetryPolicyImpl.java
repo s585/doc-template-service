@@ -21,6 +21,9 @@ public class GenerationRetryPolicyImpl implements GenerationRetryPolicy {
 
     @Override
     public GenerationRetryDecision decide(int attemptNo, GenerationErrorDecision errorDecision) {
+        if (attemptNo <= 0) {
+            throw new IllegalArgumentException("attemptNo must be >= 1");
+        }
         if (!errorDecision.retriable()
             || attemptNo >= docTemplateProperties.getGeneration().getMaxAttempts()) {
             return new GenerationRetryDecision(
@@ -35,7 +38,7 @@ public class GenerationRetryPolicyImpl implements GenerationRetryPolicy {
         long seconds =
             backoffSeconds.isEmpty()
                 ? 0L
-                : backoffSeconds.get(Math.min(Math.max(attemptNo - 1, 0), backoffSeconds.size() - 1));
+                : backoffSeconds.get(Math.min(attemptNo - 1, backoffSeconds.size() - 1));
         OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime nextRetryAt = now.plusSeconds(seconds);
         return new GenerationRetryDecision(

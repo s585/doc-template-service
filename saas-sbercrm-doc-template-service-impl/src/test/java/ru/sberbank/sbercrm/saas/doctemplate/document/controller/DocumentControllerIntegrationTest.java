@@ -12,8 +12,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentRs;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttemptStatus;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobAttemptService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.usecase.GenerationJobExecutionUseCase;
@@ -74,7 +76,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
         assertThat(createdDocument.getTemplateId()).isEqualTo(template.getId());
         assertThat(createdDocument.getFiles()).hasSize(1);
         assertThat(createdDocument.getFiles().getFirst().getStatus())
-            .isEqualTo(DocumentConstants.GeneratedFileStatus.PENDING);
+            .isEqualTo(GeneratedFileStatus.PENDING.name());
 
         var claimedJob = generationJobService.claimNextJobs(WORKER_ID_DONE, 1).getFirst();
         generationJobExecutionUseCase.execute(claimedJob);
@@ -84,7 +86,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
         assertThat(generatedDocument.getId()).isEqualTo(createdDocument.getId());
         assertThat(generatedDocument.getFiles()).hasSize(1);
         assertThat(generatedDocument.getFiles().getFirst().getStatus())
-            .isEqualTo(DocumentConstants.GeneratedFileStatus.DONE);
+            .isEqualTo(GeneratedFileStatus.DONE.name());
         assertThat(generatedDocument.getFiles().getFirst().getS3Key()).isNotBlank();
         assertThat(generatedDocument.getFiles().getFirst().getChecksum()).isNotBlank();
         assertThat(generatedDocument.getFiles().getFirst().getSizeBytes()).isPositive();
@@ -110,7 +112,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             .singleElement()
             .satisfies(attempt -> {
                 assertThat(attempt.getAttemptNo()).isEqualTo(1);
-                assertThat(attempt.getStatus()).isEqualTo(DocumentConstants.GenerationJobAttemptStatus.DONE);
+                assertThat(attempt.getStatus()).isEqualTo(GenerationJobAttemptStatus.DONE.name());
                 assertThat(attempt.getWorkerId()).isNotNull();
                 assertThat(attempt.getFinishedAt()).isNotNull();
             });
@@ -167,20 +169,20 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                     .header("X-User-Id", USER_ID)
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.files[0].status").value(DocumentConstants.GeneratedFileStatus.PENDING));
+            .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.PENDING.name()));
 
         assertThat(generationJobAttemptService.findByJobId(firstClaimedJob.getId()))
             .singleElement()
             .satisfies(attempt -> {
                 assertThat(attempt.getAttemptNo()).isEqualTo(1);
-                assertThat(attempt.getStatus()).isEqualTo(DocumentConstants.GenerationJobAttemptStatus.ERROR);
+                assertThat(attempt.getStatus()).isEqualTo(GenerationJobAttemptStatus.ERROR.name());
                 assertThat(attempt.getErrorCode()).isEqualTo("file_storage.request_failed");
             });
 
         assertThat(generationJobService.findById(TENANT_ID, firstClaimedJob.getId()))
             .get()
             .satisfies(job -> {
-                assertThat(job.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.QUEUED);
+                assertThat(job.getStatus()).isEqualTo(GenerationJobStatus.QUEUED.name());
                 assertThat(job.getAttemptCount()).isEqualTo(1);
                 assertThat(job.getNextRetryAt()).isNotNull();
                 assertThat(job.getErrorCode()).isEqualTo("file_storage.request_failed");
@@ -197,7 +199,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                     .header("X-User-Id", USER_ID)
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.files[0].status").value(DocumentConstants.GeneratedFileStatus.DONE))
+            .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.DONE.name()))
             .andReturn()
             .getResponse()
             .getContentAsString(StandardCharsets.UTF_8);
@@ -213,7 +215,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
         assertThat(generationJobService.findById(TENANT_ID, firstClaimedJob.getId()))
             .get()
             .satisfies(job -> {
-                assertThat(job.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.DONE);
+                assertThat(job.getStatus()).isEqualTo(GenerationJobStatus.DONE.name());
                 assertThat(job.getAttemptCount()).isEqualTo(2);
                 assertThat(job.getNextRetryAt()).isNull();
                 assertThat(job.getErrorCode()).isNull();
@@ -223,8 +225,8 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             .hasSize(2)
             .extracting(attempt -> attempt.getAttemptNo(), attempt -> attempt.getStatus())
             .containsExactly(
-                org.assertj.core.groups.Tuple.tuple(1, DocumentConstants.GenerationJobAttemptStatus.ERROR),
-                org.assertj.core.groups.Tuple.tuple(2, DocumentConstants.GenerationJobAttemptStatus.DONE)
+                org.assertj.core.groups.Tuple.tuple(1, GenerationJobAttemptStatus.ERROR.name()),
+                org.assertj.core.groups.Tuple.tuple(2, GenerationJobAttemptStatus.DONE.name())
             );
     }
 
@@ -269,13 +271,13 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                     .header("X-User-Id", USER_ID)
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.files[0].status").value(DocumentConstants.GeneratedFileStatus.ERROR))
+            .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.ERROR.name()))
             .andExpect(jsonPath("$.files[0].errorCode").value("generation.mapping_source_unsupported"));
 
         assertThat(generationJobService.findById(TENANT_ID, claimedJob.getId()))
             .get()
             .satisfies(job -> {
-                assertThat(job.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.ERROR);
+                assertThat(job.getStatus()).isEqualTo(GenerationJobStatus.ERROR.name());
                 assertThat(job.getAttemptCount()).isEqualTo(1);
                 assertThat(job.getNextRetryAt()).isNull();
                 assertThat(job.getErrorCode()).isEqualTo("generation.mapping_source_unsupported");
@@ -285,7 +287,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             .singleElement()
             .satisfies(attempt -> {
                 assertThat(attempt.getAttemptNo()).isEqualTo(1);
-                assertThat(attempt.getStatus()).isEqualTo(DocumentConstants.GenerationJobAttemptStatus.ERROR);
+                assertThat(attempt.getStatus()).isEqualTo(GenerationJobAttemptStatus.ERROR.name());
                 assertThat(attempt.getErrorCode()).isEqualTo("generation.mapping_source_unsupported");
             });
 

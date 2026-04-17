@@ -7,8 +7,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentRs;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 
 @TestPropertySource(properties = {
@@ -41,7 +41,7 @@ class DocumentGenerationRuntimeIntegrationTest extends AbstractDocumentGeneratio
         DocumentRs createdDocument = createDocument(template.getId(), OBJECT_ID, REQUEST_ID);
         assertThat(createdDocument.getFiles()).hasSize(1);
         assertThat(createdDocument.getFiles().getFirst().getStatus())
-            .isEqualTo(DocumentConstants.GeneratedFileStatus.PENDING);
+            .isEqualTo(GeneratedFileStatus.PENDING.name());
 
         DocumentRs[] generatedDocumentHolder = new DocumentRs[1];
         await()
@@ -51,7 +51,7 @@ class DocumentGenerationRuntimeIntegrationTest extends AbstractDocumentGeneratio
                 DocumentRs document = getDocument(createdDocument.getId());
                 assertThat(document.getFiles()).hasSize(1);
                 assertThat(document.getFiles().getFirst().getStatus())
-                    .isEqualTo(DocumentConstants.GeneratedFileStatus.DONE);
+                    .isEqualTo(GeneratedFileStatus.DONE.name());
                 generatedDocumentHolder[0] = document;
             });
 
@@ -59,7 +59,7 @@ class DocumentGenerationRuntimeIntegrationTest extends AbstractDocumentGeneratio
 
         assertThat(generatedDocument.getFiles()).hasSize(1);
         assertThat(generatedDocument.getFiles().getFirst().getStatus())
-            .isEqualTo(DocumentConstants.GeneratedFileStatus.DONE);
+            .isEqualTo(GeneratedFileStatus.DONE.name());
         assertThat(generatedDocument.getFiles().getFirst().getS3Key()).isNotBlank();
 
         byte[] generatedFile = fileStorageGateway.download(

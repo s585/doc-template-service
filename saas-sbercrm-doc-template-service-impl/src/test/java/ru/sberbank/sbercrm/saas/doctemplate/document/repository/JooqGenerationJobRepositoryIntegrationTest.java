@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 
 @TestPropertySource(properties = "saas.doc-template.generation.enabled=false")
 class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -59,7 +59,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(claimedJobs).hasSize(2);
         assertThat(claimedJobs)
             .extracting(GenerationJob::getStatus)
-            .containsOnly(DocumentConstants.GenerationJobStatus.PROCESSING);
+            .containsOnly(GenerationJobStatus.PROCESSING.name());
 
         List<UUID> claimedIds = claimedJobs.stream().map(GenerationJob::getId).toList();
 
@@ -75,7 +75,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
         )
             .allSatisfy(record -> {
                 assertThat(record.get(T_GENERATION_JOB.STATUS))
-                    .isEqualTo(DocumentConstants.GenerationJobStatus.PROCESSING);
+                    .isEqualTo(GenerationJobStatus.PROCESSING.name());
                 assertThat(record.get(T_GENERATION_JOB.LOCKED_BY)).isEqualTo(WORKER_ID);
                 assertThat(record.get(T_GENERATION_JOB.LOCKED_UNTIL))
                     .isAfter(OffsetDateTime.now().minusMinutes(1));
@@ -174,7 +174,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(systemUnderTest.markCompleted(TENANT_ID, USER_ID, claimedJob.getId(), 0, 1)).isTrue();
 
         GenerationJob persistedJob = systemUnderTest.findById(TENANT_ID, claimedJob.getId()).orElseThrow();
-        assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.DONE);
+        assertThat(persistedJob.getStatus()).isEqualTo(GenerationJobStatus.DONE.name());
         assertThat(persistedJob.getErrorCode()).isNull();
         assertThat(persistedJob.getErrorMessage()).isNull();
         assertThat(persistedJob.getUpdatedBy()).isEqualTo(USER_ID);
@@ -215,7 +215,7 @@ class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest
         ).isTrue();
 
         GenerationJob persistedJob = systemUnderTest.findById(TENANT_ID, claimedJob.getId()).orElseThrow();
-        assertThat(persistedJob.getStatus()).isEqualTo(DocumentConstants.GenerationJobStatus.ERROR);
+        assertThat(persistedJob.getStatus()).isEqualTo(GenerationJobStatus.ERROR.name());
         assertThat(persistedJob.getErrorCode()).isEqualTo("generation.failed");
         assertThat(persistedJob.getErrorMessage()).isEqualTo("Generation failed");
         assertThat(persistedJob.getUpdatedBy()).isEqualTo(USER_ID);

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 
 @TestPropertySource(properties = "saas.doc-template.generation.enabled=false")
 class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -44,8 +44,8 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(systemUnderTest.findByDocumentId(TENANT_ID, DOCUMENT_ID))
             .extracting(file -> file.getFormat(), file -> file.getStatus())
             .containsExactlyInAnyOrder(
-                org.assertj.core.groups.Tuple.tuple("DOCX", DocumentConstants.GeneratedFileStatus.PENDING),
-                org.assertj.core.groups.Tuple.tuple("XLSX", DocumentConstants.GeneratedFileStatus.PENDING)
+                org.assertj.core.groups.Tuple.tuple("DOCX", GeneratedFileStatus.PENDING.name()),
+                org.assertj.core.groups.Tuple.tuple("XLSX", GeneratedFileStatus.PENDING.name())
             );
 
         assertThat(systemUnderTest.findByDocumentIds(TENANT_ID, List.of(DOCUMENT_ID, SECOND_DOCUMENT_ID)))
@@ -76,7 +76,7 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(systemUnderTest.findByDocumentId(TENANT_ID, DOCUMENT_ID))
             .singleElement()
             .satisfies(file -> {
-                assertThat(file.getStatus()).isEqualTo(DocumentConstants.GeneratedFileStatus.PROCESSING);
+                assertThat(file.getStatus()).isEqualTo(GeneratedFileStatus.PROCESSING.name());
                 assertThat(file.getErrorCode()).isNull();
                 assertThat(file.getErrorMessage()).isNull();
                 assertThat(file.getUpdatedBy()).isEqualTo(USER_ID);
@@ -103,7 +103,7 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(systemUnderTest.findByDocumentId(TENANT_ID, DOCUMENT_ID))
             .singleElement()
             .satisfies(file -> {
-                assertThat(file.getStatus()).isEqualTo(DocumentConstants.GeneratedFileStatus.DONE);
+                assertThat(file.getStatus()).isEqualTo(GeneratedFileStatus.DONE.name());
                 assertThat(file.getS3Key()).isEqualTo("generated/file.docx");
                 assertThat(file.getChecksum()).isEqualTo("checksum-value");
                 assertThat(file.getSizeBytes()).isEqualTo(128L);
@@ -124,7 +124,7 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
         assertThat(systemUnderTest.findByDocumentId(TENANT_ID, DOCUMENT_ID))
             .singleElement()
             .satisfies(file -> {
-                assertThat(file.getStatus()).isEqualTo(DocumentConstants.GeneratedFileStatus.ERROR);
+                assertThat(file.getStatus()).isEqualTo(GeneratedFileStatus.ERROR.name());
                 assertThat(file.getErrorCode()).isEqualTo("file.error");
                 assertThat(file.getErrorMessage()).isEqualTo("File error");
                 assertThat(file.getUpdatedBy()).isEqualTo(USER_ID);

@@ -21,35 +21,6 @@ public final class DocumentConstants {
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class DocumentStatus {
-        public static final String QUEUED = "QUEUED";
-    }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class GeneratedFileStatus {
-        public static final String PENDING = "PENDING";
-        public static final String PROCESSING = "PROCESSING";
-        public static final String DONE = "DONE";
-        public static final String ERROR = "ERROR";
-    }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class GenerationJobStatus {
-        public static final String QUEUED = "QUEUED";
-        public static final String PROCESSING = "PROCESSING";
-        public static final String DONE = "DONE";
-        public static final String ERROR = "ERROR";
-    }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class GenerationJobAttemptStatus {
-        public static final String PROCESSING = "PROCESSING";
-        public static final String DONE = "DONE";
-        public static final String ERROR = "ERROR";
-        public static final String TIMEOUT = "TIMEOUT";
-    }
-
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class JooqFieldMappings {
         public static final Map<String, Field<?>> FIELDS = Map.of(
             "id", T_GENERATED_DOCUMENT.ID,

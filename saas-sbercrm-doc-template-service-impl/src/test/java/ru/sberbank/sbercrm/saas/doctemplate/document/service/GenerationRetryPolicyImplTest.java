@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -78,5 +79,16 @@ class GenerationRetryPolicyImplTest {
 
         assertThat(decision.action()).isEqualTo(GenerationRetryAction.FAIL_FINAL);
         assertThat(decision.nextRetryAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("Retry policy выбрасывает ошибку если номер попытки меньше 1")
+    void givenInvalidAttemptNo_whenDecide_thenThrowIllegalArgumentException() {
+        assertThatThrownBy(() -> systemUnderTest.decide(
+            0,
+            new GenerationErrorDecision("file_storage.request_failed", "temporary", true)
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("attemptNo must be >= 1");
     }
 }

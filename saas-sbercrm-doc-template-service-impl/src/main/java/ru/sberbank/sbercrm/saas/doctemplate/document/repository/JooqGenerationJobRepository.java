@@ -14,6 +14,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GenerationJobReco
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobRetryCmd;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 
 import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGenerationJob.T_GENERATION_JOB;
 
@@ -36,7 +37,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
                     .set(T_GENERATION_JOB.ENTITY_ID, command.getEntityId())
                     .set(T_GENERATION_JOB.OBJECT_ID, command.getObjectId())
                     .set(T_GENERATION_JOB.FORMAT, format)
-                    .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.QUEUED)
+                    .set(T_GENERATION_JOB.STATUS, GenerationJobStatus.QUEUED.name())
                     .set(T_GENERATION_JOB.ATTEMPT_COUNT, 0)
                     .set(T_GENERATION_JOB.CREATED_BY, userId)
                     .set(T_GENERATION_JOB.UPDATED_BY, userId)
@@ -61,7 +62,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
         OffsetDateTime now = OffsetDateTime.now(clock);
         return dslContext.selectFrom(T_GENERATION_JOB)
             .where(
-                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.PROCESSING),
+                T_GENERATION_JOB.STATUS.eq(GenerationJobStatus.PROCESSING.name()),
                 T_GENERATION_JOB.LOCKED_UNTIL.isNotNull(),
                 T_GENERATION_JOB.LOCKED_UNTIL.lt(now)
             )
@@ -95,7 +96,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
         return tx.select(T_GENERATION_JOB.ID)
             .from(T_GENERATION_JOB)
             .where(
-                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.QUEUED),
+                T_GENERATION_JOB.STATUS.eq(GenerationJobStatus.QUEUED.name()),
                 T_GENERATION_JOB.NEXT_RETRY_AT.isNull().or(T_GENERATION_JOB.NEXT_RETRY_AT.le(now)),
                 T_GENERATION_JOB.LOCKED_UNTIL.isNull().or(T_GENERATION_JOB.LOCKED_UNTIL.lt(now))
             )
@@ -118,7 +119,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
         List<UUID> jobIds
     ) {
         tx.update(T_GENERATION_JOB)
-            .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.PROCESSING)
+            .set(T_GENERATION_JOB.STATUS, GenerationJobStatus.PROCESSING.name())
             .set(T_GENERATION_JOB.LOCKED_BY, workerId)
             .set(T_GENERATION_JOB.LOCKED_UNTIL, lockedUntil)
             .set(T_GENERATION_JOB.ERROR_CODE, (String) null)
@@ -140,7 +141,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
     public boolean scheduleRetry(GenerationJobRetryCmd retryCmd) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         return dslContext.update(T_GENERATION_JOB)
-            .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.QUEUED)
+            .set(T_GENERATION_JOB.STATUS, GenerationJobStatus.QUEUED.name())
             .set(T_GENERATION_JOB.ATTEMPT_COUNT, retryCmd.getAttemptCount())
             .set(T_GENERATION_JOB.NEXT_RETRY_AT, retryCmd.getNextRetryAt())
             .set(T_GENERATION_JOB.LOCKED_BY, (UUID) null)
@@ -152,7 +153,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
             .where(
                 T_GENERATION_JOB.TENANT_ID.eq(retryCmd.getTenantId()),
                 T_GENERATION_JOB.ID.eq(retryCmd.getJobId()),
-                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.PROCESSING),
+                T_GENERATION_JOB.STATUS.eq(GenerationJobStatus.PROCESSING.name()),
                 T_GENERATION_JOB.ATTEMPT_COUNT.eq(retryCmd.getExpectedAttemptCount())
             )
             .execute() == 1;
@@ -168,7 +169,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
     ) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         return dslContext.update(T_GENERATION_JOB)
-            .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.DONE)
+            .set(T_GENERATION_JOB.STATUS, GenerationJobStatus.DONE.name())
             .set(T_GENERATION_JOB.ATTEMPT_COUNT, attemptCount)
             .set(T_GENERATION_JOB.NEXT_RETRY_AT, (OffsetDateTime) null)
             .set(T_GENERATION_JOB.LOCKED_BY, (UUID) null)
@@ -180,7 +181,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
             .where(
                 T_GENERATION_JOB.TENANT_ID.eq(tenantId),
                 T_GENERATION_JOB.ID.eq(jobId),
-                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.PROCESSING),
+                T_GENERATION_JOB.STATUS.eq(GenerationJobStatus.PROCESSING.name()),
                 T_GENERATION_JOB.ATTEMPT_COUNT.eq(expectedAttemptCount)
             )
             .execute() == 1;
@@ -198,7 +199,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
     ) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         return dslContext.update(T_GENERATION_JOB)
-            .set(T_GENERATION_JOB.STATUS, DocumentConstants.GenerationJobStatus.ERROR)
+            .set(T_GENERATION_JOB.STATUS, GenerationJobStatus.ERROR.name())
             .set(T_GENERATION_JOB.ATTEMPT_COUNT, attemptCount)
             .set(T_GENERATION_JOB.NEXT_RETRY_AT, (OffsetDateTime) null)
             .set(T_GENERATION_JOB.LOCKED_BY, (UUID) null)
@@ -210,7 +211,7 @@ public class JooqGenerationJobRepository implements GenerationJobRepository {
             .where(
                 T_GENERATION_JOB.TENANT_ID.eq(tenantId),
                 T_GENERATION_JOB.ID.eq(jobId),
-                T_GENERATION_JOB.STATUS.eq(DocumentConstants.GenerationJobStatus.PROCESSING),
+                T_GENERATION_JOB.STATUS.eq(GenerationJobStatus.PROCESSING.name()),
                 T_GENERATION_JOB.ATTEMPT_COUNT.eq(expectedAttemptCount)
             )
             .execute() == 1;

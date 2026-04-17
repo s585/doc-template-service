@@ -13,7 +13,9 @@ public interface GenerationRetryPolicy {
      * Принимает итоговое retry-решение для текущей попытки.
      *
      * <p>{@code attemptNo} — номер уже завершившейся или оборвавшейся попытки, для которой оценивается
-     * дальнейшее действие.
+     * дальнейшее действие. Нумерация попыток начинается с 1 ({@code attemptNo >= 1}).
+     *
+     * @throws IllegalArgumentException если {@code attemptNo <= 0}
      */
     GenerationRetryDecision decide(int attemptNo, GenerationErrorDecision errorDecision);
 }
