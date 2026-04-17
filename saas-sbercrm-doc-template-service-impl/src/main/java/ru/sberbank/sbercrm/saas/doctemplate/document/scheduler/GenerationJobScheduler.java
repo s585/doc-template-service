@@ -9,7 +9,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.usecase.GenerationJobDispat
 @Component
 @ConditionalOnProperty(
     prefix = "saas.doc-template.generation",
-    name = "enabled",
+    name = "scheduler-enabled",
     havingValue = "true",
     matchIfMissing = true
 )

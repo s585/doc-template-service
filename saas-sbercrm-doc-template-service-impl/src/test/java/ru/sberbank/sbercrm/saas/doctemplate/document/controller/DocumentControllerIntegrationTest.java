@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentRs;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttemptStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
+import ru.sberbank.sbercrm.saas.doctemplate.document.gateway.businessobject.BusinessObjectWireMock;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobAttemptService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.usecase.GenerationJobExecutionUseCase;
@@ -27,11 +29,11 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
-import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
 @TestPropertySource(properties = {
     "saas.doc-template.file-storage.stub-enabled=true",
-    "saas.doc-template.generation.enabled=false",
+    "saas.doc-template.generation.scheduler-enabled=false",
     "saas.doc-template.generation.retry-backoff-seconds=0,0,0,0"
 })
 class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegrationTest {
@@ -58,18 +60,32 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
     private GenerationJobAttemptService generationJobAttemptService;
 
     @Test
-    @DisplayName("Генерация документа создает реальный DOCX файл с подставленными значениями")
-    void givenDocxTemplate_whenGenerateDocument_thenPersistDoneFileAndRealDocxContent() throws Exception {
+    @DisplayName("Генерация документа резолвит переменные разных типов и создает итоговый DOCX")
+    void givenMixedMappings_whenGenerateDocument_thenPersistDoneFileAndResolvedContent() throws Exception {
         String templateKey = "templates/" + ENTITY_ID + "/generation-" + TEMPLATE_SUFFIX_DONE + ".docx";
-        writeTemplateToStubStorage(templateKey, createDocx("Contract for ${customer_name}"));
+        writeTemplateToStubStorage(templateKey, createDocx("Contract for ${customer_name} [${customer_type}]"));
+        BusinessObjectWireMock.stubGetObject(
+            objectMapper,
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            OBJECT_ID,
+            Map.of(
+                "customer",
+                Map.of("name", "Business Object LLC")
+            )
+        );
 
-        Template template = createDocxTemplate(
+        Template template = createDocxTemplateWithMappings(
             templateKey,
-            "Шаблон договора",
+            "Шаблон договора mixed",
             "DOC_GENERATION_" + TEMPLATE_SUFFIX_DONE,
-            "Описание шаблона",
-            "ready-contract",
-            "Romashka LLC"
+            "Описание шаблона mixed",
+            List.of(
+                buildGeneratedFileNameMapping("ready-contract"),
+                buildDirectValueMapping("customer_name", "source.customer.name"),
+                buildConstantValueMapping("customer_type", "VIP")
+            )
         );
 
         DocumentRs createdDocument = createDocument(template.getId(), OBJECT_ID, REQUEST_ID_DONE);
@@ -106,8 +122,10 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
         byte[] generatedFile = fileStorageGateway.download(TENANT_ID, USER_ID, generatedKey);
         String generatedText = readDocxText(generatedFile);
 
-        assertThat(generatedText).contains("Contract for Romashka LLC");
+        assertThat(generatedText).contains("Contract for Business Object LLC [VIP]");
         assertThat(generatedText).doesNotContain("${customer_name}");
+        assertThat(generatedText).doesNotContain("${customer_type}");
+        BusinessObjectWireMock.verifyGetObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
         assertThat(generationJobAttemptService.findByJobId(claimedJob.getId()))
             .singleElement()
             .satisfies(attempt -> {
@@ -253,7 +271,11 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.VALUE)
                             .type(TemplateValueType.STRING)
-                            .source(DirectValueSource.builder().path("$.customer.name").build())
+                            .source(
+                                ReferenceValueSource.builder()
+                                    .path("reference.customer.name")
+                                    .build()
+                            )
                             .build()
                     )
                     .build()

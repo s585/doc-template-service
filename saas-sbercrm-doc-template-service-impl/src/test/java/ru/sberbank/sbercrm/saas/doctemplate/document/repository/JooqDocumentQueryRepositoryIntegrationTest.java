@@ -22,7 +22,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SortTypeDto;
 
-@TestPropertySource(properties = "saas.doc-template.generation.enabled=false")
+@TestPropertySource(properties = "saas.doc-template.generation.scheduler-enabled=false")
 class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest {
     private static final UUID TEMPLATE_ID = UUID.fromString("31313131-3131-3131-3131-313131313131");
     private static final UUID FIRST_DOCUMENT_ID = UUID.fromString("32323232-3232-3232-3232-323232323232");

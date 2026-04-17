@@ -24,6 +24,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFound
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.domain.GenerationJobStateMachine;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
@@ -112,7 +113,11 @@ class GenerationJobTransitionServiceImplTest {
         verify(generationJobStateMachine).transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.COMPLETE);
         verify(generationJobService).markCompleted(TENANT_ID, USER_ID, JOB_ID, 0, 1);
         verify(generatedFileService).markCompleted(TENANT_ID, USER_ID, DOCUMENT_ID, "DOCX", "key", "checksum", 10L);
-        verify(generationJobAttemptService).markCompleted(eq(USER_ID), any());
+        verify(generationJobAttemptService).markCompleted(
+            eq(USER_ID),
+            any(),
+            eq(GenerationArtifactMeta.builder().s3Key("key").checksum("checksum").sizeBytes(10L).build())
+        );
     }
 
     @Test
@@ -312,6 +317,21 @@ class GenerationJobTransitionServiceImplTest {
     }
 
     @Test
+    @DisplayName("Transition service сохраняет upload metadata в отдельной транзакции")
+    void givenUploadedArtifact_whenPersistUploadedArtifact_thenStoreKeyInAttempt() {
+        mockRecoveryTransaction();
+
+        GenerationArtifactMeta artifactMeta = GenerationArtifactMeta.builder()
+            .s3Key("generated/key.docx")
+            .checksum("checksum")
+            .sizeBytes(11L)
+            .build();
+        systemUnderTest.persistUploadedArtifact(buildTransitionContext(ATTEMPT_ID_COMPLETE), artifactMeta);
+
+        verify(generationJobAttemptService).markArtifactUploaded(USER_ID, ATTEMPT_ID_COMPLETE, artifactMeta);
+    }
+
+    @Test
     @DisplayName("Transition service пропускает завершение устаревшей попытки")
     void givenStaleAttempt_whenCompleteGeneration_thenDoNotUpdateFileAndAttempt() {
         given(generationJobService.findById(TENANT_ID, JOB_ID)).willReturn(Optional.of(buildProcessingJob()));
@@ -330,7 +350,7 @@ class GenerationJobTransitionServiceImplTest {
 
         verify(generationJobService).markCompleted(TENANT_ID, USER_ID, JOB_ID, 0, 1);
         verify(generatedFileService, never()).markCompleted(any(), any(), any(), any(), any(), any(), anyLong());
-        verify(generationJobAttemptService, never()).markCompleted(any(), any());
+        verify(generationJobAttemptService, never()).markCompleted(any(), any(), any());
     }
 
     @Test

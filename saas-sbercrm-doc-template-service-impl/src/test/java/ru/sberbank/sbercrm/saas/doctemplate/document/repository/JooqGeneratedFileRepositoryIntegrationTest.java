@@ -15,7 +15,7 @@ import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 
-@TestPropertySource(properties = "saas.doc-template.generation.enabled=false")
+@TestPropertySource(properties = "saas.doc-template.generation.scheduler-enabled=false")
 class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest {
     private static final UUID DOCUMENT_ID = UUID.fromString("21212121-2121-2121-2121-212121212121");
     private static final UUID SECOND_DOCUMENT_ID = UUID.fromString("22222222-3333-4444-5555-666666666666");

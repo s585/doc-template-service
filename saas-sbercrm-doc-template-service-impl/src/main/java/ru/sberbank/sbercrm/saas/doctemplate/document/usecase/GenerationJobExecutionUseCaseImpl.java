@@ -2,44 +2,37 @@ package ru.sberbank.sbercrm.saas.doctemplate.document.usecase;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.OffsetDateTime;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobPreAttemptContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryDecision;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTransitionContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationErrorClassifier;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobAttemptService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobTransitionService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationRetryPolicy;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.GenerationContextAssembler;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.InMemoryMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
-import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
-import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
@@ -51,6 +44,8 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     private final GenerationErrorClassifier generationErrorClassifier;
     private final GenerationRetryPolicy generationRetryPolicy;
     private final TemplateService templateService;
+    private final GenerationJobAttemptService generationJobAttemptService;
+    private final GenerationContextAssembler generationContextAssembler;
     private final FileStorageGateway fileStorageGateway;
     private final TemplateProcessingFacade templateProcessingFacade;
     private final DocTemplateProperties docTemplateProperties;
@@ -86,20 +81,20 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
                 TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND,
                 job.getTemplateId()
             ));
-        byte[] templateContent = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
-        Map<String, String> values = resolveValues(template);
-        String generatedFileName = resolveGeneratedFileName(template);
-        Optional<FileRs> existingArtifact = findExistingGeneratedArtifact(
-            job,
-            effectiveUserId,
-            attemptNo,
-            generatedFileName
-        );
+        Optional<GenerationArtifactMeta> existingArtifact = findExistingGeneratedArtifact(job, attemptNo);
         if (existingArtifact.isPresent()) {
             completeWithExistingArtifact(job, effectiveUserId, attemptId, attemptNo, existingArtifact.get());
             return;
         }
-        byte[] generatedContent = templateProcessingFacade.generate(template.getFormat(), templateContent, values);
+
+        byte[] templateContent = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
+        GenerationTemplateContext generationContext = generationContextAssembler.assemble(job, effectiveUserId, template);
+        String generatedFileName = generationContext.getGeneratedFileName();
+        byte[] generatedContent = templateProcessingFacade.generate(
+            template.getFormat(),
+            templateContent,
+            generationContext.getValues()
+        );
         FileRs uploadedFile = fileStorageGateway.upload(
             job.getTenantId(),
             effectiveUserId,
@@ -107,13 +102,21 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             template.getDescription(),
             buildMultipartFile(generatedFileName, template.getFormat(), generatedContent)
         );
+        String checksum = calculateChecksum(generatedContent);
+        long sizeBytes = generatedContent.length;
         GenerationTransitionContext context = buildTransitionContext(job, effectiveUserId, attemptId, attemptNo);
+        GenerationArtifactMeta artifactMeta = GenerationArtifactMeta.builder()
+            .s3Key(uploadedFile.getKey())
+            .checksum(checksum)
+            .sizeBytes(sizeBytes)
+            .build();
+        tryPersistUploadedArtifact(context, artifactMeta);
         generationJobTransitionService.completeGeneration(
             context,
             GeneratedFileResult.builder()
                 .s3Key(uploadedFile.getKey())
-                .checksum(calculateChecksum(generatedContent))
-                .sizeBytes(generatedContent.length)
+                .checksum(checksum)
+                .sizeBytes(sizeBytes)
                 .build()
         );
         logCompletedJob(job, attemptId, attemptNo, uploadedFile.getKey());
@@ -124,19 +127,30 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         UUID effectiveUserId,
         UUID attemptId,
         int attemptNo,
-        FileRs existingArtifact
+        GenerationArtifactMeta existingArtifact
     ) {
-        byte[] existingContent = fileStorageGateway.download(job.getTenantId(), effectiveUserId, existingArtifact.getKey());
+        String checksum = existingArtifact.checksum();
+        Long sizeBytes = existingArtifact.sizeBytes();
+        if (checksum == null || sizeBytes == null) {
+            throw new SystemCrmException(
+                CrmErrorCodes.SYSTEM_UNEXPECTED,
+                CrmErrorCodes.SYSTEM_UNEXPECTED,
+                "Missing artifact metadata for retry reuse",
+                job.getId(),
+                attemptId,
+                existingArtifact.s3Key()
+            );
+        }
         GenerationTransitionContext context = buildTransitionContext(job, effectiveUserId, attemptId, attemptNo);
         generationJobTransitionService.completeGeneration(
             context,
             GeneratedFileResult.builder()
-                .s3Key(existingArtifact.getKey())
-                .checksum(calculateChecksum(existingContent))
-                .sizeBytes(resolveArtifactSize(existingArtifact, existingContent))
+                .s3Key(existingArtifact.s3Key())
+                .checksum(checksum)
+                .sizeBytes(sizeBytes)
                 .build()
         );
-        logReusedArtifact(job, attemptId, attemptNo, existingArtifact.getKey());
+        logReusedArtifact(job, attemptId, attemptNo, existingArtifact.s3Key());
     }
 
     private void handleFailure(GenerationJob job, UUID effectiveUserId, GenerationJobAttempt attempt, Exception ex) {
@@ -180,103 +194,32 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         };
     }
 
-    private Map<String, String> resolveValues(Template template) {
-        Map<String, String> values = new LinkedHashMap<>();
-        if (template.getMappings() == null) {
-            return values;
-        }
-        for (TemplateMapping mapping : template.getMappings()) {
-            if (TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey())) {
-                continue;
-            }
-            values.put(mapping.getKey(), resolveMappingValue(mapping));
-        }
-        return values;
-    }
-
-    private String resolveGeneratedFileName(Template template) {
-        String baseName = template.getMappings() == null
-            ? null
-            : template.getMappings().stream()
-                .filter(mapping -> TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey()))
-                .map(this::resolveMappingValue)
-                .filter(value -> !value.isBlank())
-                .findFirst()
-                .orElse(null);
-        if (baseName == null || baseName.isBlank()) {
-            baseName = template.getName();
-        }
-        String extension = template.getFormat().value().toLowerCase();
-        return baseName.endsWith("." + extension) ? baseName : baseName + "." + extension;
-    }
-
-    private String resolveMappingValue(TemplateMapping mapping) {
-        if (mapping.getDefinition() == null || mapping.getDefinition().getSource() == null) {
-            return "";
-        }
-        return switch (mapping.getDefinition().getSource()) {
-            case ConstantValueSource constantValueSource ->
-                constantValueSource.getValue() == null ? "" : String.valueOf(constantValueSource.getValue());
-            default -> throw new BusinessCrmException(
-                DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED,
-                DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED,
-                mapping.getKey()
-            );
-        };
-    }
-
     private String buildGeneratedFolderPath(GenerationJob job) {
         return docTemplateProperties.getFileStorage().getFolder() + "/generated/" + job.getEntityId() + "/"
             + job.getObjectId() + "/" + job.getDocumentId();
     }
 
-    private Optional<FileRs> findExistingGeneratedArtifact(
-        GenerationJob job,
-        UUID effectiveUserId,
-        int attemptNo,
-        String generatedFileName
-    ) {
+    private Optional<GenerationArtifactMeta> findExistingGeneratedArtifact(GenerationJob job, int attemptNo) {
         if (attemptNo <= 1) {
             return Optional.empty();
         }
-        List<FileRs> files = fileStorageGateway.findAllByFilter(
-            job.getTenantId(),
-            effectiveUserId,
-            FileFilterRq.builder()
-                .source(docTemplateProperties.getFileStorage().getSource())
-                .prefixKey(buildGeneratedFolderPath(job))
-                .originalFileName(generatedFileName)
-                .build()
-        );
-        if (CollectionUtils.isEmpty(files)) {
-            return Optional.empty();
-        }
-        if (files.size() > 1) {
+        return generationJobAttemptService.findLatestArtifactBeforeAttempt(job.getId(), attemptNo);
+    }
+
+    private void tryPersistUploadedArtifact(GenerationTransitionContext context, GenerationArtifactMeta artifactMeta) {
+        try {
+            generationJobTransitionService.persistUploadedArtifact(context, artifactMeta);
+        } catch (Exception ex) {
             log.warn(
-                "Found multiple generated artifacts for retry reuse: jobId={}, documentId={}, "
-                    + "attemptNo={}, fileCount={}",
-                job.getId(),
-                job.getDocumentId(),
-                attemptNo,
-                files.size()
+                "Failed to persist uploaded artifact metadata, continue with completion: jobId={}, "
+                    + "attemptId={}, attemptNo={}, fileKey={}",
+                context.jobId(),
+                context.attemptId(),
+                context.attemptNo(),
+                artifactMeta.s3Key(),
+                ex
             );
         }
-        return files.stream()
-            .filter(file -> file.getKey() != null && !file.getKey().isBlank())
-            .max(
-                Comparator.comparing(
-                    this::resolveArtifactTimestamp,
-                    Comparator.nullsLast(Comparator.naturalOrder())
-                )
-            );
-    }
-
-    private OffsetDateTime resolveArtifactTimestamp(FileRs file) {
-        return file.getUpdatedDate() != null ? file.getUpdatedDate() : file.getCreatedDate();
-    }
-
-    private long resolveArtifactSize(FileRs file, byte[] existingContent) {
-        return file.getSize() != null ? file.getSize() : existingContent.length;
     }
 
     private String calculateChecksum(byte[] content) {

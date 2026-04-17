@@ -1,0 +1,93 @@
+Финальное состояние коммита: generation-context-refactor
+Дата: 2026-04-17
+Ветка: codex/generation-context-refactor
+
+1) Что реализовано в целом
+- Подготовка generation context вынесена из GenerationJobExecutionUseCaseImpl.
+- Получение данных бизнес-объекта выполняется через единый gateway на Feign-клиенте.
+- Переиспользование артефакта на retry больше не зависит от листинга файлов в file-storage.
+
+2) Интеграция с business object (core)
+- Единый gateway: BusinessObjectGateway.
+- Единый Feign-клиент: CoreDataClient (core-client).
+- В интеграционных тестах core эмулируется через WireMock.
+- Маппинг ошибок:
+  - 404 от core -> generation.business_object_not_found (NotFoundCrmException).
+  - RetryableException и HTTP 5xx/429/408 -> core_client.request_failed (SystemCrmException).
+  - Прочие ошибки core -> system.unexpected (SystemCrmException).
+
+3) Ретраи вызовов core
+- Включена двухуровневая стратегия retry:
+  - inline retry внутри Feign для core-client;
+  - retry на уровне generation job, если inline retry исчерпан.
+- Параметры inline retry вынесены в конфиг приложения:
+  - saas.doc-template.integration.core-client.retry.period-ms
+  - saas.doc-template.integration.core-client.retry.max-period-ms
+  - saas.doc-template.integration.core-client.retry.max-attempts
+- Значения по умолчанию:
+  - period-ms = 100
+  - max-period-ms = 500
+  - max-attempts = 3
+
+4) Хранение попыток generation и переиспользование артефакта
+- В generation_job_attempt сохраняются метаданные артефакта:
+  - artifact_s3_key
+  - artifact_checksum
+  - artifact_size_bytes
+- Добавлен промежуточный статус попытки:
+  - UPLOADED
+- После успешного upload метаданные артефакта фиксируются до финального COMPLETE-перехода
+  в отдельной транзакции (REQUIRES_NEW через TransactionTemplate).
+- При финальном complete в attempt записываются полные метаданные артефакта.
+- На retry артефакт ищется по attempts (DONE/UPLOADED), а не через file-storage listing.
+- Для retry reuse наличие checksum/size в attempt считается обязательным.
+
+5) Изменения в БД
+- В db.changelog-master.yaml подключен новый changelog.
+- Добавлен changelog: 032_generation_job_attempt_artifact.sql.
+- В t_generation_job_attempt добавлены поля:
+  - artifact_s3_key VARCHAR(1024)
+  - artifact_checksum VARCHAR(128)
+  - artifact_size_bytes BIGINT
+- Добавлен partial index для поиска артефакта по (job_id, attempt_no desc),
+  где artifact_s3_key is not null.
+- Добавлены комментарии к колонкам.
+
+6) Изменения контрактов repository/service
+- Добавлена модель GenerationArtifactMeta (s3Key, checksum, sizeBytes).
+- Repository и service используют GenerationArtifactMeta в методах:
+  - markArtifactUploaded
+  - markCompleted
+  - findLatestArtifactBeforeAttempt
+- В JooqGenerationJobAttemptRepository используются typed-поля из сгенерированного jOOQ-класса
+  (без строковых "ручных" полей для artifact-колонок).
+
+7) Изменения execution/transition flow
+- GenerationJobExecutionUseCaseImpl:
+  - checksum/size считаются один раз после генерации;
+  - upload metadata сохраняются best-effort перед completeGeneration;
+  - при retry используется артефакт из attempts;
+  - при наличии metadata повторный download не выполняется.
+- GenerationJobTransitionService / GenerationJobTransitionServiceImpl:
+  - добавлен переход persistUploadedArtifact;
+  - completeGeneration пишет в attempt полный набор метаданных артефакта.
+
+8) Конфигурация и локализация
+- В application.yml добавлен блок retry-настроек core-клиента.
+- Добавлены локализации:
+  - core_client.request_failed (EN/RU).
+
+9) Тестовое покрытие и состояние
+- Обновлены unit-тесты для:
+  - BusinessObjectGateway (маппинг RetryableException и HTTP-статусов);
+  - GenerationErrorClassifier (core_client.request_failed в retriable-наборе);
+  - GenerationJobExecutionUseCaseImpl (reuse с metadata и best-effort persist);
+  - GenerationJobTransitionServiceImpl (persistUploadedArtifact и прокидывание metadata).
+- Целевые прогоны тестов по измененным областям проходят.
+
+10) Обновление архитектурной документации
+- Обновлен docs/doc-template-service-architecture.md:
+  - зафиксирован статус attempt UPLOADED;
+  - описано хранение/переиспользование metadata артефакта;
+  - зафиксирована таксономия ошибок интеграции с core;
+  - описана двухуровневая стратегия retry и ключи конфигурации.

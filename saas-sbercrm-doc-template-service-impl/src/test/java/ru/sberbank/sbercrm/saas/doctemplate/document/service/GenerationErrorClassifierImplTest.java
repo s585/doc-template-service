@@ -23,6 +23,17 @@ class GenerationErrorClassifierImplTest {
     }
 
     @Test
+    @DisplayName("Classifier считает core client ошибку retriable")
+    void givenCoreClientException_whenClassify_thenRetriable() {
+        var decision = systemUnderTest.classify(
+            new SystemCrmException(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED, CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED)
+        );
+
+        assertThat(decision.errorCode()).isEqualTo(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED);
+        assertThat(decision.retriable()).isTrue();
+    }
+
+    @Test
     @DisplayName("Classifier считает обычную runtime ошибку non-retriable")
     void givenRuntimeException_whenClassify_thenNonRetriable() {
         var decision = systemUnderTest.classify(new IllegalStateException("boom"));

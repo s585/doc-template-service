@@ -10,6 +10,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,5 +49,21 @@ public final class TemplateVariableUtils {
             );
         }
         return occurrences;
+    }
+
+    public static String replacePlaceholders(String sourceText, Map<String, String> values, Pattern placeholderPattern) {
+        Matcher matcher = placeholderPattern.matcher(sourceText == null ? "" : sourceText);
+        StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            String placeholderKey = matcher.group(1);
+            String placeholderValue = values.get(placeholderKey);
+            if (placeholderValue == null) {
+                matcher.appendReplacement(result, Matcher.quoteReplacement(matcher.group(0)));
+                continue;
+            }
+            matcher.appendReplacement(result, Matcher.quoteReplacement(placeholderValue));
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 }

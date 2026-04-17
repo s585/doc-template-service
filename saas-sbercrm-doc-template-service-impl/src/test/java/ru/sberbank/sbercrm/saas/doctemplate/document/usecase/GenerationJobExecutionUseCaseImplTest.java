@@ -5,13 +5,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,9 +24,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTransitionContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
@@ -34,10 +34,13 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobPreAttemptContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryAction;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationRetryDecision;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationErrorClassifier;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobAttemptService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobTransitionService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationRetryPolicy;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.GenerationContextAssembler;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -67,6 +70,12 @@ class GenerationJobExecutionUseCaseImplTest {
 
     @Mock
     private TemplateService templateService;
+
+    @Mock
+    private GenerationJobAttemptService generationJobAttemptService;
+
+    @Mock
+    private GenerationContextAssembler generationContextAssembler;
 
     @Mock
     private FileStorageGateway fileStorageGateway;
@@ -107,6 +116,13 @@ class GenerationJobExecutionUseCaseImplTest {
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
             .willReturn(Files.readAllBytes(sourceFile));
+        given(generationContextAssembler.assemble(job, USER_ID, template))
+            .willReturn(
+                GenerationTemplateContext.builder()
+                    .generatedFileName("result.docx")
+                    .values(java.util.Map.of("deal_number", "123"))
+                    .build()
+            );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
             .willReturn("generated".getBytes());
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
@@ -121,10 +137,126 @@ class GenerationJobExecutionUseCaseImplTest {
         systemUnderTest.execute(job);
 
         verify(generationJobTransitionService).startGenerationAttempt(job, USER_ID);
+        verify(generationContextAssembler).assemble(job, USER_ID, template);
+        verify(generationJobTransitionService).persistUploadedArtifact(
+            eq(buildTransitionContext()),
+            argThat(meta ->
+                "generated/result.docx".equals(meta.s3Key())
+                    && meta.checksum() != null
+                    && meta.sizeBytes() == 9L
+            )
+        );
         verify(generationJobTransitionService).completeGeneration(
             eq(buildTransitionContext()),
             argThat(result -> "generated/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
         );
+        verify(generationJobTransitionService, never()).failGeneration(eq(buildTransitionContext()), any());
+    }
+
+    @Test
+    @DisplayName("Use case использует собранный контекст генерации при вызове процессора")
+    void givenPreparedContext_whenExecute_thenPassContextValuesToProcessor() throws Exception {
+        GenerationJob job = buildJob();
+        Template template = buildTemplate();
+        Path sourceFile = tempDir.resolve("template-direct.docx");
+        Files.writeString(sourceFile, "template-content");
+
+        given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
+        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
+        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
+        given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
+        given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
+        given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
+            .willReturn(Files.readAllBytes(sourceFile));
+        given(generationContextAssembler.assemble(job, USER_ID, template))
+            .willReturn(
+                GenerationTemplateContext.builder()
+                    .generatedFileName("direct.docx")
+                    .values(java.util.Map.of("customer_name", "Direct LLC"))
+                    .build()
+            );
+        given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
+            .willReturn("generated".getBytes());
+        given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
+            .willReturn(
+                FileRs.builder()
+                    .key("generated/direct.docx")
+                    .path(tempDir.resolve("direct.docx").toString())
+                    .fileName("direct.docx")
+                    .build()
+            );
+
+        systemUnderTest.execute(job);
+
+        verify(generationJobTransitionService).persistUploadedArtifact(
+            eq(buildTransitionContext()),
+            argThat(meta ->
+                "generated/direct.docx".equals(meta.s3Key())
+                    && meta.checksum() != null
+                    && meta.sizeBytes() == 9L
+            )
+        );
+        verify(templateProcessingFacade).generate(
+            eq(TemplateFormat.DOCX),
+            any(),
+            argThat(values -> "Direct LLC".equals(values.get("customer_name")))
+        );
+    }
+
+    @Test
+    @DisplayName("Ошибка фиксации upload metadata не прерывает успешное завершение job")
+    void givenArtifactPersistFailure_whenExecute_thenStillCompleteGeneration() throws Exception {
+        GenerationJob job = buildJob();
+        Template template = buildTemplate();
+        Path sourceFile = tempDir.resolve("template-artifact-persist.docx");
+        Files.writeString(sourceFile, "template-content");
+
+        given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
+        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
+        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
+        given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
+        given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
+        given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
+            .willReturn(Files.readAllBytes(sourceFile));
+        given(generationContextAssembler.assemble(job, USER_ID, template))
+            .willReturn(
+                GenerationTemplateContext.builder()
+                    .generatedFileName("result.docx")
+                    .values(java.util.Map.of("deal_number", "123"))
+                    .build()
+            );
+        given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
+            .willReturn("generated".getBytes());
+        given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
+            .willReturn(
+                FileRs.builder()
+                    .key("generated/result.docx")
+                    .path(tempDir.resolve("result.docx").toString())
+                    .fileName("result.docx")
+                    .build()
+            );
+        willThrow(new RuntimeException("persist failed"))
+            .given(generationJobTransitionService)
+            .persistUploadedArtifact(
+                eq(buildTransitionContext()),
+                argThat(meta -> "generated/result.docx".equals(meta.s3Key()))
+            );
+
+        systemUnderTest.execute(job);
+
+        verify(generationJobTransitionService).persistUploadedArtifact(
+            eq(buildTransitionContext()),
+            argThat(meta ->
+                "generated/result.docx".equals(meta.s3Key())
+                    && meta.checksum() != null
+                    && meta.sizeBytes() == 9L
+            )
+        );
+        verify(generationJobTransitionService).completeGeneration(
+            eq(buildTransitionContext()),
+            argThat(result -> "generated/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
+        );
+        verify(generationJobTransitionService, never()).retryGeneration(eq(buildTransitionContext()), any());
         verify(generationJobTransitionService, never()).failGeneration(eq(buildTransitionContext()), any());
     }
 
@@ -134,49 +266,66 @@ class GenerationJobExecutionUseCaseImplTest {
         GenerationJob job = buildJob().toBuilder().attemptCount(1).build();
         GenerationJobAttempt attempt = buildAttempt(2);
         Template template = buildTemplate();
-        FileRs existingArtifact = FileRs.builder()
-            .key("generated/existing.docx")
-            .path("/doc-template/generated")
-            .fileName("result.docx")
-            .size(8L)
-            .updatedDate(OffsetDateTime.parse("2026-04-13T10:15:30+03:00"))
+        GenerationArtifactMeta existingArtifact = GenerationArtifactMeta.builder()
+            .s3Key("generated/existing.docx")
+            .checksum("precalculated-checksum")
+            .sizeBytes(8L)
             .build();
-        byte[] templateContent = "template".getBytes();
-        byte[] existingContent = "existing".getBytes();
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
-        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
-        given(fileStorageProperties.getSource()).willReturn("doc-template-service");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(attempt);
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
-        given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx")).willReturn(templateContent);
-        given(fileStorageGateway.findAllByFilter(eq(TENANT_ID), eq(USER_ID), any(FileFilterRq.class)))
-            .willReturn(List.of(existingArtifact));
-        given(fileStorageGateway.download(TENANT_ID, USER_ID, "generated/existing.docx")).willReturn(existingContent);
+        given(generationJobAttemptService.findLatestArtifactBeforeAttempt(JOB_ID, 2))
+            .willReturn(Optional.of(existingArtifact));
 
         systemUnderTest.execute(job);
 
-        verify(fileStorageGateway).findAllByFilter(
-            eq(TENANT_ID),
-            eq(USER_ID),
-            argThat(filter ->
-                ("/doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/" + DOCUMENT_ID)
-                    .equals(filter.getPrefixKey())
-                    && "result.docx".equals(filter.getOriginalFileName())
-                    && "doc-template-service".equals(filter.getSource())
-            )
-        );
+        verify(generationJobAttemptService).findLatestArtifactBeforeAttempt(JOB_ID, 2);
+        verify(generationJobTransitionService, never()).persistUploadedArtifact(any(), any());
+        verify(generationContextAssembler, never()).assemble(any(), any(), any());
+        verify(fileStorageGateway, never()).download(TENANT_ID, USER_ID, "generated/existing.docx");
+        verify(fileStorageGateway, never()).download(TENANT_ID, USER_ID, "templates/template.docx");
         verify(templateProcessingFacade, never()).generate(any(), any(), any());
         verify(fileStorageGateway, never()).upload(eq(TENANT_ID), eq(USER_ID), any(), any(), any());
         verify(generationJobTransitionService).completeGeneration(
             eq(buildTransitionContext(2)),
             argThat(result ->
                 "generated/existing.docx".equals(result.s3Key())
-                    && existingContent.length == result.sizeBytes()
-                    && result.checksum() != null
+                    && 8L == result.sizeBytes()
+                    && "precalculated-checksum".equals(result.checksum())
             )
         );
+    }
+
+    @Test
+    @DisplayName("Повторная попытка без checksum/size в metadata завершается ошибкой")
+    void givenRetryAttemptWithArtifactWithoutMeta_whenExecute_thenFailGeneration() {
+        GenerationJob job = buildJob().toBuilder().attemptCount(1).build();
+        GenerationJobAttempt attempt = buildAttempt(2);
+        Template template = buildTemplate();
+        GenerationArtifactMeta existingArtifact = GenerationArtifactMeta.builder()
+            .s3Key("generated/existing.docx")
+            .build();
+        GenerationRetryDecision failDecision = new GenerationRetryDecision(
+            GenerationRetryAction.FAIL_FINAL,
+            CrmErrorCodes.SYSTEM_UNEXPECTED,
+            "Missing artifact metadata for retry reuse",
+            null
+        );
+
+        given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
+        given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(attempt);
+        given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
+        given(generationJobAttemptService.findLatestArtifactBeforeAttempt(JOB_ID, 2))
+            .willReturn(Optional.of(existingArtifact));
+        given(generationErrorClassifier.classify(any()))
+            .willReturn(new GenerationErrorDecision(CrmErrorCodes.SYSTEM_UNEXPECTED, "Missing artifact metadata for retry reuse", false));
+        given(generationRetryPolicy.decide(eq(2), any())).willReturn(failDecision);
+
+        systemUnderTest.execute(job);
+
+        verify(generationJobTransitionService).failGeneration(buildTransitionContext(2), failDecision);
+        verify(generationJobTransitionService, never()).completeGeneration(eq(buildTransitionContext(2)), any());
     }
 
     @Test

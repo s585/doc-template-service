@@ -17,7 +17,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 
-@TestPropertySource(properties = "saas.doc-template.generation.enabled=false")
+@TestPropertySource(properties = "saas.doc-template.generation.scheduler-enabled=false")
 class JooqGenerationJobRepositoryIntegrationTest extends AbstractIntegrationTest {
     private static final UUID TEMPLATE_ID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static final UUID REQUEST_ID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");

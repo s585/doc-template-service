@@ -18,6 +18,8 @@ public final class DocumentConstants {
         public static final String GENERATION_JOB_TRANSITION_INVALID = "generation.job_transition_invalid";
         public static final String GENERATION_JOB_TIMEOUT = "generation.job_timeout";
         public static final String GENERATION_MAPPING_SOURCE_UNSUPPORTED = "generation.mapping_source_unsupported";
+        public static final String GENERATION_BUSINESS_OBJECT_NOT_FOUND = "generation.business_object_not_found";
+        public static final String GENERATION_BUSINESS_OBJECT_PATH_INVALID = "generation.business_object_path_invalid";
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

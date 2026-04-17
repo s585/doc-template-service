@@ -132,7 +132,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         if (sourceText == null || sourceText.isBlank()) {
             return;
         }
-        String replacedText = applyValues(sourceText, values);
+        String replacedText = TemplateVariableUtils.replacePlaceholders(sourceText, values, getPlaceholderPattern());
         if (sourceText.equals(replacedText)) {
             return;
         }
@@ -140,13 +140,5 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             paragraph.removeRun(i);
         }
         paragraph.createRun().setText(replacedText);
-    }
-
-    private String applyValues(String sourceText, Map<String, String> values) {
-        String result = sourceText;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("${" + entry.getKey() + "}", entry.getValue());
-        }
-        return result;
     }
 }

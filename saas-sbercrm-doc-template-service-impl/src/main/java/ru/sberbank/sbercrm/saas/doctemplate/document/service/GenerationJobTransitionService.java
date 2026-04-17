@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
 import java.util.UUID;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
@@ -50,6 +51,14 @@ public interface GenerationJobTransitionService {
      * перетереть более новое состояние job.
      */
     void retryGeneration(GenerationTransitionContext context, GenerationRetryDecision retryDecision);
+
+    /**
+     * Фиксирует факт загрузки артефакта в хранилище до финального COMPLETE перехода.
+     *
+     * <p>Вызывается в отдельной транзакции, чтобы ключ можно было переиспользовать при retry,
+     * даже если финальный COMPLETE не закоммитился.
+     */
+    void persistUploadedArtifact(GenerationTransitionContext context, GenerationArtifactMeta artifactMeta);
 
     /**
      * Фиксирует успешное завершение generation job и связанного generated file.

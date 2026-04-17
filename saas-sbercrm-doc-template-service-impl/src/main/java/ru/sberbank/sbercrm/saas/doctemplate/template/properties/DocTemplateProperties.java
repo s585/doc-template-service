@@ -34,7 +34,7 @@ public class DocTemplateProperties {
 
     @Data
     public static class Generation {
-        private boolean enabled = true;
+        private boolean schedulerEnabled = true;
         private long dispatchFixedDelayMs = 250;
         private int workerPoolSize = 4;
         private int maxAttempts = 4;

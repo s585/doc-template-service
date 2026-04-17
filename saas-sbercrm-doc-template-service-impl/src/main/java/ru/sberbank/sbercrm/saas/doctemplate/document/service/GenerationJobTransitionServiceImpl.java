@@ -9,6 +9,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.domain.GenerationJobStateMachine;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
@@ -174,6 +175,17 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
     }
 
     @Override
+    public void persistUploadedArtifact(GenerationTransitionContext context, GenerationArtifactMeta artifactMeta) {
+        recoveryTransactionTemplate.executeWithoutResult(
+            status -> generationJobAttemptService.markArtifactUploaded(
+                context.userId(),
+                context.attemptId(),
+                artifactMeta
+            )
+        );
+    }
+
+    @Override
     @Transactional
     public void completeGeneration(GenerationTransitionContext context, GeneratedFileResult generatedFileResult) {
         GenerationJob job = getRequiredJob(context.tenantId(), context.jobId());
@@ -201,7 +213,15 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
                 generatedFileResult.checksum(),
                 generatedFileResult.sizeBytes()
         );
-        generationJobAttemptService.markCompleted(context.userId(), context.attemptId());
+        generationJobAttemptService.markCompleted(
+            context.userId(),
+            context.attemptId(),
+            GenerationArtifactMeta.builder()
+                .s3Key(generatedFileResult.s3Key())
+                .checksum(generatedFileResult.checksum())
+                .sizeBytes(generatedFileResult.sizeBytes())
+                .build()
+        );
     }
 
     @Override

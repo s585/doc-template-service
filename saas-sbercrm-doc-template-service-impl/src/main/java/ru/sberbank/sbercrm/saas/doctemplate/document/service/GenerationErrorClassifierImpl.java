@@ -11,6 +11,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecisi
 public class GenerationErrorClassifierImpl implements GenerationErrorClassifier {
     private static final Set<String> RETRIABLE_ERROR_CODES = Set.of(
         CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+        CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED,
         DocumentConstants.ErrorCodes.GENERATION_JOB_TIMEOUT
     );
 

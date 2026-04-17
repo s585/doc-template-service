@@ -1,9 +1,11 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
 import ru.sberbank.sbercrm.saas.doctemplate.document.repository.GenerationJobAttemptRepository;
 
@@ -23,8 +25,13 @@ public class GenerationJobAttemptServiceImpl implements GenerationJobAttemptServ
     }
 
     @Override
-    public void markCompleted(UUID userId, UUID attemptId) {
-        generationJobAttemptRepository.markCompleted(userId, attemptId);
+    public void markArtifactUploaded(UUID userId, UUID attemptId, GenerationArtifactMeta artifactMeta) {
+        generationJobAttemptRepository.markArtifactUploaded(userId, attemptId, artifactMeta);
+    }
+
+    @Override
+    public void markCompleted(UUID userId, UUID attemptId, GenerationArtifactMeta artifactMeta) {
+        generationJobAttemptRepository.markCompleted(userId, attemptId, artifactMeta);
     }
 
     @Override
@@ -35,5 +42,10 @@ public class GenerationJobAttemptServiceImpl implements GenerationJobAttemptServ
     @Override
     public void markTimedOutActiveAttempt(UUID userId, UUID jobId) {
         generationJobAttemptRepository.markTimedOutActiveAttempt(userId, jobId);
+    }
+
+    @Override
+    public Optional<GenerationArtifactMeta> findLatestArtifactBeforeAttempt(UUID jobId, int attemptNo) {
+        return generationJobAttemptRepository.findLatestArtifactBeforeAttempt(jobId, attemptNo);
     }
 }

@@ -118,9 +118,20 @@
 На текущий момент `generation_job_attempt` уже встроен в runtime flow:
 
 - при старте обработки job создаётся attempt со статусом `PROCESSING`;
-- при успешном завершении attempt переводится в `DONE`;
+- после успешной загрузки артефакта в file-storage attempt может быть переведена в `UPLOADED`
+  в отдельной транзакции;
+- при успешном завершении flow attempt переводится в `DONE`;
 - при неуспешном завершении attempt переводится в `ERROR`;
 - при timeout recovery активная attempt переводится в `TIMEOUT`.
+
+Поля артефакта в `generation_job_attempt`:
+
+- `artifact_s3_key`
+- `artifact_checksum`
+- `artifact_size_bytes`
+
+Они используются для re-use артефакта на retry-попытках без повторной генерации.
+Для retry reuse наличие checksum/size считается обязательным.
 
 ## Ключевые архитектурные соглашения
 
@@ -232,6 +243,45 @@ Stub поддерживает:
 - `download` c возвратом `byte[]`;
 - `delete`.
 
+## Business object integration
+
+Сервис использует единый gateway над business-object сервисом:
+
+- `BusinessObjectGateway` (production runtime);
+- вызов выполняется через `Feign`-клиент;
+- для интеграционных тестов используется `WireMock` (а не файловый stub).
+
+Классификация ошибок интеграции с core:
+
+- `404` -> `generation.business_object_not_found` (non-retriable);
+- транспортные и временные ошибки core (`RetryableException`, HTTP `5xx`, `429`, `408`)
+  -> `core_client.request_failed` (retriable для generation job);
+- прочие ошибки core -> `system.unexpected`.
+
+Для `core-client` включён client-specific inline retry (`Feign Retryer`) с настройками
+из приложения:
+
+- `saas.doc-template.integration.core-client.retry.period-ms`
+- `saas.doc-template.integration.core-client.retry.max-period-ms`
+- `saas.doc-template.integration.core-client.retry.max-attempts`
+
+По умолчанию: `100ms / 500ms / 3 attempts`.
+
+Итоговый retry-механизм двухуровневый:
+
+- сначала короткие inline повторы на уровне Feign клиента core;
+- если не помогло, применяется job-level retry policy generation.
+
+Контракт `DIRECT`-source path:
+
+- root всегда `source`;
+- поддерживается только `source.<dot-path>` (как минимум один field-сегмент после `source.`);
+- `$`/`$.` не являются валидным root.
+
+Если business-object не найден, используется business error:
+
+- `generation.business_object_not_found`.
+
 ## Внешний API документов
 
 Поддерживаются операции:
@@ -258,7 +308,7 @@ Stub поддерживает:
 Scheduler работает часто и не выполняет job сам.
 
 Сам bean `GenerationJobScheduler` создаётся только при
-`saas.doc-template.generation.enabled=true`.
+`saas.doc-template.generation.scheduler-enabled=true`.
 
 Он вызывает dispatch use case, который:
 
@@ -293,6 +343,15 @@ Scheduler работает часто и не выполняет job сам.
 5. при `RETRY_NOW/RETRY_LATER` возвращает job в `QUEUED` с `next_retry_at`;
 6. при `FAIL_FINAL` завершает job в `ERROR`;
 7. при успехе завершает `generated_file + generation_job + generation_job_attempt` через транзакционный transition service.
+
+Подготовка generation context вынесена в отдельный компонент
+`GenerationContextAssembler` и выполняется в явном пайплайне:
+
+- resolve `source`;
+- evaluate `expression`;
+- привести к `String` для шаблонного процессора.
+
+На текущем этапе expression-обработка подключена как skeleton (no-op evaluator).
 
 ## State machine generation job
 
@@ -339,6 +398,17 @@ Scheduler работает часто и не выполняет job сам.
 - планирование retry;
 - возврат просроченной job обратно в очередь;
 - синхронное обновление `generation_job_attempt` в том же transition boundary.
+
+## Подстановка значений в шаблон
+
+`DOCX` и `XLSX` процессоры используют однофазную подстановку по найденным
+placeholder-ам шаблона, а не последовательный `replace(...)` по `Map`.
+
+Следствия:
+
+- результат не зависит от порядка обхода `values`;
+- вложенные/каскадные подстановки не поддерживаются и не являются контрактом;
+- отсутствие значения оставляет исходный placeholder без изменений.
 
 Внутренний контракт transition-слоя должен передаваться не россыпью аргументов, а через
 явные parameter object:

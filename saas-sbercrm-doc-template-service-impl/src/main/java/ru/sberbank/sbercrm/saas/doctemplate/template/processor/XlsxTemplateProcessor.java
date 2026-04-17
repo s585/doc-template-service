@@ -66,7 +66,13 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
                 for (Row row : sheet) {
                     for (Cell cell : row) {
                         if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.STRING) {
-                            cell.setCellValue(applyValues(cell.getStringCellValue(), values));
+                            cell.setCellValue(
+                                TemplateVariableUtils.replacePlaceholders(
+                                    cell.getStringCellValue(),
+                                    values,
+                                    getPlaceholderPattern()
+                                )
+                            );
                         }
                     }
                 }
@@ -87,13 +93,5 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
         return TemplateVariableUtils.compilePlaceholderPattern(
             docTemplateProperties.getTemplate().getVariable().getPlaceholderRegex()
         );
-    }
-
-    private String applyValues(String sourceText, Map<String, String> values) {
-        String result = sourceText;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("${" + entry.getKey() + "}", entry.getValue());
-        }
-        return result;
     }
 }

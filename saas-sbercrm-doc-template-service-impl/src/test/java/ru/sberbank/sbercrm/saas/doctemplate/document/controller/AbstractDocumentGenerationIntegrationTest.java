@@ -4,20 +4,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentCreationRq;
 import ru.sberbank.sbercrm.saas.doctemplate.document.dto.DocumentRs;
+import ru.sberbank.sbercrm.saas.doctemplate.document.support.DocxTestUtils;
+import ru.sberbank.sbercrm.saas.doctemplate.document.support.StubStorageTestUtils;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
@@ -26,6 +23,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegrationTest {
@@ -43,6 +41,45 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
         String generatedFileName,
         String customerName
     ) {
+        return createDocxTemplateWithMappings(
+            templateKey,
+            templateName,
+            templateCode,
+            templateDescription,
+            List.of(
+                buildGeneratedFileNameMapping(generatedFileName),
+                buildConstantValueMapping("customer_name", customerName)
+            )
+        );
+    }
+
+    protected Template createDocxTemplateWithDirectCustomerName(
+        String templateKey,
+        String templateName,
+        String templateCode,
+        String templateDescription,
+        String generatedFileName,
+        String customerNamePath
+    ) {
+        return createDocxTemplateWithMappings(
+            templateKey,
+            templateName,
+            templateCode,
+            templateDescription,
+            List.of(
+                buildGeneratedFileNameMapping(generatedFileName),
+                buildDirectValueMapping("customer_name", customerNamePath)
+            )
+        );
+    }
+
+    protected Template createDocxTemplateWithMappings(
+        String templateKey,
+        String templateName,
+        String templateCode,
+        String templateDescription,
+        List<TemplateMapping> mappings
+    ) {
         return templateMother.createTemplateWithMappings(
             TENANT_ID,
             USER_ID,
@@ -53,10 +90,7 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
             TemplateFormat.DOCX,
             templateKey,
             true,
-            List.of(
-                buildFileNameMapping(generatedFileName),
-                buildCustomerNameMapping(customerName)
-            )
+            mappings
         );
     }
 
@@ -99,59 +133,54 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
     }
 
     protected void writeTemplateToStubStorage(String key, byte[] content) throws Exception {
-        Path filePath = Path.of(docTemplateProperties.getFileStorage().getStubRootPath()).resolve(key);
-        Files.createDirectories(filePath.getParent());
-        Files.write(filePath, content);
+        StubStorageTestUtils.writeToStubStorage(docTemplateProperties, key, content);
     }
 
     protected void deleteTemplateFromStubStorage(String key) throws Exception {
-        Path filePath = Path.of(docTemplateProperties.getFileStorage().getStubRootPath()).resolve(key);
-        Files.deleteIfExists(filePath);
+        StubStorageTestUtils.deleteFromStubStorage(docTemplateProperties, key);
     }
 
     protected byte[] createDocx(String text) throws Exception {
-        try (
-            XWPFDocument document = new XWPFDocument();
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        ) {
-            document.createParagraph().createRun().setText(text);
-            document.write(outputStream);
-            return outputStream.toByteArray();
-        }
+        return DocxTestUtils.createDocx(text);
     }
 
     protected String readDocxText(byte[] content) throws Exception {
-        try (
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
-            XWPFDocument document = new XWPFDocument(inputStream)
-        ) {
-            return document.getParagraphs().stream()
-                .map(paragraph -> paragraph.getText() == null ? "" : paragraph.getText())
-                .reduce("", String::concat);
-        }
+        return DocxTestUtils.readDocxText(content);
     }
 
-    private TemplateMapping buildFileNameMapping(String generatedFileName) {
+    protected TemplateMapping buildGeneratedFileNameMapping(String generatedFileName) {
+        return buildConstantMapping(
+            TemplateConstants.MappingKeys.GENERATED_FILE_NAME,
+            MappingScope.FILE_NAME,
+            generatedFileName
+        );
+    }
+
+    protected TemplateMapping buildConstantValueMapping(String key, String value) {
+        return buildConstantMapping(key, MappingScope.VALUE, value);
+    }
+
+    protected TemplateMapping buildDirectValueMapping(String key, String path) {
         return TemplateMapping.builder()
-            .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
+            .key(key)
             .definition(
                 TemplateMappingDefinition.builder()
-                    .scope(MappingScope.FILE_NAME)
+                    .scope(MappingScope.VALUE)
                     .type(TemplateValueType.STRING)
-                    .source(ConstantValueSource.builder().value(generatedFileName).build())
+                    .source(DirectValueSource.builder().path(path).build())
                     .build()
             )
             .build();
     }
 
-    private TemplateMapping buildCustomerNameMapping(String customerName) {
+    private TemplateMapping buildConstantMapping(String key, MappingScope scope, String value) {
         return TemplateMapping.builder()
-            .key("customer_name")
+            .key(key)
             .definition(
                 TemplateMappingDefinition.builder()
-                    .scope(MappingScope.VALUE)
+                    .scope(scope)
                     .type(TemplateValueType.STRING)
-                    .source(ConstantValueSource.builder().value(customerName).build())
+                    .source(ConstantValueSource.builder().value(value).build())
                     .build()
             )
             .build();
