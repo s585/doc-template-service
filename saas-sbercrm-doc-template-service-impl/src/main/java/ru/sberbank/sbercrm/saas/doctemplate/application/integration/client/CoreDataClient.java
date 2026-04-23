@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.client;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -13,11 +14,11 @@ public interface CoreDataClient {
     String TENANT_ID_HEADER = "X-Tenant-Id";
     String USER_ID_HEADER = "X-User-Id";
 
-    @GetMapping("/internal/v1/business-object")
+    @GetMapping("/internal/data/{entityId}/{objectId}")
     Map<String, Object> getObject(
         @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
         @RequestHeader(USER_ID_HEADER) UUID userId,
-        @RequestParam("entityId") UUID entityId,
-        @RequestParam("objectId") UUID objectId
-    );
+        @RequestParam("objectId") UUID objectId,
+        @RequestParam("entityId") UUID entityId
+    ) throws IOException;
 }

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import feign.FeignException;
 import feign.RetryableException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.net.SocketTimeoutException;
@@ -40,23 +41,23 @@ class BusinessObjectGatewayTest {
 
     @Test
     @DisplayName("Gateway проксирует успешное получение объекта в feign client")
-    void givenObjectExists_whenGetObject_thenReturnBody() {
+    void givenObjectExists_whenGetObject_thenReturnBody() throws Exception {
         Map<String, Object> expected = Map.of("customer", Map.of("name", "BO LLC"));
-        given(coreDataClient.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
+        given(coreDataClient.getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID))
             .willReturn(expected);
 
         Map<String, Object> actual = systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
 
         assertThat(actual).isEqualTo(expected);
-        verify(coreDataClient).getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+        verify(coreDataClient).getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
     }
 
     @Test
     @DisplayName("Gateway маппит 404 от bo service в business not found ошибку")
-    void given404FromClient_whenGetObject_thenThrowNotFoundCrmException() {
+    void given404FromClient_whenGetObject_thenThrowNotFoundCrmException() throws Exception {
         willThrow(feignError(404, "Not Found"))
             .given(coreDataClient)
-            .getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+            .getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
 
         assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
             .isInstanceOf(NotFoundCrmException.class)
@@ -65,10 +66,10 @@ class BusinessObjectGatewayTest {
 
     @Test
     @DisplayName("Gateway маппит 5xx от core service в retriable core_client.request_failed")
-    void given5xxFromClient_whenGetObject_thenThrowRetriableCoreClientException() {
+    void given5xxFromClient_whenGetObject_thenThrowRetriableCoreClientException() throws Exception {
         willThrow(feignError(500, "Internal Error"))
             .given(coreDataClient)
-            .getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+            .getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
 
         assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
             .isInstanceOf(SystemCrmException.class)
@@ -77,10 +78,22 @@ class BusinessObjectGatewayTest {
 
     @Test
     @DisplayName("Gateway маппит retryable transport ошибку в retriable core_client.request_failed")
-    void givenRetryableException_whenGetObject_thenThrowRetriableCoreClientException() {
+    void givenRetryableException_whenGetObject_thenThrowRetriableCoreClientException() throws Exception {
         willThrow(retryableError("timeout"))
             .given(coreDataClient)
-            .getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+            .getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
+
+        assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
+            .isInstanceOf(SystemCrmException.class)
+            .hasMessage(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED);
+    }
+
+    @Test
+    @DisplayName("Gateway маппит IOException от core client в retriable core_client.request_failed")
+    void givenIoException_whenGetObject_thenThrowRetriableCoreClientException() throws Exception {
+        willThrow(new IOException("connection reset"))
+            .given(coreDataClient)
+            .getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
 
         assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
             .isInstanceOf(SystemCrmException.class)
@@ -89,10 +102,10 @@ class BusinessObjectGatewayTest {
 
     @Test
     @DisplayName("Gateway маппит 4xx от core service (кроме 404) в system unexpected")
-    void given4xxFromClient_whenGetObject_thenThrowSystemCrmException() {
+    void given4xxFromClient_whenGetObject_thenThrowSystemCrmException() throws Exception {
         willThrow(feignError(400, "Bad Request"))
             .given(coreDataClient)
-            .getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+            .getObject(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID);
 
         assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
             .isInstanceOf(SystemCrmException.class)
@@ -108,7 +121,7 @@ class BusinessObjectGatewayTest {
                 .request(
                     feign.Request.create(
                         feign.Request.HttpMethod.GET,
-                        "http://localhost/internal/v1/business-object",
+                        "http://localhost/internal/data/" + ENTITY_ID + "/" + OBJECT_ID,
                         Map.of(),
                         new byte[0],
                         StandardCharsets.UTF_8,
@@ -129,7 +142,7 @@ class BusinessObjectGatewayTest {
             new Date().getTime(),
             feign.Request.create(
                 feign.Request.HttpMethod.GET,
-                "http://localhost/internal/v1/business-object",
+                "http://localhost/internal/data/" + ENTITY_ID + "/" + OBJECT_ID,
                 Map.of(),
                 new byte[0],
                 StandardCharsets.UTF_8,

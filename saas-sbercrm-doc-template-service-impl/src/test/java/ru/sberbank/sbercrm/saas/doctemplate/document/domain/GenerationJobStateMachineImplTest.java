@@ -14,6 +14,13 @@ class GenerationJobStateMachineImplTest {
     private final GenerationJobStateMachineImpl systemUnderTest = new GenerationJobStateMachineImpl();
 
     @Test
+    @DisplayName("State machine разрешает переход QUEUED -> PROCESSING по событию CLAIM")
+    void givenQueuedStatus_whenClaim_thenReturnProcessing() {
+        assertThat(systemUnderTest.transit(GenerationJobStatus.QUEUED, GenerationJobEvent.CLAIM))
+            .isEqualTo(GenerationJobStatus.PROCESSING);
+    }
+
+    @Test
     @DisplayName("State machine разрешает переход PROCESSING -> DONE по событию COMPLETE")
     void givenProcessingStatus_whenComplete_thenReturnDone() {
         assertThat(systemUnderTest.transit(GenerationJobStatus.PROCESSING, GenerationJobEvent.COMPLETE))
@@ -44,9 +51,18 @@ class GenerationJobStateMachineImplTest {
     }
 
     @Test
-    @DisplayName("State machine запрещает null-аргументы")
-    void givenNullArgument_whenTransit_thenThrowCrmException() {
+    @DisplayName("State machine запрещает null-статус")
+    void givenNullStatus_whenTransit_thenThrowCrmException() {
         assertThatThrownBy(() -> systemUnderTest.transit(null, GenerationJobEvent.COMPLETE))
+            .isInstanceOf(SystemCrmException.class)
+            .extracting("code")
+            .isEqualTo(DocumentConstants.ErrorCodes.GENERATION_JOB_TRANSITION_INVALID);
+    }
+
+    @Test
+    @DisplayName("State machine запрещает null-событие")
+    void givenNullEvent_whenTransit_thenThrowCrmException() {
+        assertThatThrownBy(() -> systemUnderTest.transit(GenerationJobStatus.PROCESSING, null))
             .isInstanceOf(SystemCrmException.class)
             .extracting("code")
             .isEqualTo(DocumentConstants.ErrorCodes.GENERATION_JOB_TRANSITION_INVALID);

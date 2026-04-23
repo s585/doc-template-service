@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,14 +20,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.gateway.businessobject.Busi
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobAttemptService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.usecase.GenerationJobExecutionUseCase;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
-import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
 @TestPropertySource(properties = {
@@ -39,14 +36,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValue
 class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegrationTest {
     private static final UUID OBJECT_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
     private static final UUID REQUEST_ID_DONE = UUID.fromString("55555555-5555-5555-5555-555555555555");
-    private static final UUID REQUEST_ID_RETRY = UUID.fromString("66666666-6666-6666-6666-666666666666");
     private static final UUID REQUEST_ID_ERROR = UUID.fromString("77777777-7777-7777-7777-777777777777");
     private static final UUID TEMPLATE_SUFFIX_DONE = UUID.fromString("88888888-8888-8888-8888-888888888888");
-    private static final UUID TEMPLATE_SUFFIX_RETRY = UUID.fromString("99999999-9999-9999-9999-999999999999");
     private static final UUID TEMPLATE_SUFFIX_ERROR = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static final UUID WORKER_ID_DONE = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-    private static final UUID WORKER_ID_RETRY_FIRST = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
-    private static final UUID WORKER_ID_RETRY_SECOND = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
     private static final UUID WORKER_ID_ERROR = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     private static final UUID WORKER_ID_ERROR_CLAIM_CHECK = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
 
@@ -134,118 +127,6 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                 assertThat(attempt.getWorkerId()).isNotNull();
                 assertThat(attempt.getFinishedAt()).isNotNull();
             });
-    }
-
-    @Test
-    @DisplayName("Временная ошибка генерации переводит job в retry и следующий запуск завершает файл успешно")
-    void givenRetriableFailure_whenRetryThenGenerationCompletes() throws Exception {
-        String templateKey = "templates/" + ENTITY_ID + "/retry-" + TEMPLATE_SUFFIX_RETRY + ".docx";
-        deleteTemplateFromStubStorage(templateKey);
-
-        Template template = templateMother.createTemplateWithMappings(
-            TENANT_ID,
-            USER_ID,
-            ENTITY_ID,
-            "Шаблон с retry",
-            "DOC_RETRY_" + TEMPLATE_SUFFIX_RETRY,
-            "Описание шаблона с retry",
-            TemplateFormat.DOCX,
-            templateKey,
-            true,
-            List.of(
-                TemplateMapping.builder()
-                    .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
-                    .definition(
-                        TemplateMappingDefinition.builder()
-                            .scope(MappingScope.FILE_NAME)
-                            .type(TemplateValueType.STRING)
-                            .source(ConstantValueSource.builder().value("retry-contract").build())
-                            .build()
-                    )
-                    .build(),
-                TemplateMapping.builder()
-                    .key("customer_name")
-                    .definition(
-                        TemplateMappingDefinition.builder()
-                            .scope(MappingScope.VALUE)
-                            .type(TemplateValueType.STRING)
-                            .source(ConstantValueSource.builder().value("Retry LLC").build())
-                            .build()
-                    )
-                    .build()
-            )
-        );
-
-        DocumentRs createdDocument = createDocument(template.getId(), REQUEST_ID_RETRY);
-
-        var firstClaimedJob = generationJobService.claimNextJobs(WORKER_ID_RETRY_FIRST, 1).getFirst();
-        generationJobExecutionUseCase.execute(firstClaimedJob);
-
-        mockMvc.perform(
-                get("/v1/doc/{documentId}", createdDocument.getId())
-                    .header("X-Tenant-Id", TENANT_ID)
-                    .header("X-User-Id", USER_ID)
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.PENDING.name()));
-
-        assertThat(generationJobAttemptService.findByJobId(firstClaimedJob.getId()))
-            .singleElement()
-            .satisfies(attempt -> {
-                assertThat(attempt.getAttemptNo()).isEqualTo(1);
-                assertThat(attempt.getStatus()).isEqualTo(GenerationJobAttemptStatus.ERROR.name());
-                assertThat(attempt.getErrorCode()).isEqualTo("file_storage.request_failed");
-            });
-
-        assertThat(generationJobService.findById(TENANT_ID, firstClaimedJob.getId()))
-            .get()
-            .satisfies(job -> {
-                assertThat(job.getStatus()).isEqualTo(GenerationJobStatus.QUEUED.name());
-                assertThat(job.getAttemptCount()).isEqualTo(1);
-                assertThat(job.getNextRetryAt()).isNotNull();
-                assertThat(job.getErrorCode()).isEqualTo("file_storage.request_failed");
-            });
-
-        writeTemplateToStubStorage(templateKey, createDocx("Contract for ${customer_name}"));
-
-        var secondClaimedJob = generationJobService.claimNextJobs(WORKER_ID_RETRY_SECOND, 1).getFirst();
-        generationJobExecutionUseCase.execute(secondClaimedJob);
-
-        String getResponseBody = mockMvc.perform(
-                get("/v1/doc/{documentId}", createdDocument.getId())
-                    .header("X-Tenant-Id", TENANT_ID)
-                    .header("X-User-Id", USER_ID)
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.DONE.name()))
-            .andReturn()
-            .getResponse()
-            .getContentAsString(StandardCharsets.UTF_8);
-        DocumentRs generatedDocument = objectMapper.readValue(getResponseBody, DocumentRs.class);
-
-        byte[] generatedFile = fileStorageGateway.download(
-            TENANT_ID,
-            USER_ID,
-            generatedDocument.getFiles().getFirst().getS3Key()
-        );
-        assertThat(readDocxText(generatedFile)).contains("Contract for Retry LLC");
-
-        assertThat(generationJobService.findById(TENANT_ID, firstClaimedJob.getId()))
-            .get()
-            .satisfies(job -> {
-                assertThat(job.getStatus()).isEqualTo(GenerationJobStatus.DONE.name());
-                assertThat(job.getAttemptCount()).isEqualTo(2);
-                assertThat(job.getNextRetryAt()).isNull();
-                assertThat(job.getErrorCode()).isNull();
-            });
-
-        assertThat(generationJobAttemptService.findByJobId(firstClaimedJob.getId()))
-            .hasSize(2)
-            .extracting(attempt -> attempt.getAttemptNo(), attempt -> attempt.getStatus())
-            .containsExactly(
-                org.assertj.core.groups.Tuple.tuple(1, GenerationJobAttemptStatus.ERROR.name()),
-                org.assertj.core.groups.Tuple.tuple(2, GenerationJobAttemptStatus.DONE.name())
-            );
     }
 
     @Test

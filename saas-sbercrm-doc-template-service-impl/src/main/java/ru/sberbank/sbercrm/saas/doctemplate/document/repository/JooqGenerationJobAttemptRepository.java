@@ -7,9 +7,9 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
-import org.jooq.Record3;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
+import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GenerationArtifactMetaRecordConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GenerationJobAttemptRecordConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobAttempt;
@@ -22,6 +22,7 @@ import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGenerationJobAtt
 public class JooqGenerationJobAttemptRepository implements GenerationJobAttemptRepository {
     private final DSLContext dslContext;
     private final Clock clock;
+    private final GenerationArtifactMetaRecordConverter generationArtifactMetaRecordConverter;
     private final GenerationJobAttemptRecordConverter generationJobAttemptRecordConverter;
 
     @Override
@@ -128,7 +129,7 @@ public class JooqGenerationJobAttemptRepository implements GenerationJobAttemptR
         if (attemptNo <= 1) {
             return Optional.empty();
         }
-        Record3<String, String, Long> artifact = dslContext.select(
+        GenerationArtifactMeta artifact = dslContext.select(
                 T_GENERATION_JOB_ATTEMPT.ARTIFACT_S3_KEY,
                 T_GENERATION_JOB_ATTEMPT.ARTIFACT_CHECKSUM,
                 T_GENERATION_JOB_ATTEMPT.ARTIFACT_SIZE_BYTES
@@ -146,16 +147,10 @@ public class JooqGenerationJobAttemptRepository implements GenerationJobAttemptR
             )
             .orderBy(T_GENERATION_JOB_ATTEMPT.ATTEMPT_NO.desc())
             .limit(1)
-            .fetchOne();
+            .fetchOne(generationArtifactMetaRecordConverter);
         if (artifact == null) {
             return Optional.empty();
         }
-        return Optional.of(
-            GenerationArtifactMeta.builder()
-                .s3Key(artifact.value1())
-                .checksum(artifact.value2())
-                .sizeBytes(artifact.value3())
-                .build()
-        );
+        return Optional.of(artifact);
     }
 }

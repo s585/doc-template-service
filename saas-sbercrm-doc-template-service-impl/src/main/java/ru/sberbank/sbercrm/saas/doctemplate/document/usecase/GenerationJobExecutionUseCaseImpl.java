@@ -135,10 +135,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             throw new SystemCrmException(
                 CrmErrorCodes.SYSTEM_UNEXPECTED,
                 CrmErrorCodes.SYSTEM_UNEXPECTED,
-                "Missing artifact metadata for retry reuse",
-                job.getId(),
-                attemptId,
-                existingArtifact.s3Key()
+                buildMissingArtifactMetaExceptionContext(job.getId(), attemptId, existingArtifact.s3Key())
             );
         }
         GenerationTransitionContext context = buildTransitionContext(job, effectiveUserId, attemptId, attemptNo);
@@ -238,6 +235,13 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
                 "SHA-256"
             );
         }
+    }
+
+    private String buildMissingArtifactMetaExceptionContext(UUID jobId, UUID attemptId, String s3Key) {
+        return "Missing artifact metadata for retry reuse: "
+            + "jobId=" + jobId
+            + ", attemptId=" + attemptId
+            + ", s3Key=" + s3Key;
     }
 
     private String truncate(String value) {

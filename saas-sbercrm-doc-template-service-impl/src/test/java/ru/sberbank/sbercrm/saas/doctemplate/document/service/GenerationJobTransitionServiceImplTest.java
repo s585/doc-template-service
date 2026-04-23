@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.domain.GenerationJobStateMachine;
@@ -69,10 +70,28 @@ class GenerationJobTransitionServiceImplTest {
     private GenerationWorkerIdentityProvider generationWorkerIdentityProvider;
 
     @Mock
+    private GenerationJobMetricsPublisher generationJobMetricsPublisher;
+
+    @Mock
     private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private GenerationJobTransitionServiceImpl systemUnderTest;
+
+    @Test
+    @DisplayName("Transition service claim-ит job через state machine событие CLAIM")
+    void givenAvailableSlots_whenClaimNextJobsForProcessing_thenUseStateMachineAndClaimJobs() {
+        GenerationJob claimedJob = buildProcessingJob();
+        given(generationJobStateMachine.transit(GenerationJobStatus.QUEUED, GenerationJobEvent.CLAIM))
+            .willReturn(GenerationJobStatus.PROCESSING);
+        given(generationJobService.claimNextJobs(USER_ID, 2)).willReturn(List.of(claimedJob));
+
+        assertThat(systemUnderTest.claimNextJobsForProcessing(USER_ID, 2))
+            .containsExactly(claimedJob);
+
+        verify(generationJobStateMachine).transit(GenerationJobStatus.QUEUED, GenerationJobEvent.CLAIM);
+        verify(generationJobService).claimNextJobs(USER_ID, 2);
+    }
 
     @Test
     @DisplayName("Transition service атомарно создаёт attempt и переводит файл в PROCESSING")
@@ -185,6 +204,7 @@ class GenerationJobTransitionServiceImplTest {
             "system.unexpected",
             "boom"
         );
+        verify(generationJobMetricsPublisher).incrementExhaustedRetries(retryDecision);
         verify(generationJobAttemptService, never()).markFailed(any(), any(), any(), any());
     }
 
@@ -283,6 +303,7 @@ class GenerationJobTransitionServiceImplTest {
             "Generation job timed out"
         );
         verify(generationJobService).markFailed(TENANT_ID, USER_ID, JOB_ID, 0, 1, "generation.job_timeout", "Generation job timed out");
+        verify(generationJobMetricsPublisher).incrementExhaustedRetries(any());
     }
 
     @Test
@@ -354,8 +375,8 @@ class GenerationJobTransitionServiceImplTest {
     }
 
     @Test
-    @DisplayName("Transition service выбрасывает not found при отсутствии job")
-    void givenMissingJob_whenFailGeneration_thenThrowNotFound() {
+    @DisplayName("Transition service выбрасывает system unexpected при отсутствии job")
+    void givenMissingJob_whenFailGeneration_thenThrowSystemUnexpected() {
         GenerationRetryDecision retryDecision = new GenerationRetryDecision(
             GenerationRetryAction.FAIL_FINAL,
             "err",
@@ -366,9 +387,9 @@ class GenerationJobTransitionServiceImplTest {
         GenerationTransitionContext transitionContext = buildTransitionContext(ATTEMPT_ID_FAIL);
 
         assertThatThrownBy(() -> systemUnderTest.failGeneration(transitionContext, retryDecision))
-            .isInstanceOf(NotFoundCrmException.class)
+            .isInstanceOf(SystemCrmException.class)
             .extracting("code")
-            .isEqualTo(DocumentConstants.ErrorCodes.GENERATION_JOB_NOT_FOUND);
+            .isEqualTo(CrmErrorCodes.SYSTEM_UNEXPECTED);
 
         verify(generationJobStateMachine, never()).transit(any(), any());
         verify(generationJobAttemptService, never()).markFailed(any(), any(), any(), any());
@@ -437,6 +458,7 @@ class GenerationJobTransitionServiceImplTest {
 
         assertThat(systemUnderTest.requeueTimedOutJobs(USER_ID)).isZero();
 
+        verify(generationJobMetricsPublisher).incrementRecoveryFailure();
         verify(generationJobAttemptService, never()).markTimedOutActiveAttempt(any(), any());
         verify(generatedFileService, never()).markPending(any(), any(), any(), any());
         verify(generationJobService, never()).scheduleRetry(any());
@@ -494,6 +516,7 @@ class GenerationJobTransitionServiceImplTest {
 
         assertThat(systemUnderTest.requeueTimedOutJobs(USER_ID)).isEqualTo(1);
 
+        verify(generationJobMetricsPublisher).incrementRecoveryFailure();
         verify(generationJobAttemptService).markTimedOutActiveAttempt(USER_ID, secondJobId);
         verify(generatedFileService).markPending(TENANT_ID, USER_ID, secondDocumentId, "DOCX");
     }

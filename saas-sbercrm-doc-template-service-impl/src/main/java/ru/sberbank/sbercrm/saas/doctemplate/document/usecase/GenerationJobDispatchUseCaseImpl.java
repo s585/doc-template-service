@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
-import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobTransitionService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
 
@@ -14,7 +13,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIde
 @Component
 @RequiredArgsConstructor
 public class GenerationJobDispatchUseCaseImpl implements GenerationJobDispatchUseCase {
-    private final GenerationJobService generationJobService;
     private final GenerationJobTransitionService generationJobTransitionService;
     private final GenerationJobExecutionUseCase generationJobExecutionUseCase;
     private final ThreadPoolTaskExecutor generationJobTaskExecutor;
@@ -37,7 +35,10 @@ public class GenerationJobDispatchUseCaseImpl implements GenerationJobDispatchUs
             return;
         }
 
-        List<GenerationJob> jobs = generationJobService.claimNextJobs(generationWorkerIdentityProvider.getWorkerId(), availableSlots);
+        List<GenerationJob> jobs = generationJobTransitionService.claimNextJobsForProcessing(
+            generationWorkerIdentityProvider.getWorkerId(),
+            availableSlots
+        );
         if (!jobs.isEmpty()) {
             log.info(
                 "Claimed generation jobs: count={}, availableSlots={}, workerId={}, workerName={}, jobIds={}",

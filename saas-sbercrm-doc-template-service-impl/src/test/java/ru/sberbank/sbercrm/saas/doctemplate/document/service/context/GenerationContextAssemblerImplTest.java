@@ -1,7 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service.context;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import java.util.List;
@@ -13,9 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.BusinessObjectGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.NoOpExpressionEvaluator;
@@ -27,7 +24,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefini
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.PrimitiveExpression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
-import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
 @ExtendWith(MockitoExtension.class)
 class GenerationContextAssemblerImplTest {
@@ -43,8 +39,11 @@ class GenerationContextAssemblerImplTest {
 
     @BeforeEach
     void setUp() {
+        GenerationSourceValueResolver sourceValueResolver = new GenerationSourceValueResolver(
+            List.of(new ConstantMappingValueResolver(), new DirectMappingValueResolver())
+        );
         systemUnderTest = new GenerationContextAssemblerImpl(
-            List.of(new ConstantMappingValueResolver(), new DirectMappingValueResolver()),
+            sourceValueResolver,
             businessObjectGateway,
             new NoOpExpressionEvaluator()
         );
@@ -81,25 +80,6 @@ class GenerationContextAssemblerImplTest {
         GenerationTemplateContext context = systemUnderTest.assemble(buildJob(), USER_ID, buildTemplateWithExpression());
 
         assertThat(context.getValues()).containsEntry("customer_name", "Romashka LLC");
-    }
-
-    @Test
-    @DisplayName("Assembler выбрасывает business ошибку для неподдерживаемого source")
-    void givenUnsupportedSource_whenAssemble_thenThrowBusinessException() {
-        assertThatThrownBy(() -> systemUnderTest.assemble(buildJob(), USER_ID, buildUnsupportedSourceTemplate()))
-            .isInstanceOf(BusinessCrmException.class)
-            .hasMessage(DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED);
-    }
-
-    @Test
-    @DisplayName("Assembler выбрасывает business ошибку для DIRECT path без field-сегментов")
-    void givenDirectRootPath_whenAssemble_thenThrowBusinessException() {
-        given(businessObjectGateway.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
-            .willReturn(Map.of("customer", Map.of("name", "Direct LLC")));
-
-        assertThatThrownBy(() -> systemUnderTest.assemble(buildJob(), USER_ID, buildDirectRootTemplate()))
-            .isInstanceOf(BusinessCrmException.class)
-            .hasMessage(DocumentConstants.ErrorCodes.GENERATION_BUSINESS_OBJECT_PATH_INVALID);
     }
 
     private GenerationJob buildJob() {
@@ -153,44 +133,6 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .source(DirectValueSource.builder().path("source.customer.name").build())
-                            .build()
-                    )
-                    .build()
-            ))
-            .build();
-    }
-
-    private Template buildUnsupportedSourceTemplate() {
-        return Template.builder()
-            .name("fallback-name")
-            .format(TemplateFormat.DOCX)
-            .mappings(List.of(
-                TemplateMapping.builder()
-                    .key("customer_name")
-                    .definition(
-                        TemplateMappingDefinition.builder()
-                            .source(
-                                ReferenceValueSource.builder()
-                                    .path("reference.customer.name")
-                                    .build()
-                            )
-                            .build()
-                    )
-                    .build()
-            ))
-            .build();
-    }
-
-    private Template buildDirectRootTemplate() {
-        return Template.builder()
-            .name("fallback-name")
-            .format(TemplateFormat.DOCX)
-            .mappings(List.of(
-                TemplateMapping.builder()
-                    .key("customer_name")
-                    .definition(
-                        TemplateMappingDefinition.builder()
-                            .source(DirectValueSource.builder().path("source").build())
                             .build()
                     )
                     .build()

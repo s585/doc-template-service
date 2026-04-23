@@ -14,7 +14,6 @@ import java.util.UUID;
 import org.springframework.http.MediaType;
 
 public final class BusinessObjectWireMock {
-    private static final String GET_OBJECT_PATH = "/internal/v1/business-object";
     private static final String TENANT_ID_HEADER = "X-Tenant-Id";
     private static final String USER_ID_HEADER = "X-User-Id";
 
@@ -29,12 +28,11 @@ public final class BusinessObjectWireMock {
         UUID objectId,
         Map<String, Object> body
     ) throws JsonProcessingException {
+        String path = buildObjectPath(entityId, objectId);
         stubFor(
-            com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo(GET_OBJECT_PATH))
+            com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo(path))
                 .withHeader(TENANT_ID_HEADER, equalTo(tenantId.toString()))
                 .withHeader(USER_ID_HEADER, equalTo(userId.toString()))
-                .withQueryParam("entityId", equalTo(entityId.toString()))
-                .withQueryParam("objectId", equalTo(objectId.toString()))
                 .willReturn(
                     aResponse()
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -44,12 +42,15 @@ public final class BusinessObjectWireMock {
     }
 
     public static void verifyGetObject(UUID tenantId, UUID userId, UUID entityId, UUID objectId) {
+        String path = buildObjectPath(entityId, objectId);
         verify(
-            getRequestedFor(urlPathEqualTo(GET_OBJECT_PATH))
+            getRequestedFor(urlPathEqualTo(path))
                 .withHeader(TENANT_ID_HEADER, equalTo(tenantId.toString()))
                 .withHeader(USER_ID_HEADER, equalTo(userId.toString()))
-                .withQueryParam("entityId", equalTo(entityId.toString()))
-                .withQueryParam("objectId", equalTo(objectId.toString()))
         );
+    }
+
+    private static String buildObjectPath(UUID entityId, UUID objectId) {
+        return "/internal/data/" + entityId + "/" + objectId;
     }
 }

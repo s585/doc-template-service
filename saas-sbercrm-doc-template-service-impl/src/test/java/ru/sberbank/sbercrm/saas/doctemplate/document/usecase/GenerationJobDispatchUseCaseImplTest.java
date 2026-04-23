@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
-import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationJobTransitionService;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
 
@@ -26,9 +25,6 @@ class GenerationJobDispatchUseCaseImplTest {
     private static final UUID FIRST_JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID SECOND_JOB_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID WORKER_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
-
-    @Mock
-    private GenerationJobService generationJobService;
 
     @Mock
     private GenerationJobTransitionService generationJobTransitionService;
@@ -55,7 +51,7 @@ class GenerationJobDispatchUseCaseImplTest {
         systemUnderTest.dispatch();
 
         verify(generationJobTransitionService).requeueTimedOutJobs(WORKER_ID);
-        verify(generationJobService, never()).claimNextJobs(any(), any(Integer.class));
+        verify(generationJobTransitionService, never()).claimNextJobsForProcessing(any(), any(Integer.class));
         verify(generationJobTaskExecutor, never()).execute(any(Runnable.class));
     }
 
@@ -68,12 +64,13 @@ class GenerationJobDispatchUseCaseImplTest {
         given(generationWorkerIdentityProvider.getWorkerName()).willReturn("doc-template@host:123");
         given(generationJobTaskExecutor.getMaxPoolSize()).willReturn(4);
         given(generationJobTaskExecutor.getActiveCount()).willReturn(2);
-        given(generationJobService.claimNextJobs(WORKER_ID, 2)).willReturn(List.of(firstJob, secondJob));
+        given(generationJobTransitionService.claimNextJobsForProcessing(WORKER_ID, 2))
+            .willReturn(List.of(firstJob, secondJob));
 
         systemUnderTest.dispatch();
 
         verify(generationJobTransitionService).requeueTimedOutJobs(WORKER_ID);
-        verify(generationJobService).claimNextJobs(WORKER_ID, 2);
+        verify(generationJobTransitionService).claimNextJobsForProcessing(WORKER_ID, 2);
         verify(generationJobTaskExecutor, times(2)).execute(any(Runnable.class));
     }
 }

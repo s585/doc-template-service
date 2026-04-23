@@ -1,12 +1,14 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
+import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFoundCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.document.domain.GenerationJobStateMachine;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
@@ -30,6 +32,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
     private final GenerationErrorClassifier generationErrorClassifier;
     private final GenerationRetryPolicy generationRetryPolicy;
     private final GenerationWorkerIdentityProvider generationWorkerIdentityProvider;
+    private final GenerationJobMetricsPublisher generationJobMetricsPublisher;
     private final TransactionTemplate recoveryTransactionTemplate;
 
     private static final String GENERATION_JOB_TIMEOUT_MESSAGE = "Generation job timed out";
@@ -42,6 +45,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
         GenerationErrorClassifier generationErrorClassifier,
         GenerationRetryPolicy generationRetryPolicy,
         GenerationWorkerIdentityProvider generationWorkerIdentityProvider,
+        GenerationJobMetricsPublisher generationJobMetricsPublisher,
         PlatformTransactionManager transactionManager
     ) {
         this.generationJobService = generationJobService;
@@ -51,10 +55,20 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
         this.generationErrorClassifier = generationErrorClassifier;
         this.generationRetryPolicy = generationRetryPolicy;
         this.generationWorkerIdentityProvider = generationWorkerIdentityProvider;
+        this.generationJobMetricsPublisher = generationJobMetricsPublisher;
         this.recoveryTransactionTemplate = new TransactionTemplate(transactionManager);
         this.recoveryTransactionTemplate.setPropagationBehavior(
             org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW
         );
+    }
+
+    @Override
+    public List<GenerationJob> claimNextJobsForProcessing(UUID workerId, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        generationJobStateMachine.transit(GenerationJobStatus.QUEUED, GenerationJobEvent.CLAIM);
+        return generationJobService.claimNextJobs(workerId, limit);
     }
 
     @Override
@@ -136,6 +150,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
                 retryDecision.errorCode(),
                 retryDecision.errorMessage()
         );
+        generationJobMetricsPublisher.incrementExhaustedRetries(retryDecision);
     }
 
     @Override
@@ -172,6 +187,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
                 retryDecision.errorCode(),
                 retryDecision.errorMessage()
         );
+        generationJobMetricsPublisher.incrementExhaustedRetries(retryDecision);
     }
 
     @Override
@@ -264,10 +280,10 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
     private GenerationJob getRequiredJob(UUID tenantId, UUID jobId) {
         return generationJobService
                 .findById(tenantId, jobId)
-                .orElseThrow(() -> new NotFoundCrmException(
-                        DocumentConstants.ErrorCodes.GENERATION_JOB_NOT_FOUND,
-                        DocumentConstants.ErrorCodes.GENERATION_JOB_NOT_FOUND,
-                        jobId
+                .orElseThrow(() -> new SystemCrmException(
+                        CrmErrorCodes.SYSTEM_UNEXPECTED,
+                        CrmErrorCodes.SYSTEM_UNEXPECTED,
+                        "Generation job not found: jobId=" + jobId
                 ));
     }
 
@@ -292,6 +308,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
             );
             return true;
         } catch (Exception ex) {
+            generationJobMetricsPublisher.incrementRecoveryFailure();
             log.error(
                 "Failed to recover timed out generation job: jobId={}, documentId={}, format={}, "
                     + "workerId={}",
@@ -400,6 +417,7 @@ public class GenerationJobTransitionServiceImpl implements GenerationJobTransiti
                 retryDecision.errorCode(),
                 retryDecision.errorMessage()
         );
+        generationJobMetricsPublisher.incrementExhaustedRetries(retryDecision);
     }
 
     private int expectedAttemptCount(int attemptNo) {

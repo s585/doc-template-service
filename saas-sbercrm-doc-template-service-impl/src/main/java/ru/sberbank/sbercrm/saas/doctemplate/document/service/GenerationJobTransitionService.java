@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
+import java.util.List;
 import java.util.UUID;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
@@ -16,6 +17,11 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTransitionC
  * {@code generated_file}, {@code generation_job} и {@code generation_job_attempt}.
  */
 public interface GenerationJobTransitionService {
+    /**
+     * Claim-ит доступные job для выполнения через явный transition {@code QUEUED -> PROCESSING}.
+     */
+    List<GenerationJob> claimNextJobsForProcessing(UUID workerId, int limit);
+
     /**
      * Создаёт новую attempt и переводит связанный {@code generated_file} в {@code PROCESSING}.
      *
