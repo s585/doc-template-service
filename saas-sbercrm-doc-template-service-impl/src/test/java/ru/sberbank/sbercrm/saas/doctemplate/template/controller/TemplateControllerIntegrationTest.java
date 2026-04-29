@@ -147,7 +147,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(extractedMappings.get(1).getDefinition().getType()).isNull();
         assertThat(extractedMappings.get(1).getDefinition().getSource()).isNull();
 
-        FileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource);
+        FileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource, templateFolderPath, templateFileName);
         assertThat(response.getCode()).isEqualTo(templateCode);
     }
 

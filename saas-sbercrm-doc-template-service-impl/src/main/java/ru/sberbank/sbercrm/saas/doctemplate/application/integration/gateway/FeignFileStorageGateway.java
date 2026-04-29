@@ -123,4 +123,5 @@ public class FeignFileStorageGateway implements FileStorageGateway {
             );
         }
     }
+
 }

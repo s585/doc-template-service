@@ -14,8 +14,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.config.FileStorageClientFeignConfig;
 
-@FeignClient(name = "file-storage-client")
+@FeignClient(name = "file-storage-client", configuration = FileStorageClientFeignConfig.class)
 public interface FileStorageClient {
     String TENANT_ID_HEADER = "X-Tenant-Id";
     String USER_ID_HEADER = "X-User-Id";

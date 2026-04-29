@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -55,12 +56,16 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void verifyUploadFile(UUID tenantId, UUID userId, String source) {
+    public static void verifyUploadFile(UUID tenantId, UUID userId, String source, String path, String fileName) {
         com.github.tomakehurst.wiremock.client.WireMock.verify(
             postRequestedFor(urlPathEqualTo(UPLOAD_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))
                 .withHeader(TENANT_ID_HEADER, equalTo(tenantId.toString()))
                 .withHeader(USER_ID_HEADER, equalTo(userId.toString()))
+                .withRequestBody(containing("name=\"property\""))
+                .withRequestBody(containing("\"path\":\"" + path + "\""))
+                .withRequestBody(containing("\"source\":\"" + source + "\""))
+                .withRequestBody(containing("name=\"file\"; filename=\"" + fileName + "\""))
         );
     }
 
