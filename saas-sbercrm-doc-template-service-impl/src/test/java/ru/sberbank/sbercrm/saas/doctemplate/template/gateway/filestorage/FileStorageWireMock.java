@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 public final class FileStorageWireMock {
     private static final String UPLOAD_PATH = "/internal/v1/file/upload";
+    private static final String DOWNLOAD_PATH = "/internal/v1/file/download";
     private static final String DELETE_PATH = "/internal/v1/file";
     private static final String SOURCE_HEADER = "source";
     private static final String TENANT_ID_HEADER = "X-Tenant-Id";
@@ -66,6 +68,32 @@ public final class FileStorageWireMock {
                 .withRequestBody(containing("\"path\":\"" + path + "\""))
                 .withRequestBody(containing("\"source\":\"" + source + "\""))
                 .withRequestBody(containing("name=\"file\"; filename=\"" + fileName + "\""))
+        );
+    }
+
+    public static void stubDownloadFile(UUID tenantId, UUID userId, String source, String key, byte[] content) {
+        stubFor(
+            com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo(DOWNLOAD_PATH))
+                .withHeader(SOURCE_HEADER, equalTo(source))
+                .withHeader(TENANT_ID_HEADER, equalTo(tenantId.toString()))
+                .withHeader(USER_ID_HEADER, equalTo(userId.toString()))
+                .withQueryParam("key", equalTo(key))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/force-download")
+                        .withBody(content)
+                )
+        );
+    }
+
+    public static void verifyDownloadFile(UUID tenantId, UUID userId, String source, String key) {
+        com.github.tomakehurst.wiremock.client.WireMock.verify(
+            getRequestedFor(urlPathEqualTo(DOWNLOAD_PATH))
+                .withHeader(SOURCE_HEADER, equalTo(source))
+                .withHeader(TENANT_ID_HEADER, equalTo(tenantId.toString()))
+                .withHeader(USER_ID_HEADER, equalTo(userId.toString()))
+                .withQueryParam("key", equalTo(key))
         );
     }
 

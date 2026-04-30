@@ -1,14 +1,13 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import feign.FeignException;
+import feign.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
@@ -65,7 +64,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     @Override
     public byte[] download(UUID tenantId, UUID userId, String key) {
         try {
-            ResponseEntity<InputStreamResource> response = fileStorageClient.download(
+            Response response = fileStorageClient.download(
                 docTemplateProperties.getFileStorage().getSource(),
                 key,
                 tenantId,
@@ -101,9 +100,8 @@ public class FeignFileStorageGateway implements FileStorageGateway {
         }
     }
 
-    private byte[] readDownloadedContent(ResponseEntity<InputStreamResource> response, String key) {
-        InputStreamResource resource = response.getBody();
-        if (resource == null) {
+    private byte[] readDownloadedContent(Response response, String key) {
+        if (response.body() == null) {
             throw new SystemCrmException(
                 CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
                 CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
@@ -111,7 +109,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
             );
         }
         try {
-            try (InputStream inputStream = resource.getInputStream()) {
+            try (Response ignored = response; InputStream inputStream = response.body().asInputStream()) {
                 return inputStream.readAllBytes();
             }
         } catch (IOException ex) {

@@ -1,11 +1,10 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.client;
 
+import feign.Response;
 import java.io.IOException;
 import java.util.UUID;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,7 +46,7 @@ public interface FileStorageClient {
     );
 
     @GetMapping(value = "/internal/v1/file/download")
-    ResponseEntity<InputStreamResource> download(
+    Response download(
         @RequestHeader(value = "source", required = false) String source,
         @RequestParam("key") String key,
         @RequestHeader(TENANT_ID_HEADER) UUID tenantId,

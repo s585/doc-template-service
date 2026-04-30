@@ -7,10 +7,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import feign.FeignException;
-
-import java.io.ByteArrayInputStream;
+import feign.Request;
+import feign.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,9 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
@@ -87,10 +85,22 @@ class FeignFileStorageGatewayTest {
     void givenDownloadResponse_whenDownload_thenReturnBytes() {
         // given
         String fileKey = "templates/test.docx";
-        ResponseEntity<InputStreamResource> response = new ResponseEntity<>(
-            new InputStreamResource(new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8))),
-            HttpStatus.OK
-        );
+        Response response = Response.builder()
+            .status(200)
+            .reason("OK")
+            .request(
+                Request.create(
+                    Request.HttpMethod.GET,
+                    "http://localhost/internal/v1/file/download?key=" + fileKey,
+                    Map.of(),
+                    null,
+                    StandardCharsets.UTF_8,
+                    null
+                )
+            )
+            .headers(Map.of())
+            .body("hello".getBytes(StandardCharsets.UTF_8))
+            .build();
         given(fileStorageClient.download("doc-template-service", fileKey, TENANT_ID, USER_ID)).willReturn(response);
 
         // when
