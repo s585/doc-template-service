@@ -269,6 +269,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
         String templateName = "Шаблон на удаление";
         String templateCode = "SUPPLY_CONTRACT_DELETE";
         String templateS3Key = "templates/" + ENTITY_ID + "/delete.docx";
+        String normalizedTemplateS3Key = "/" + templateS3Key;
         Template createdTemplate = templateMother.createTemplateWithMappings(
             TENANT_ID,
             USER_ID,
@@ -287,7 +288,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             )
         );
         String fileStorageSource = "doc-template-service";
-        FileStorageWireMock.stubDeleteFile(TENANT_ID, USER_ID, fileStorageSource, templateS3Key);
+        FileStorageWireMock.stubDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
 
         // when
         mockMvc.perform(
@@ -299,7 +300,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
         // then
         assertThat(templateMother.exists(TENANT_ID, createdTemplate.getId())).isFalse();
-        FileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, templateS3Key);
+        FileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
     }
 
     @Test

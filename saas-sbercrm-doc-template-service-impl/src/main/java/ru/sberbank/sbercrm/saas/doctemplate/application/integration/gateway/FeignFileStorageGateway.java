@@ -52,31 +52,38 @@ public class FeignFileStorageGateway implements FileStorageGateway {
 
     @Override
     public void deleteFile(UUID tenantId, UUID userId, String key) {
+        String normalizedKey = normalizeStorageKey(key);
         try {
-            fileStorageClient.deleteFile(docTemplateProperties.getFileStorage().getSource(), key, tenantId, userId);
+            fileStorageClient.deleteFile(docTemplateProperties.getFileStorage().getSource(), normalizedKey, tenantId, userId);
         } catch (FeignException.NotFound ex) {
             // Delete is idempotent for file storage: missing file must not block template deletion.
-        } catch (FeignException ex) {
-            throw new SystemCrmException(CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED, ex, key);
-        }
-    }
-
-    @Override
-    public byte[] download(UUID tenantId, UUID userId, String key) {
-        try {
-            Response response = fileStorageClient.download(
-                docTemplateProperties.getFileStorage().getSource(),
-                key,
-                tenantId,
-                userId
-            );
-            return readDownloadedContent(response, key);
         } catch (FeignException ex) {
             throw new SystemCrmException(
                 CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
                 CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
                 ex,
-                key
+                normalizedKey
+            );
+        }
+    }
+
+    @Override
+    public byte[] download(UUID tenantId, UUID userId, String key) {
+        String normalizedKey = normalizeStorageKey(key);
+        try {
+            Response response = fileStorageClient.download(
+                docTemplateProperties.getFileStorage().getSource(),
+                normalizedKey,
+                tenantId,
+                userId
+            );
+            return readDownloadedContent(response, normalizedKey);
+        } catch (FeignException ex) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                ex,
+                normalizedKey
             );
         }
     }
@@ -120,6 +127,13 @@ public class FeignFileStorageGateway implements FileStorageGateway {
                 key
             );
         }
+    }
+
+    private String normalizeStorageKey(String key) {
+        if (key == null || key.isBlank() || key.startsWith("/")) {
+            return key;
+        }
+        return "/" + key;
     }
 
 }

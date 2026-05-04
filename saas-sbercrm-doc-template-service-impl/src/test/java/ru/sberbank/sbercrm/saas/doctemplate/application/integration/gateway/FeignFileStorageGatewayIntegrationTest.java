@@ -21,12 +21,13 @@ class FeignFileStorageGatewayIntegrationTest extends AbstractIntegrationTest {
     void givenBinaryDownloadResponse_whenDownload_thenReturnBytes() {
         String fileStorageSource = "doc-template-service";
         String fileKey = "templates/test-download.docx";
+        String normalizedKey = "/templates/test-download.docx";
         byte[] expectedContent = "binary-template-content".getBytes(StandardCharsets.UTF_8);
-        FileStorageWireMock.stubDownloadFile(TENANT_ID, USER_ID, fileStorageSource, fileKey, expectedContent);
+        FileStorageWireMock.stubDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey, expectedContent);
 
         byte[] downloaded = fileStorageGateway.download(TENANT_ID, USER_ID, fileKey);
 
         assertThat(downloaded).isEqualTo(expectedContent);
-        FileStorageWireMock.verifyDownloadFile(TENANT_ID, USER_ID, fileStorageSource, fileKey);
+        FileStorageWireMock.verifyDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey);
     }
 }
