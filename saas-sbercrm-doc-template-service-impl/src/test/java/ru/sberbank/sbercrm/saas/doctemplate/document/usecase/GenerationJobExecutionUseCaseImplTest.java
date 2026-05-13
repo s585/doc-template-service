@@ -120,7 +120,7 @@ class GenerationJobExecutionUseCaseImplTest {
             .willReturn(
                 GenerationTemplateContext.builder()
                     .generatedFileName("result.docx")
-                    .values(java.util.Map.of("deal_number", "123"))
+                    .scalarValues(java.util.Map.of("deal_number", "123"))
                     .build()
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
@@ -172,7 +172,7 @@ class GenerationJobExecutionUseCaseImplTest {
             .willReturn(
                 GenerationTemplateContext.builder()
                     .generatedFileName("direct.docx")
-                    .values(java.util.Map.of("customer_name", "Direct LLC"))
+                    .scalarValues(java.util.Map.of("customer_name", "Direct LLC"))
                     .build()
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
@@ -199,7 +199,7 @@ class GenerationJobExecutionUseCaseImplTest {
         verify(templateProcessingFacade).generate(
             eq(TemplateFormat.DOCX),
             any(),
-            argThat(values -> "Direct LLC".equals(values.get("customer_name")))
+            argThat(context -> "Direct LLC".equals(context.getScalarValues().get("customer_name")))
         );
     }
 
@@ -222,7 +222,7 @@ class GenerationJobExecutionUseCaseImplTest {
             .willReturn(
                 GenerationTemplateContext.builder()
                     .generatedFileName("result.docx")
-                    .values(java.util.Map.of("deal_number", "123"))
+                    .scalarValues(java.util.Map.of("deal_number", "123"))
                     .build()
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))

@@ -251,6 +251,18 @@ Stub поддерживает:
 - вызов выполняется через `Feign`-клиент;
 - для интеграционных тестов используется `WireMock` (а не файловый stub).
 
+Для постраничной выборки связанных business objects используется отдельный
+`BusinessObjectPageIterator`.
+
+Архитектурное правило для `REFERENCE`-lookup:
+
+- gateway отвечает за загрузку одной страницы и маппинг ошибок интеграции;
+- итерация по страницам вынесена в отдельный iterator-компонент;
+- reference-коллекции обрабатываются page-by-page без накопления всех raw
+  business objects в памяти;
+- в runtime-контекст попадают только уже спроецированные значения строк
+  коллекции.
+
 Классификация ошибок интеграции с core:
 
 - `404` -> `generation.business_object_not_found` (non-retriable);
@@ -351,7 +363,30 @@ Scheduler работает часто и не выполняет job сам.
 - evaluate `expression`;
 - привести к `String` для шаблонного процессора.
 
-На текущем этапе expression-обработка подключена как skeleton (no-op evaluator).
+Для generation mappings используется явный planning step:
+
+- `GenerationMappingPlanner` делит mappings на scalar-ветку, file-name-ветку и
+  collection groups;
+- grouping коллекций строится по `CollectionQueryKey`, который описывает
+  конкретный lookup reference-данных;
+- assembler не содержит source-specific логики reference lookup и работает через
+  resolver-слой.
+
+`GenerationTemplateContext` содержит только runtime-данные:
+
+- `scalarValues`;
+- `collections`;
+- `generatedFileName`.
+
+Collection runtime-модель строится вокруг `CollectionDataset`:
+
+- один dataset соответствует одному reference lookup;
+- dataset содержит `queryKey`, набор `keys` и `rows`;
+- `rows` представлены как `List<Map<String, String>>`, то есть в row-based
+  форме, пригодной для прямого рендера в `DOCX` и `XLSX`.
+
+Expression-обработка применяется как к scalar values, так и к значениям внутри
+collection rows.
 
 ## State machine generation job
 
@@ -409,6 +444,47 @@ placeholder-ам шаблона, а не последовательный `repla
 - результат не зависит от порядка обхода `values`;
 - вложенные/каскадные подстановки не поддерживаются и не являются контрактом;
 - отсутствие значения оставляет исходный placeholder без изменений.
+
+### Повторяющиеся блоки
+
+Повторяемые блоки рендерятся не по явной пользовательской разметке, а по
+структуре документа.
+
+Для `DOCX`:
+
+- строка таблицы является repeat-unit для табличных коллекций;
+- пункт нумерованного или маркированного списка является repeat-unit для
+  списочных коллекций.
+
+Для `XLSX`:
+
+- repeat-unit — одна строка листа.
+
+Правила рендера repeat-блоков:
+
+- в одном repeat-блоке допускается только одна collection dataset;
+- scalar placeholders могут использоваться внутри repeat-блока и повторяются
+  в каждой его копии;
+- пустая коллекция удаляет шаблонный block/row;
+- неоднозначный dataset или частично незаполненный repeat-блок считаются
+  ошибкой generation.
+
+Корректность `COLLECTION` mappings проверяется до вызова процессора:
+
+- все declared collection keys должны войти ровно в один dataset;
+- один collection key не может принадлежать нескольким dataset-ам;
+- ошибки конфигурации должны завершать generation до этапа layout/rendering.
+
+## Валидация template mappings
+
+Семантическая валидация mappings вынесена в отдельный `TemplateMappingValidator`.
+
+Текущие обязательные правила:
+
+- `REFERENCE` разрешен только для `COLLECTION`;
+- `COLLECTION` с заполненным source разрешен только для `REFERENCE`;
+- зарезервированный `generated_file_name` разрешен только со `scope = FILE_NAME`;
+- `generated_file_name` не может использовать `REFERENCE` source.
 
 Внутренний контракт transition-слоя должен передаваться не россыпью аргументов, а через
 явные parameter object:

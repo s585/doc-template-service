@@ -16,11 +16,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValue
 
 class GenerationSourceValueResolverTest {
     private GenerationSourceValueResolver systemUnderTest;
+    private final GenerationPathResolver generationPathResolver = new GenerationPathResolver();
 
     @BeforeEach
     void setUp() {
         systemUnderTest = new GenerationSourceValueResolver(
-            List.of(new ConstantMappingValueResolver(), new DirectMappingValueResolver())
+            List.of(new ConstantMappingValueResolver(), new DirectMappingValueResolver(generationPathResolver))
         );
     }
 
@@ -40,7 +41,7 @@ class GenerationSourceValueResolverTest {
             )
             .build();
 
-        assertThatThrownBy(() -> systemUnderTest.resolve(mapping, null))
+        assertThatThrownBy(() -> systemUnderTest.resolve(mapping, null, null, null))
             .isInstanceOf(BusinessCrmException.class)
             .hasMessage(DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED);
     }
@@ -58,7 +59,7 @@ class GenerationSourceValueResolverTest {
             .build();
         Map<String, Object> sourceObject = Map.of("customer", Map.of("name", "Direct LLC"));
 
-        assertThatThrownBy(() -> systemUnderTest.resolve(mapping, sourceObject))
+        assertThatThrownBy(() -> systemUnderTest.resolve(mapping, sourceObject, null, null))
             .isInstanceOf(BusinessCrmException.class)
             .hasMessage(DocumentConstants.ErrorCodes.GENERATION_BUSINESS_OBJECT_PATH_INVALID);
     }

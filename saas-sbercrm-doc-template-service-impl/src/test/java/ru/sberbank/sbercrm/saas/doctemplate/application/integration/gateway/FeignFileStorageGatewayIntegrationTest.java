@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
 
 @TestPropertySource(properties = "saas.doc-template.file-storage.stub-enabled=false")
 class FeignFileStorageGatewayIntegrationTest extends AbstractIntegrationTest {
@@ -23,11 +22,11 @@ class FeignFileStorageGatewayIntegrationTest extends AbstractIntegrationTest {
         String fileKey = "templates/test-download.docx";
         String normalizedKey = "/templates/test-download.docx";
         byte[] expectedContent = "binary-template-content".getBytes(StandardCharsets.UTF_8);
-        FileStorageWireMock.stubDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey, expectedContent);
+        fileStorageWireMock.stubDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey, expectedContent);
 
         byte[] downloaded = fileStorageGateway.download(TENANT_ID, USER_ID, fileKey);
 
         assertThat(downloaded).isEqualTo(expectedContent);
-        FileStorageWireMock.verifyDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey);
+        fileStorageWireMock.verifyDownloadFile(TENANT_ID, USER_ID, fileStorageSource, normalizedKey);
     }
 }

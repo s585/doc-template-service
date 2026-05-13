@@ -1,73 +1,196 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 class XlsxTemplateProcessorTest {
 
     @Test
-    @DisplayName("Процессор XLSX извлекает переменные из ячеек и помечает их областью TABLE")
-    void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithTableScope() throws IOException {
-        // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor systemUnderTest = new XlsxTemplateProcessor(docTemplateProperties);
-        byte[] content = createXlsxContent();
+    @DisplayName("Процессор XLSX извлекает переменные из ячеек и помечает их областью COLLECTION")
+    void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithCollectionScope() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxCollectionContent();
 
-        // when
         List<TemplateVariableInfo> variables = systemUnderTest.extractVariables(content);
 
-        // then
         assertThat(variables)
             .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope)
             .containsExactlyInAnyOrder(
-                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.TABLE),
-                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.TABLE)
+                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.COLLECTION),
+                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.COLLECTION),
+                org.assertj.core.groups.Tuple.tuple("product_qty", MappingScope.COLLECTION)
             );
     }
 
     @Test
-    @DisplayName("Процессор XLSX подставляет значения переменных при генерации")
-    void givenXlsxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
-        // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        XlsxTemplateProcessor systemUnderTest = new XlsxTemplateProcessor(docTemplateProperties);
-        byte[] content = createXlsxContent();
+    @DisplayName("Процессор XLSX размножает строку по строкам коллекции")
+    void givenXlsxCollectionRow_whenGenerate_thenRepeatTemplateRow() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxCollectionContent();
 
-        // when
-        byte[] generated = systemUnderTest.generate(content, Map.of(
-            "deal_number", "42",
-            "product_name", "Product"
-        ));
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("deal_number", "D-123"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name", "product_qty")))
+                        .rows(List.of(
+                            Map.of("product_name", "Product A", "product_qty", "2"),
+                            Map.of("product_name", "Product B", "product_qty", "1")
+                        ))
+                        .build()
+                ))
+                .build()
+        );
 
-        // then
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(generated))) {
-            var row = workbook.getSheetAt(0).getRow(0);
-            assertThat(row.getCell(0).getStringCellValue()).isEqualTo("42");
-            assertThat(row.getCell(1).getStringCellValue()).isEqualTo("Product");
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("D-123");
+            assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).isEqualTo("Product A");
+            assertThat(sheet.getRow(1).getCell(1).getStringCellValue()).isEqualTo("2");
+            assertThat(sheet.getRow(2).getCell(0).getStringCellValue()).isEqualTo("Product B");
+            assertThat(sheet.getRow(2).getCell(1).getStringCellValue()).isEqualTo("1");
         }
     }
 
-    private byte[] createXlsxContent() throws IOException {
+    @Test
+    @DisplayName("Процессор XLSX удаляет шаблонную строку для пустой коллекции")
+    void givenEmptyCollection_whenGenerate_thenRemoveTemplateRow() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxCollectionContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("deal_number", "D-123"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name", "product_qty")))
+                        .rows(List.of())
+                        .build()
+                ))
+                .build()
+        );
+
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(generated))) {
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("D-123");
+            assertThat(sheet.getRow(1)).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор XLSX падает, если collection placeholder не покрыт dataset")
+    void givenCollectionPlaceholderWithoutDataset_whenGenerate_thenThrowDetailedError() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxMissingDatasetContent();
+
+        assertThatThrownBy(() -> systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("deal_number", "D-123"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(Map.of("product_name", "Product A")))
+                        .build()
+                ))
+                .build()
+        ))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET);
+                assertThat(exception.getParams()).containsExactly("[product_qty]");
+            });
+    }
+
+    @Test
+    @DisplayName("Процессор XLSX падает, если collection placeholders неоднозначны между dataset'ами")
+    void givenAmbiguousDatasets_whenGenerate_thenThrowDetailedError() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxSingleCollectionRowContent();
+
+        assertThatThrownBy(() -> systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(Map.of("product_name", "Product A")))
+                        .build(),
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name", "product_qty")))
+                        .rows(List.of(Map.of("product_name", "Product B", "product_qty", "2")))
+                        .build()
+                ))
+                .build()
+        ))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS);
+                assertThat(exception.getParams()).containsExactly("[product_name]");
+            });
+    }
+
+    private XlsxTemplateProcessor createProcessor() {
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        return new XlsxTemplateProcessor(docTemplateProperties);
+    }
+
+    private byte[] createXlsxCollectionContent() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("template");
+            var headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("${deal_number}");
+            var templateRow = sheet.createRow(1);
+            templateRow.createCell(0).setCellValue("${product_name}");
+            templateRow.createCell(1).setCellValue("${product_qty}");
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createXlsxMissingDatasetContent() throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             var sheet = workbook.createSheet("template");
             var row = sheet.createRow(0);
-            row.createCell(0).setCellValue("${deal_number}");
-            row.createCell(1).setCellValue("${product_name}");
+            row.createCell(0).setCellValue("${product_name}");
+            row.createCell(1).setCellValue("${product_qty}");
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createXlsxSingleCollectionRowContent() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("template");
+            var row = sheet.createRow(0);
+            row.createCell(0).setCellValue("${product_name}");
             workbook.write(outputStream);
             return outputStream.toByteArray();
         }

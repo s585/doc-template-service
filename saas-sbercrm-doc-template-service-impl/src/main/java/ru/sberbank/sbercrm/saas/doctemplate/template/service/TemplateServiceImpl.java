@@ -7,8 +7,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.repository.TemplateMappingRepository;
 import ru.sberbank.sbercrm.saas.doctemplate.template.repository.TemplateRepository;
 
@@ -21,6 +23,7 @@ import java.util.Optional;
 public class TemplateServiceImpl implements TemplateService {
     private final TemplateRepository templateRepository;
     private final TemplateMappingRepository templateMappingRepository;
+    private final TemplateMappingValidator templateMappingValidator;
 
     @Override
     public void checkCodeUnique(UUID tenantId, String code, UUID excludedTemplateId) {
@@ -75,12 +78,14 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Override
     public void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
+        templateMappingValidator.validate(mappings);
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
     }
 
     @Override
     @Transactional
     public void replaceMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
+        templateMappingValidator.validate(mappings);
         templateMappingRepository.deleteByTemplateId(tenantId, templateId);
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
     }

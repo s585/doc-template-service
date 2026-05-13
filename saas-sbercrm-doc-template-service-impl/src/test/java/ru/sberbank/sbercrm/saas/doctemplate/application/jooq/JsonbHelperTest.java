@@ -24,7 +24,7 @@ class JsonbHelperTest {
     @Test
     void shouldRoundTripTemplateMappingDefinition() {
         TemplateMappingDefinition model = TemplateMappingDefinition.builder()
-            .scope(MappingScope.TABLE)
+            .scope(MappingScope.COLLECTION)
             .type(TemplateValueType.STRING)
             .source(ReferenceValueSource.builder()
                 .targetPath("source.document$c.dealProduct$c")

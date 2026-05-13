@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.document.service.context;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
@@ -14,7 +15,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSource;
 public class GenerationSourceValueResolver {
     private final List<MappingValueResolver> mappingValueResolvers;
 
-    public Object resolve(TemplateMapping mapping, Map<String, Object> sourceObject) {
+    public Object resolve(TemplateMapping mapping, Map<String, Object> sourceObject, UUID tenantId, UUID userId) {
         if (mapping.getDefinition() == null || mapping.getDefinition().getSource() == null) {
             return "";
         }
@@ -22,7 +23,7 @@ public class GenerationSourceValueResolver {
         return mappingValueResolvers.stream()
             .filter(resolver -> resolver.supports(source))
             .findFirst()
-            .map(resolver -> resolver.resolve(mapping, source, sourceObject))
+            .map(resolver -> resolver.resolve(mapping, source, sourceObject, tenantId, userId))
             .orElseThrow(() -> new BusinessCrmException(
                 DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED,
                 DocumentConstants.ErrorCodes.GENERATION_MAPPING_SOURCE_UNSUPPORTED,

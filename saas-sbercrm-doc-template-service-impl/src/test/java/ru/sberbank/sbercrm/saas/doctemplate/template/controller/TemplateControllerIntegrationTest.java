@@ -26,7 +26,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
-import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -37,6 +36,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueS
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDefinitionDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateMappingDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ConstantValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ReferenceValueSourceDto;
+import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.DirectValueSourceDto;
 
 class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
@@ -70,8 +71,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             new ClassPathResource("template/import-happy-path.docx").getContentAsByteArray()
         );
-        FileStorageWireMock.stubUploadFile(
-            objectMapper,
+        fileStorageWireMock.stubUploadFile(
             TENANT_ID,
             USER_ID,
             fileStorageSource,
@@ -143,11 +143,11 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(extractedMappings.get(0).getDefinition().getType()).isNull();
         assertThat(extractedMappings.get(0).getDefinition().getSource()).isNull();
         assertThat(extractedMappings.get(1).getKey()).isEqualTo("product_name");
-        assertThat(extractedMappings.get(1).getDefinition().getScope()).isEqualTo(MappingScope.TABLE);
+        assertThat(extractedMappings.get(1).getDefinition().getScope()).isEqualTo(MappingScope.COLLECTION);
         assertThat(extractedMappings.get(1).getDefinition().getType()).isNull();
         assertThat(extractedMappings.get(1).getDefinition().getSource()).isNull();
 
-        FileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource, templateFolderPath, templateFileName);
+        fileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource, templateFolderPath, templateFileName);
         assertThat(response.getCode()).isEqualTo(templateCode);
     }
 
@@ -263,6 +263,255 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Обновление шаблона отклоняет REFERENCE mapping вне COLLECTION scope")
+    void givenReferenceMappingWithValueScope_whenUpdateTemplate_thenReturnBadRequest() throws Exception {
+        Template createdTemplate = templateMother.createTemplateWithMappings(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            "Шаблон с reference",
+            "SUPPLY_CONTRACT_REFERENCE_INVALID",
+            "Описание",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/reference-invalid.docx",
+            true,
+            List.of(
+                TemplateMapping.builder()
+                    .key("old_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+
+        TemplateUpdateRq request = TemplateUpdateRq.builder()
+            .name("Шаблон с reference")
+            .description("Описание")
+            .active(true)
+            .mappings(
+                List.of(
+                    TemplateMappingDto.builder()
+                        .key("payment_id")
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.VALUE.value())
+                                .source(
+                                    ReferenceValueSourceDto.builder()
+                                        .entityId(ENTITY_ID)
+                                        .targetPath("source.document$c.payment$c")
+                                        .referenceFieldName("document$c")
+                                        .referenceValuePath("source.document$c.id")
+                                        .path("reference.paymentId")
+                                        .paging(PagingRqDto.builder().page(0).size(100).build())
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .build()
+                )
+            )
+            .build();
+
+        mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID))
+            .andExpect(jsonPath("$.params[0]").value("payment_id"));
+
+        Template unchangedTemplate = templateMother.findAggregateById(TENANT_ID, createdTemplate.getId());
+        assertThat(unchangedTemplate.getMappings())
+            .extracting(TemplateMapping::getKey)
+            .containsExactly("old_variable");
+    }
+
+    @Test
+    @DisplayName("Обновление шаблона отклоняет COLLECTION mapping без REFERENCE source")
+    void givenCollectionMappingWithDirectSource_whenUpdateTemplate_thenReturnBadRequest() throws Exception {
+        Template createdTemplate = templateMother.createTemplateWithMappings(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            "Шаблон с collection direct",
+            "SUPPLY_CONTRACT_COLLECTION_DIRECT_INVALID",
+            "Описание",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/collection-direct-invalid.docx",
+            true,
+            List.of(
+                TemplateMapping.builder()
+                    .key("old_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+
+        TemplateUpdateRq request = TemplateUpdateRq.builder()
+            .name("Шаблон с collection direct")
+            .description("Описание")
+            .active(true)
+            .mappings(
+                List.of(
+                    TemplateMappingDto.builder()
+                        .key("contract_number_in_row")
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.COLLECTION.value())
+                                .source(DirectValueSourceDto.builder().path("source.number").build())
+                                .build()
+                        )
+                        .build()
+                )
+            )
+            .build();
+
+        mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID))
+            .andExpect(jsonPath("$.params[0]").value("contract_number_in_row"));
+
+        Template unchangedTemplate = templateMother.findAggregateById(TENANT_ID, createdTemplate.getId());
+        assertThat(unchangedTemplate.getMappings())
+            .extracting(TemplateMapping::getKey)
+            .containsExactly("old_variable");
+    }
+
+    @Test
+    @DisplayName("Обновление шаблона отклоняет generated_file_name вне FILE_NAME scope")
+    void givenGeneratedFileNameWithInvalidScope_whenUpdateTemplate_thenReturnBadRequest() throws Exception {
+        Template createdTemplate = templateMother.createTemplateWithMappings(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            "Шаблон с именем файла",
+            "SUPPLY_CONTRACT_FILENAME_INVALID",
+            "Описание",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/file-name-invalid.docx",
+            true,
+            List.of(
+                TemplateMapping.builder()
+                    .key("old_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+
+        TemplateUpdateRq request = TemplateUpdateRq.builder()
+            .name("Шаблон с именем файла")
+            .description("Описание")
+            .active(true)
+            .mappings(
+                List.of(
+                    TemplateMappingDto.builder()
+                        .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.VALUE.value())
+                                .source(ConstantValueSourceDto.builder().value("contract").build())
+                                .build()
+                        )
+                        .build()
+                )
+            )
+            .build();
+
+        mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID))
+            .andExpect(jsonPath("$.params[0]").value(TemplateConstants.MappingKeys.GENERATED_FILE_NAME));
+
+        Template unchangedTemplate = templateMother.findAggregateById(TENANT_ID, createdTemplate.getId());
+        assertThat(unchangedTemplate.getMappings())
+            .extracting(TemplateMapping::getKey)
+            .containsExactly("old_variable");
+    }
+
+    @Test
+    @DisplayName("Обновление шаблона отклоняет generated_file_name с REFERENCE source")
+    void givenGeneratedFileNameWithReferenceSource_whenUpdateTemplate_thenReturnBadRequest() throws Exception {
+        Template createdTemplate = templateMother.createTemplateWithMappings(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            "Шаблон с именем файла",
+            "SUPPLY_CONTRACT_FILENAME_REFERENCE_INVALID",
+            "Описание",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/file-name-reference-invalid.docx",
+            true,
+            List.of(
+                TemplateMapping.builder()
+                    .key("old_variable")
+                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .build()
+            )
+        );
+
+        TemplateUpdateRq request = TemplateUpdateRq.builder()
+            .name("Шаблон с именем файла")
+            .description("Описание")
+            .active(true)
+            .mappings(
+                List.of(
+                    TemplateMappingDto.builder()
+                        .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
+                        .definition(
+                            TemplateMappingDefinitionDto.builder()
+                                .scope(MappingScope.FILE_NAME.value())
+                                .source(
+                                    ReferenceValueSourceDto.builder()
+                                        .entityId(ENTITY_ID)
+                                        .referenceFieldName("document$c")
+                                        .referenceValuePath("source.document$c.id")
+                                        .targetPath("source.document$c.payment$c")
+                                        .path("reference.paymentId")
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .build()
+                )
+            )
+            .build();
+
+        mockMvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .put("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsBytes(request))
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID))
+            .andExpect(jsonPath("$.params[0]").value(TemplateConstants.MappingKeys.GENERATED_FILE_NAME));
+
+        Template unchangedTemplate = templateMother.findAggregateById(TENANT_ID, createdTemplate.getId());
+        assertThat(unchangedTemplate.getMappings())
+            .extracting(TemplateMapping::getKey)
+            .containsExactly("old_variable");
+    }
+
+    @Test
     @DisplayName("Удаление шаблона удаляет файл и записи шаблона")
     void givenExistingTemplate_whenDeleteTemplate_thenDeleteTemplateAndFile() throws Exception {
         // given
@@ -288,7 +537,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             )
         );
         String fileStorageSource = "doc-template-service";
-        FileStorageWireMock.stubDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
+        fileStorageWireMock.stubDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
 
         // when
         mockMvc.perform(
@@ -300,7 +549,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
         // then
         assertThat(templateMother.exists(TENANT_ID, createdTemplate.getId())).isFalse();
-        FileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
+        fileStorageWireMock.verifyDeleteFile(TENANT_ID, USER_ID, fileStorageSource, normalizedTemplateS3Key);
     }
 
     @Test

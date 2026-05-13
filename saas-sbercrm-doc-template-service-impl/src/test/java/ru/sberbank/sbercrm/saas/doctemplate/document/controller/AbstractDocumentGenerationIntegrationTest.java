@@ -24,6 +24,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefini
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 
 abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegrationTest {
@@ -144,6 +145,14 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
         return DocxTestUtils.createDocx(text);
     }
 
+    protected byte[] createDocxListItem(String text) throws Exception {
+        return DocxTestUtils.createDocxListItem(text);
+    }
+
+    protected byte[] createDocxTable(List<String> headerCells, List<String> templateCells) throws Exception {
+        return DocxTestUtils.createDocxTable(headerCells, templateCells);
+    }
+
     protected String readDocxText(byte[] content) throws Exception {
         return DocxTestUtils.readDocxText(content);
     }
@@ -168,6 +177,34 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
                     .scope(MappingScope.VALUE)
                     .type(TemplateValueType.STRING)
                     .source(DirectValueSource.builder().path(path).build())
+                    .build()
+            )
+            .build();
+    }
+
+    protected TemplateMapping buildReferenceValueMapping(
+        String key,
+        UUID entityId,
+        String targetPath,
+        String referenceFieldName,
+        String referenceValuePath,
+        String path
+    ) {
+        return TemplateMapping.builder()
+            .key(key)
+            .definition(
+                TemplateMappingDefinition.builder()
+                    .scope(MappingScope.COLLECTION)
+                    .type(TemplateValueType.STRING)
+                    .source(
+                        ReferenceValueSource.builder()
+                            .entityId(entityId)
+                            .targetPath(targetPath)
+                            .referenceFieldName(referenceFieldName)
+                            .referenceValuePath(referenceValuePath)
+                            .path(path)
+                            .build()
+                    )
                     .build()
             )
             .build();

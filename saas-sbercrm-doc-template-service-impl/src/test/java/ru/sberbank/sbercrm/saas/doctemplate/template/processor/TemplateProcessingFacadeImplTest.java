@@ -12,12 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
-import ru.sberbank.sbercrm.saas.doctemplate.template.processor.FormatAwareTemplateProcessor;
-import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacadeImpl;
-import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessorResolver;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateProcessingFacadeImplTest {
@@ -61,17 +59,19 @@ class TemplateProcessingFacadeImplTest {
         // given
         TemplateFormat format = TemplateFormat.DOCX;
         byte[] content = {1, 2, 3};
-        Map<String, String> values = Map.of("deal_number", "123");
+        GenerationTemplateContext context = GenerationTemplateContext.builder()
+            .scalarValues(Map.of("deal_number", "123"))
+            .build();
         byte[] expected = {4, 5, 6};
         given(templateProcessorResolver.resolve(format)).willReturn(templateProcessor);
-        given(templateProcessor.generate(content, values)).willReturn(expected);
+        given(templateProcessor.generate(content, context)).willReturn(expected);
 
         // when
-        byte[] actual = systemUnderTest.generate(format, content, values);
+        byte[] actual = systemUnderTest.generate(format, content, context);
 
         // then
         assertThat(actual).isEqualTo(expected);
         verify(templateProcessorResolver).resolve(format);
-        verify(templateProcessor).generate(content, values);
+        verify(templateProcessor).generate(content, context);
     }
 }

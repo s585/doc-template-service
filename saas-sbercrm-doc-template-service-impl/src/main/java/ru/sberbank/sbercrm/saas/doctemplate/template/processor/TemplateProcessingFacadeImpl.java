@@ -1,9 +1,9 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
-import java.util.Map;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 
@@ -19,7 +19,7 @@ public class TemplateProcessingFacadeImpl implements TemplateProcessingFacade {
     }
 
     @Override
-    public byte[] generate(TemplateFormat format, byte[] content, Map<String, String> values) {
-        return templateProcessorResolver.resolve(format).generate(content, values);
+    public byte[] generate(TemplateFormat format, byte[] content, GenerationTemplateContext context) {
+        return templateProcessorResolver.resolve(format).generate(content, context);
     }
 }
