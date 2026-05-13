@@ -12,7 +12,7 @@ import static java.util.stream.Collectors.toUnmodifiableMap;
 public enum MappingScope {
     FILE_NAME("FILE_NAME"),
     VALUE("VALUE"),
-    TABLE("TABLE");
+    COLLECTION("COLLECTION");
 
     private static final Map<String, MappingScope> CONSTANTS = Arrays.stream(values())
         .collect(toUnmodifiableMap(MappingScope::value, Function.identity()));

@@ -172,7 +172,7 @@ Reference через lookup:
   "id": "uuid",
   "key": "storage_product_name",
   "definition": {
-    "scope": "TABLE",
+    "scope": "COLLECTION",
     "type": "STRING",
     "expression": null,
     "source": {

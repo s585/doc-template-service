@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.CommonPageResponseBuilder;
 import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.DocumentCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedDocument;
@@ -32,9 +33,11 @@ public class GeneratedDocumentServiceImpl implements GeneratedDocumentService {
 
     @Override
     public PageResult<GeneratedDocument> findAllByObject(UUID tenantId, UUID entityId, UUID objectId, CommonRqDto request) {
+        var documents = generatedDocumentRepository.findAllByObject(tenantId, entityId, objectId, request);
+        long totalRecordsAmount = generatedDocumentRepository.countByObject(tenantId, entityId, objectId, request);
         return PageResult.<GeneratedDocument>builder()
-            .data(generatedDocumentRepository.findAllByObject(tenantId, entityId, objectId, request))
-            .totalRecordsAmount(generatedDocumentRepository.countByObject(tenantId, entityId, objectId, request))
+            .data(documents)
+            .paging(CommonPageResponseBuilder.buildPaging(request, documents.size(), totalRecordsAmount))
             .build();
     }
 }

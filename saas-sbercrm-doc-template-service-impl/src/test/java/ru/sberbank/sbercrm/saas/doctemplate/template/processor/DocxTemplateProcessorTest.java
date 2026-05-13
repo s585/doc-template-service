@@ -1,18 +1,27 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
@@ -38,7 +47,9 @@ class DocxTemplateProcessorTest {
                 org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.VALUE),
                 org.assertj.core.groups.Tuple.tuple("header_number", MappingScope.VALUE),
                 org.assertj.core.groups.Tuple.tuple("footer_number", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.TABLE)
+                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.COLLECTION),
+                org.assertj.core.groups.Tuple.tuple("payment_amount", MappingScope.COLLECTION),
+                org.assertj.core.groups.Tuple.tuple("currency", MappingScope.COLLECTION)
             );
     }
 
@@ -46,26 +57,181 @@ class DocxTemplateProcessorTest {
     @DisplayName("Процессор DOCX подставляет значения переменных при генерации")
     void givenDocxContentAndValues_whenGenerate_thenReplacePlaceholders() throws IOException {
         // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
-        DocxTemplateProcessor systemUnderTest = new DocxTemplateProcessor(docTemplateProperties);
+        DocxTemplateProcessor systemUnderTest = createProcessor();
         byte[] content = createDocxContent();
 
         // when
-        byte[] generated = systemUnderTest.generate(content, Map.of(
-            "deal_number", "42",
-            "header_number", "H-1",
-            "footer_number", "F-1",
-            "product_name", "Product"
-        ));
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of(
+                    "deal_number", "42",
+                    "header_number", "H-1",
+                    "footer_number", "F-1",
+                    "currency", "RUB"
+                ))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(Map.of("product_name", "Product")))
+                        .build(),
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount")))
+                        .rows(List.of(
+                            Map.of("payment_amount", "100"),
+                            Map.of("payment_amount", "250")
+                        ))
+                        .build()
+                ))
+                .build()
+        );
 
         // then
         try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
             assertThat(document.getParagraphs().getFirst().getText()).contains("42");
             assertThat(document.getHeaderList().getFirst().getText()).contains("H-1");
             assertThat(document.getFooterList().getFirst().getText()).contains("F-1");
-            assertThat(document.getTables().getFirst().getRow(0).getCell(0).getText()).contains("Product");
+            assertThat(document.getTables().getFirst().getRow(0).getCell(0).getText()).contains("Header");
+            assertThat(document.getTables().getFirst().getRow(1).getCell(0).getText()).contains("Product");
+            assertThat(document.getParagraphs())
+                .extracting(XWPFParagraph::getText)
+                .contains("Платеж 100 RUB", "Платеж 250 RUB")
+                .doesNotContain("Платеж ${payment_amount} ${currency}");
         }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX размножает строку таблицы по строкам коллекции")
+    void givenTableCollection_whenGenerate_thenRepeatTemplateRow() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxTableContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("currency", "RUB"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name", "product_qty")))
+                        .rows(List.of(
+                            Map.of("product_name", "Product A", "product_qty", "2"),
+                            Map.of("product_name", "Product B", "product_qty", "1")
+                        ))
+                        .build()
+                ))
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            XWPFTable table = document.getTables().getFirst();
+            assertThat(table.getRows()).hasSize(3);
+            assertThat(table.getRow(1).getCell(0).getText()).isEqualTo("Product A");
+            assertThat(table.getRow(1).getCell(1).getText()).isEqualTo("2");
+            assertThat(table.getRow(1).getCell(2).getText()).isEqualTo("RUB");
+            assertThat(table.getRow(2).getCell(0).getText()).isEqualTo("Product B");
+            assertThat(table.getRow(2).getCell(1).getText()).isEqualTo("1");
+            assertThat(table.getRow(2).getCell(2).getText()).isEqualTo("RUB");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX удаляет шаблонный collection block для пустой коллекции")
+    void givenEmptyCollection_whenGenerate_thenRemoveTemplateBlock() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of(
+                    "deal_number", "42",
+                    "header_number", "H-1",
+                    "footer_number", "F-1",
+                    "currency", "RUB"
+                ))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of())
+                        .build(),
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount")))
+                        .rows(List.of())
+                        .build()
+                ))
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            assertThat(document.getTables().getFirst().getRows()).hasSize(1);
+            assertThat(document.getParagraphs())
+                .extracting(XWPFParagraph::getText)
+                .doesNotContain("Платеж ${payment_amount} ${currency}");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX падает, если collection placeholder не покрыт dataset или scalar value")
+    void givenCollectionPlaceholderWithoutDataset_whenGenerate_thenThrowDetailedError() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxContentWithMixedCollectionKeys();
+
+        assertThatThrownBy(() -> systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of(
+                    "currency", "RUB"
+                ))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount")))
+                        .rows(List.of(Map.of("payment_amount", "100")))
+                        .build()
+                ))
+                .build()
+        ))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET);
+                assertThat(exception.getParams()).containsExactly("[missing_collection]");
+            });
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX падает, если collection placeholders неоднозначны между dataset'ами")
+    void givenAmbiguousCollectionDatasets_whenGenerate_thenThrowDetailedError() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxListOnlyContent();
+
+        assertThatThrownBy(() -> systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("currency", "RUB"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount")))
+                        .rows(List.of(Map.of("payment_amount", "100")))
+                        .build(),
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount", "payment_date")))
+                        .rows(List.of(Map.of("payment_amount", "250", "payment_date", "2026-05-12")))
+                        .build()
+                ))
+                .build()
+        ))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS);
+                assertThat(exception.getParams()).containsExactly("[payment_amount]");
+            });
+    }
+
+    private DocxTemplateProcessor createProcessor() {
+        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
+        docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
+        return new DocxTemplateProcessor(docTemplateProperties);
     }
 
     private byte[] createDocxContent() throws IOException {
@@ -73,17 +239,60 @@ class DocxTemplateProcessorTest {
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             document.createParagraph().createRun().setText("Номер сделки ${deal_number}");
 
-            XWPFHeader header = document.createHeader(org.apache.poi.wp.usermodel.HeaderFooterType.DEFAULT);
+            XWPFHeader header = document.createHeader(HeaderFooterType.DEFAULT);
             header.createParagraph().createRun().setText("Header ${header_number}");
 
-            XWPFFooter footer = document.createFooter(org.apache.poi.wp.usermodel.HeaderFooterType.DEFAULT);
+            XWPFFooter footer = document.createFooter(HeaderFooterType.DEFAULT);
             footer.createParagraph().createRun().setText("Footer ${footer_number}");
 
-            XWPFTable table = document.createTable(1, 1);
-            table.getRow(0).getCell(0).setText("${product_name}");
+            XWPFTable table = document.createTable(2, 1);
+            table.getRow(0).getCell(0).setText("Header");
+            table.getRow(1).getCell(0).setText("${product_name}");
+
+            XWPFParagraph listParagraph = document.createParagraph();
+            listParagraph.setNumID(BigInteger.ONE);
+            listParagraph.createRun().setText("Платеж ${payment_amount} ${currency}");
 
             document.write(outputStream);
             return outputStream.toByteArray();
         }
     }
+
+    private byte[] createDocxTableContent() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFTable table = document.createTable(2, 3);
+            table.getRow(0).getCell(0).setText("Product");
+            table.getRow(0).getCell(1).setText("Qty");
+            table.getRow(0).getCell(2).setText("Currency");
+            table.getRow(1).getCell(0).setText("${product_name}");
+            table.getRow(1).getCell(1).setText("${product_qty}");
+            table.getRow(1).getCell(2).setText("${currency}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createDocxListOnlyContent() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFParagraph listParagraph = document.createParagraph();
+            listParagraph.setNumID(BigInteger.ONE);
+            listParagraph.createRun().setText("Платеж ${payment_amount}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createDocxContentWithMixedCollectionKeys() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFParagraph listParagraph = document.createParagraph();
+            listParagraph.setNumID(BigInteger.ONE);
+            listParagraph.createRun().setText("Платеж ${payment_amount} ${missing_collection} ${currency}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
 }

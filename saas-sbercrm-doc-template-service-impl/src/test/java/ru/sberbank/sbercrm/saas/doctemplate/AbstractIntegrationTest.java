@@ -9,7 +9,9 @@ import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.sberbank.sbercrm.saas.doctemplate.document.gateway.businessobject.BusinessObjectWireMock;
 import ru.sberbank.sbercrm.saas.doctemplate.template.TemplateMother;
+import ru.sberbank.sbercrm.saas.doctemplate.template.gateway.filestorage.FileStorageWireMock;
 
 import java.util.UUID;
 
@@ -18,7 +20,7 @@ import java.util.UUID;
 @AutoConfigureEmbeddedDatabase
 @AutoConfigureWireMock(port = 0)
 @ActiveProfiles("integration-test")
-@Import(TemplateMother.class)
+@Import({TemplateMother.class, BusinessObjectWireMock.class, FileStorageWireMock.class})
 public abstract class AbstractIntegrationTest {
     protected static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     protected static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
@@ -32,4 +34,10 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected TemplateMother templateMother;
+
+    @Autowired
+    protected BusinessObjectWireMock businessObjectWireMock;
+
+    @Autowired
+    protected FileStorageWireMock fileStorageWireMock;
 }

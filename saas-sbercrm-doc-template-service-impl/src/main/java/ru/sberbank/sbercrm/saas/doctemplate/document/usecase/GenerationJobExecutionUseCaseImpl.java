@@ -93,7 +93,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         byte[] generatedContent = templateProcessingFacade.generate(
             template.getFormat(),
             templateContent,
-            generationContext.getValues()
+            generationContext
         );
         FileRs uploadedFile = fileStorageGateway.upload(
             job.getTenantId(),

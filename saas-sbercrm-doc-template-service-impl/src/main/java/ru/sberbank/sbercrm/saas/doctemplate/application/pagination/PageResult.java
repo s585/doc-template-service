@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRsDto;
 
 import java.util.List;
 
@@ -13,5 +14,5 @@ import java.util.List;
 @AllArgsConstructor
 public class PageResult<T> {
     private List<T> data;
-    private long totalRecordsAmount;
+    private PagingRsDto paging;
 }

@@ -9,8 +9,10 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.springframework.stereotype.Component;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
+import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -21,9 +23,18 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
+import org.apache.poi.xwpf.usermodel.IBodyElement;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
+import org.apache.xmlbeans.XmlCursor;
 
 @Component
 @RequiredArgsConstructor
@@ -39,36 +50,40 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
     public List<TemplateVariableInfo> extractVariables(byte[] content) {
         try (XWPFDocument document = new XWPFDocument(OPCPackage.open(new ByteArrayInputStream(content)))) {
             Pattern placeholderPattern = getPlaceholderPattern();
-            List<TemplateVariableInfo> occurrences = new ArrayList<>();
+            List<TemplateVariableInfo> variables = new ArrayList<>();
             for (XWPFParagraph paragraph : document.getParagraphs()) {
-                occurrences.addAll(
-                    TemplateVariableUtils.extractOccurrences(paragraph.getText(), placeholderPattern, MappingScope.VALUE)
+                variables.addAll(
+                    TemplateVariableUtils.extractVariables(
+                        paragraph.getText(),
+                        placeholderPattern,
+                        paragraph.getNumID() == null ? MappingScope.VALUE : MappingScope.COLLECTION
+                    )
                 );
             }
             for (XWPFTable table : document.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
-                        occurrences.addAll(
-                            TemplateVariableUtils.extractOccurrences(cell.getText(), placeholderPattern, MappingScope.TABLE)
+                        variables.addAll(
+                            TemplateVariableUtils.extractVariables(cell.getText(), placeholderPattern, MappingScope.COLLECTION)
                         );
                     }
                 }
             }
             if (document.getHeaderList() != null) {
                 document.getHeaderList().forEach(
-                    header -> occurrences.addAll(
-                        TemplateVariableUtils.extractOccurrences(header.getText(), placeholderPattern, MappingScope.VALUE)
+                    header -> variables.addAll(
+                        TemplateVariableUtils.extractVariables(header.getText(), placeholderPattern, MappingScope.VALUE)
                     )
                 );
             }
             if (document.getFooterList() != null) {
                 document.getFooterList().forEach(
-                    footer -> occurrences.addAll(
-                        TemplateVariableUtils.extractOccurrences(footer.getText(), placeholderPattern, MappingScope.VALUE)
+                    footer -> variables.addAll(
+                        TemplateVariableUtils.extractVariables(footer.getText(), placeholderPattern, MappingScope.VALUE)
                     )
                 );
             }
-            return occurrences;
+            return variables;
         } catch (IOException | InvalidFormatException ex) {
             throw new BusinessCrmException(
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
@@ -80,32 +95,21 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
     }
 
     @Override
-    public byte[] generate(byte[] content, Map<String, String> values) {
+    public byte[] generate(byte[] content, GenerationTemplateContext context) {
         try (XWPFDocument document = new XWPFDocument(OPCPackage.open(new ByteArrayInputStream(content)));
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            for (XWPFParagraph paragraph : document.getParagraphs()) {
-                replaceParagraphText(paragraph, values);
-            }
-            for (XWPFTable table : document.getTables()) {
-                for (XWPFTableRow row : table.getRows()) {
-                    for (XWPFTableCell cell : row.getTableCells()) {
-                        for (XWPFParagraph paragraph : cell.getParagraphs()) {
-                            replaceParagraphText(paragraph, values);
-                        }
-                    }
-                }
-            }
+            processBodyElements(document, context);
             if (document.getHeaderList() != null) {
                 document.getHeaderList().forEach(
                     header -> header.getParagraphs().forEach(
-                        paragraph -> replaceParagraphText(paragraph, values)
+                        paragraph -> replaceParagraphText(paragraph, context.getScalarValues())
                     )
                 );
             }
             if (document.getFooterList() != null) {
                 document.getFooterList().forEach(
                     footer -> footer.getParagraphs().forEach(
-                        paragraph -> replaceParagraphText(paragraph, values)
+                        paragraph -> replaceParagraphText(paragraph, context.getScalarValues())
                     )
                 );
             }
@@ -125,6 +129,207 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         return TemplateVariableUtils.compilePlaceholderPattern(
             docTemplateProperties.getTemplate().getVariable().getPlaceholderRegex()
         );
+    }
+
+    private void processBodyElements(XWPFDocument document, GenerationTemplateContext context) {
+        int bodyElementIndex = 0;
+        while (bodyElementIndex < document.getBodyElements().size()) {
+            IBodyElement bodyElement = document.getBodyElements().get(bodyElementIndex);
+            if (bodyElement instanceof XWPFParagraph paragraph) {
+                if (paragraph.getNumID() != null) {
+                    bodyElementIndex = processListParagraph(document, bodyElementIndex, paragraph, context);
+                } else {
+                    replaceParagraphText(paragraph, context.getScalarValues());
+                    bodyElementIndex++;
+                }
+                continue;
+            }
+            if (bodyElement instanceof XWPFTable table) {
+                processTable(table, context);
+            }
+            bodyElementIndex++;
+        }
+    }
+
+    private void processTable(XWPFTable table, GenerationTemplateContext context) {
+        int rowIndex = 0;
+        while (rowIndex < table.getRows().size()) {
+            XWPFTableRow row = table.getRow(rowIndex);
+            Set<String> placeholders = extractRowPlaceholders(row);
+            CollectionDataset dataset = resolveCollectionDataset(placeholders, context);
+            if (dataset == null) {
+                for (XWPFTableCell cell : row.getTableCells()) {
+                    for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                        replaceParagraphText(paragraph, context.getScalarValues());
+                    }
+                }
+                rowIndex++;
+                continue;
+            }
+
+            int repeatCount = dataset.getRows().size();
+            for (int itemIndex = 0; itemIndex < repeatCount; itemIndex++) {
+                XWPFTableRow insertedRow = table.insertNewTableRow(rowIndex + itemIndex);
+                copyRowTemplate(insertedRow, row, buildRowValues(placeholders, context, dataset, itemIndex));
+            }
+            table.removeRow(rowIndex + repeatCount);
+            rowIndex += repeatCount;
+        }
+    }
+
+    private int processListParagraph(
+        XWPFDocument document,
+        int bodyElementIndex,
+        XWPFParagraph paragraph,
+        GenerationTemplateContext context
+    ) {
+        Set<String> placeholders = extractParagraphPlaceholders(paragraph, MappingScope.COLLECTION);
+        CollectionDataset dataset = resolveCollectionDataset(placeholders, context);
+        if (dataset == null) {
+            replaceParagraphText(paragraph, context.getScalarValues());
+            return bodyElementIndex + 1;
+        }
+
+        int repeatCount = dataset.getRows().size();
+        for (int itemIndex = 0; itemIndex < repeatCount; itemIndex++) {
+            XWPFParagraph insertedParagraph = insertParagraphAt(document, bodyElementIndex + itemIndex + 1);
+            copyParagraphTemplate(insertedParagraph, paragraph, buildRowValues(placeholders, context, dataset, itemIndex));
+        }
+        document.removeBodyElement(bodyElementIndex);
+        return bodyElementIndex + repeatCount;
+    }
+
+    private Set<String> extractRowPlaceholders(XWPFTableRow row) {
+        Set<String> placeholders = new LinkedHashSet<>();
+        for (XWPFTableCell cell : row.getTableCells()) {
+            for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                placeholders.addAll(extractParagraphPlaceholders(paragraph, MappingScope.COLLECTION));
+            }
+        }
+        return placeholders;
+    }
+
+    private Set<String> extractParagraphPlaceholders(XWPFParagraph paragraph, MappingScope scope) {
+        return TemplateVariableUtils.extractVariables(paragraph.getText(), getPlaceholderPattern(), scope)
+            .stream()
+            .map(TemplateVariableInfo::getKey)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Map<String, String> buildRowValues(
+        Set<String> placeholders,
+        GenerationTemplateContext context,
+        CollectionDataset dataset,
+        int itemIndex
+    ) {
+        Map<String, String> rowValues = new HashMap<>(context.getScalarValues());
+        if (dataset == null || itemIndex >= dataset.getRows().size()) {
+            return rowValues;
+        }
+        Map<String, String> datasetRow = dataset.getRows().get(itemIndex);
+        for (String placeholder : placeholders) {
+            if (dataset.getKeys().contains(placeholder)) {
+                rowValues.put(placeholder, datasetRow.getOrDefault(placeholder, ""));
+            }
+        }
+        return rowValues;
+    }
+
+    private CollectionDataset resolveCollectionDataset(Set<String> placeholders, GenerationTemplateContext context) {
+        Set<String> datasetKeys = context.getCollections().stream()
+            .flatMap(dataset -> dataset.getKeys().stream())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<String> collectionKeys = placeholders.stream()
+            .filter(datasetKeys::contains)
+            .toList();
+        if (collectionKeys.isEmpty()) {
+            return null;
+        }
+        List<String> unresolvedKeys = placeholders.stream()
+            .filter(key -> !collectionKeys.contains(key))
+            .filter(key -> !context.getScalarValues().containsKey(key))
+            .toList();
+        if (!unresolvedKeys.isEmpty()) {
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
+                unresolvedKeys.toString()
+            );
+        }
+
+        List<CollectionDataset> matchingDatasets = context.getCollections().stream()
+            .filter(dataset -> dataset.getKeys().containsAll(collectionKeys))
+            .toList();
+        if (matchingDatasets.isEmpty()) {
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
+                collectionKeys.toString()
+            );
+        }
+        if (matchingDatasets.size() > 1) {
+            throw new BusinessCrmException(
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
+                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
+                collectionKeys.toString()
+            );
+        }
+        return matchingDatasets.getFirst();
+    }
+
+    private void copyRowTemplate(XWPFTableRow targetRow, XWPFTableRow templateRow, Map<String, String> values) {
+        if (templateRow.getCtRow().getTrPr() != null) {
+            targetRow.getCtRow().setTrPr((CTTrPr) templateRow.getCtRow().getTrPr().copy());
+        }
+        for (XWPFTableCell templateCell : templateRow.getTableCells()) {
+            XWPFTableCell targetCell = targetRow.addNewTableCell();
+            if (templateCell.getCTTc().getTcPr() != null) {
+                targetCell.getCTTc().setTcPr((CTTcPr) templateCell.getCTTc().getTcPr().copy());
+            }
+            String cellText = TemplateVariableUtils.replacePlaceholders(templateCell.getText(), values, getPlaceholderPattern());
+            for (int i = targetCell.getParagraphs().size() - 1; i >= 0; i--) {
+                targetCell.removeParagraph(i);
+            }
+            targetCell.setText(cellText);
+        }
+    }
+
+    private XWPFParagraph insertParagraphAt(XWPFDocument document, int bodyInsertIndex) {
+        if (bodyInsertIndex >= document.getBodyElements().size()) {
+            return document.createParagraph();
+        }
+        try (XmlCursor cursor = getBodyElementCursor(document.getBodyElements().get(bodyInsertIndex))) {
+            return document.insertNewParagraph(cursor);
+        }
+    }
+
+    private XmlCursor getBodyElementCursor(IBodyElement bodyElement) {
+        if (bodyElement instanceof XWPFParagraph paragraph) {
+            return paragraph.getCTP().newCursor();
+        }
+        if (bodyElement instanceof XWPFTable table) {
+            return table.getCTTbl().newCursor();
+        }
+        throw new BusinessCrmException(
+            TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_UNSUPPORTED_BODY_ELEMENT,
+            TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_UNSUPPORTED_BODY_ELEMENT,
+            bodyElement.getElementType()
+        );
+    }
+
+    private void copyParagraphTemplate(XWPFParagraph targetParagraph, XWPFParagraph templateParagraph, Map<String, String> values) {
+        if (templateParagraph.getCTP().getPPr() != null) {
+            targetParagraph.getCTP().setPPr((CTPPr) templateParagraph.getCTP().getPPr().copy());
+        }
+        String paragraphText = TemplateVariableUtils.replacePlaceholders(
+            templateParagraph.getText(),
+            values,
+            getPlaceholderPattern()
+        );
+        for (int i = targetParagraph.getRuns().size() - 1; i >= 0; i--) {
+            targetParagraph.removeRun(i);
+        }
+        targetParagraph.createRun().setText(paragraphText);
     }
 
     private void replaceParagraphText(XWPFParagraph paragraph, Map<String, String> values) {

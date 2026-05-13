@@ -2,7 +2,6 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
@@ -37,7 +36,7 @@ public final class TemplateVariableUtils {
         }
     }
 
-    public static List<TemplateVariableInfo> extractOccurrences(String text, Pattern pattern, MappingScope scope) {
+    public static List<TemplateVariableInfo> extractVariables(String text, Pattern pattern, MappingScope scope) {
         List<TemplateVariableInfo> occurrences = new ArrayList<>();
         Matcher matcher = pattern.matcher(text == null ? "" : text);
         while (matcher.find()) {

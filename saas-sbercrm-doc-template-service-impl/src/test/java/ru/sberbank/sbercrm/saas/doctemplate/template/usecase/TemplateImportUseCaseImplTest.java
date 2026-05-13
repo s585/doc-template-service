@@ -77,7 +77,7 @@ class TemplateImportUseCaseImplTest {
             .willReturn(
                 List.of(
                     TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.VALUE).build(),
-                    TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.TABLE).build()
+                    TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.COLLECTION).build()
                 )
             );
 

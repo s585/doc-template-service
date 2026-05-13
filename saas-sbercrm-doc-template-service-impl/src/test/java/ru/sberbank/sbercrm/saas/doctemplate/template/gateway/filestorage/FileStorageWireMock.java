@@ -11,12 +11,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.http.MediaType;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 
-import java.util.UUID;
-
-public final class FileStorageWireMock {
+@TestComponent
+@RequiredArgsConstructor
+public class FileStorageWireMock {
     private static final String UPLOAD_PATH = "/internal/v1/file/upload";
     private static final String DOWNLOAD_PATH = "/internal/v1/file/download";
     private static final String DELETE_PATH = "/internal/v1/file";
@@ -24,11 +27,9 @@ public final class FileStorageWireMock {
     private static final String TENANT_ID_HEADER = "X-Tenant-Id";
     private static final String USER_ID_HEADER = "X-User-Id";
 
-    private FileStorageWireMock() {
-    }
+    private final ObjectMapper objectMapper;
 
-    public static void stubUploadFile(
-        ObjectMapper objectMapper,
+    public void stubUploadFile(
         UUID tenantId,
         UUID userId,
         String source,
@@ -58,7 +59,7 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void verifyUploadFile(UUID tenantId, UUID userId, String source, String path, String fileName) {
+    public void verifyUploadFile(UUID tenantId, UUID userId, String source, String path, String fileName) {
         com.github.tomakehurst.wiremock.client.WireMock.verify(
             postRequestedFor(urlPathEqualTo(UPLOAD_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))
@@ -71,7 +72,7 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void stubDownloadFile(UUID tenantId, UUID userId, String source, String key, byte[] content) {
+    public void stubDownloadFile(UUID tenantId, UUID userId, String source, String key, byte[] content) {
         stubFor(
             com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo(DOWNLOAD_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))
@@ -87,7 +88,7 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void verifyDownloadFile(UUID tenantId, UUID userId, String source, String key) {
+    public void verifyDownloadFile(UUID tenantId, UUID userId, String source, String key) {
         com.github.tomakehurst.wiremock.client.WireMock.verify(
             getRequestedFor(urlPathEqualTo(DOWNLOAD_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))
@@ -97,7 +98,7 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void stubDeleteFile(UUID tenantId, UUID userId, String source, String key) {
+    public void stubDeleteFile(UUID tenantId, UUID userId, String source, String key) {
         stubFor(
             com.github.tomakehurst.wiremock.client.WireMock.delete(urlPathEqualTo(DELETE_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))
@@ -108,7 +109,7 @@ public final class FileStorageWireMock {
         );
     }
 
-    public static void verifyDeleteFile(UUID tenantId, UUID userId, String source, String key) {
+    public void verifyDeleteFile(UUID tenantId, UUID userId, String source, String key) {
         com.github.tomakehurst.wiremock.client.WireMock.verify(
             deleteRequestedFor(urlPathEqualTo(DELETE_PATH))
                 .withHeader(SOURCE_HEADER, equalTo(source))

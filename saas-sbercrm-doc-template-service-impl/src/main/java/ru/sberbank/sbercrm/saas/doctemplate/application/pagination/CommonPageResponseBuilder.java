@@ -15,18 +15,19 @@ public final class CommonPageResponseBuilder {
         PageResult<T> result,
         Function<T, R> mapper
     ) {
-        long pageSize = request.getPaging().getSize();
-
         return CommonRsDto.builder()
             .data(result.getData().stream().map(mapper).toList())
-            .paging(
-                PagingRsDto.builder()
-                    .currentPage(request.getPaging().getPage().longValue())
-                    .recordsOnPage((long) result.getData().size())
-                    .totalRecordsAmount(result.getTotalRecordsAmount())
-                    .totalPageAmount(pageSize == 0 ? 0L : (result.getTotalRecordsAmount() + pageSize - 1) / pageSize)
-                    .build()
-            )
+            .paging(result.getPaging() == null ? buildPaging(request, result.getData().size(), 0L) : result.getPaging())
+            .build();
+    }
+
+    public static PagingRsDto buildPaging(CommonRqDto request, int recordsOnPage, long totalRecordsAmount) {
+        long pageSize = request.getPaging().getSize();
+        return PagingRsDto.builder()
+            .currentPage(request.getPaging().getPage().longValue())
+            .recordsOnPage((long) recordsOnPage)
+            .totalRecordsAmount(totalRecordsAmount)
+            .totalPageAmount(pageSize == 0 ? 0L : (totalRecordsAmount + pageSize - 1) / pageSize)
             .build();
     }
 }
