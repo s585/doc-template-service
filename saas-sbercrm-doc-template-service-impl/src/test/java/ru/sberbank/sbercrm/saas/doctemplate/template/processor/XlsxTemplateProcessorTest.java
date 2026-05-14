@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -153,6 +154,94 @@ class XlsxTemplateProcessorTest {
             });
     }
 
+    @Test
+    @DisplayName("Процессор XLSX подставляет scalar value в обычную строку без коллекции")
+    void givenScalarRow_whenGenerate_thenReplaceOnlyScalarPlaceholders() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createXlsxScalarContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("deal_number", "D-123"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(generated))) {
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("Договор D-123");
+            assertThat(sheet.getRow(0).getCell(1).getNumericCellValue()).isEqualTo(42d);
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор XLSX сохраняет типы ячеек при размножении collection-строки")
+    void givenCollectionRowWithTypedCells_whenGenerate_thenPreserveCellTypesAndValues() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createTypedCollectionContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("deal_number", "D-123"))
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(
+                            Map.of("product_name", "Product A"),
+                            Map.of("product_name", "Product B")
+                        ))
+                        .build()
+                ))
+                .build()
+        );
+
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(generated))) {
+            var sheet = workbook.getSheetAt(0);
+
+            assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).isEqualTo("Product A");
+            assertThat(sheet.getRow(1).getCell(1).getNumericCellValue()).isEqualTo(10d);
+            assertThat(sheet.getRow(1).getCell(2).getBooleanCellValue()).isTrue();
+            assertThat(sheet.getRow(1).getCell(3).getCellType()).isEqualTo(CellType.FORMULA);
+            assertThat(sheet.getRow(1).getCell(3).getCellFormula()).isEqualTo("B2*2");
+            assertThat(sheet.getRow(1).getCell(4).getCellType()).isEqualTo(CellType.BLANK);
+
+            assertThat(sheet.getRow(2).getCell(0).getStringCellValue()).isEqualTo("Product B");
+            assertThat(sheet.getRow(2).getCell(1).getNumericCellValue()).isEqualTo(10d);
+            assertThat(sheet.getRow(2).getCell(2).getBooleanCellValue()).isTrue();
+            assertThat(sheet.getRow(2).getCell(3).getCellType()).isEqualTo(CellType.FORMULA);
+            assertThat(sheet.getRow(2).getCell(3).getCellFormula()).isEqualTo("B2*2");
+            assertThat(sheet.getRow(2).getCell(4).getCellType()).isEqualTo(CellType.BLANK);
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор XLSX сохраняет стиль строки и ячейки при размножении")
+    void givenStyledCollectionRow_whenGenerate_thenPreserveStyles() throws IOException {
+        XlsxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createStyledCollectionContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(Map.of("product_name", "Product A")))
+                        .build()
+                ))
+                .build()
+        );
+
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(generated))) {
+            var sheet = workbook.getSheetAt(0);
+            var row = sheet.getRow(0);
+            assertThat(row.getHeight()).isEqualTo((short) 420);
+            assertThat(row.getCell(0).getCellStyle().getDataFormat()).isEqualTo((short) 7);
+        }
+    }
+
     private XlsxTemplateProcessor createProcessor() {
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
         docTemplateProperties.getTemplate().getVariable().setPlaceholderRegex("\\$\\{([A-Za-z0-9_.$]+)}");
@@ -191,6 +280,53 @@ class XlsxTemplateProcessorTest {
             var sheet = workbook.createSheet("template");
             var row = sheet.createRow(0);
             row.createCell(0).setCellValue("${product_name}");
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createXlsxScalarContent() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("template");
+            var row = sheet.createRow(0);
+            row.createCell(0).setCellValue("Договор ${deal_number}");
+            row.createCell(1).setCellValue(42d);
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createTypedCollectionContent() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("template");
+            var headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("${deal_number}");
+
+            var templateRow = sheet.createRow(1);
+            templateRow.createCell(0).setCellValue("${product_name}");
+            templateRow.createCell(1).setCellValue(10d);
+            templateRow.createCell(2).setCellValue(true);
+            templateRow.createCell(3).setCellFormula("B2*2");
+            templateRow.createCell(4).setBlank();
+
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createStyledCollectionContent() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("template");
+            var row = sheet.createRow(0);
+            row.setHeight((short) 420);
+            var style = workbook.createCellStyle();
+            style.setDataFormat((short) 7);
+            var cell = row.createCell(0);
+            cell.setCellValue("${product_name}");
+            cell.setCellStyle(style);
             workbook.write(outputStream);
             return outputStream.toByteArray();
         }

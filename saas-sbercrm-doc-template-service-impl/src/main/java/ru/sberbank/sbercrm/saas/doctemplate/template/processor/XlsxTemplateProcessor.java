@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -94,41 +93,55 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
         Pattern placeholderPattern = getPlaceholderPattern();
         int rowIndex = sheet.getFirstRowNum();
         while (rowIndex <= sheet.getLastRowNum()) {
-            Row row = sheet.getRow(rowIndex);
-            if (row == null) {
-                rowIndex++;
-                continue;
-            }
-
-            Set<String> placeholders = extractRowPlaceholders(row, placeholderPattern);
-            CollectionDataset dataset = resolveCollectionDataset(placeholders, context);
-            if (dataset == null) {
-                replaceRowValues(row, context.getScalarValues(), placeholderPattern);
-                rowIndex++;
-                continue;
-            }
-
-            int repeatCount = dataset.getRows().size();
-            RowSnapshot snapshot = captureRowSnapshot(row);
-            if (repeatCount == 0) {
-                removeRow(sheet, rowIndex);
-                continue;
-            }
-
-            if (repeatCount > 1 && rowIndex < sheet.getLastRowNum()) {
-                sheet.shiftRows(rowIndex + 1, sheet.getLastRowNum(), repeatCount - 1, true, false);
-            }
-            for (int itemIndex = 0; itemIndex < repeatCount; itemIndex++) {
-                Row targetRow = itemIndex == 0 ? getOrCreateRow(sheet, rowIndex) : sheet.createRow(rowIndex + itemIndex);
-                copyRowSnapshot(
-                    targetRow,
-                    snapshot,
-                    buildRowValues(placeholders, context, dataset, itemIndex),
-                    placeholderPattern
-                );
-            }
-            rowIndex += repeatCount;
+            rowIndex = processRow(sheet, rowIndex, context, placeholderPattern);
         }
+    }
+
+    private int processRow(Sheet sheet, int rowIndex, GenerationTemplateContext context, Pattern placeholderPattern) {
+        Row row = sheet.getRow(rowIndex);
+        if (row == null) {
+            return rowIndex + 1;
+        }
+
+        Set<String> placeholders = extractRowPlaceholders(row, placeholderPattern);
+        CollectionDataset dataset = CollectionTemplateProcessorSupport.resolveCollectionDataset(placeholders, context);
+        if (dataset == null) {
+            replaceRowValues(row, context.getScalarValues(), placeholderPattern);
+            return rowIndex + 1;
+        }
+
+        return renderCollectionRow(sheet, rowIndex, placeholders, context, dataset, placeholderPattern, row);
+    }
+
+    private int renderCollectionRow(
+        Sheet sheet,
+        int rowIndex,
+        Set<String> placeholders,
+        GenerationTemplateContext context,
+        CollectionDataset dataset,
+        Pattern placeholderPattern,
+        Row templateRow
+    ) {
+        int repeatCount = dataset.getRows().size();
+        if (repeatCount == 0) {
+            removeRow(sheet, rowIndex);
+            return rowIndex;
+        }
+
+        RowSnapshot snapshot = captureRowSnapshot(templateRow);
+        if (repeatCount > 1 && rowIndex < sheet.getLastRowNum()) {
+            sheet.shiftRows(rowIndex + 1, sheet.getLastRowNum(), repeatCount - 1, true, false);
+        }
+        for (int itemIndex = 0; itemIndex < repeatCount; itemIndex++) {
+            Row targetRow = itemIndex == 0 ? getOrCreateRow(sheet, rowIndex) : sheet.createRow(rowIndex + itemIndex);
+            copyRowSnapshot(
+                targetRow,
+                snapshot,
+                buildRowValues(placeholders, context, dataset, itemIndex),
+                placeholderPattern
+            );
+        }
+        return rowIndex + repeatCount;
     }
 
     private Set<String> extractRowPlaceholders(Row row, Pattern placeholderPattern) {
@@ -144,61 +157,13 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
         return placeholders;
     }
 
-    private CollectionDataset resolveCollectionDataset(Set<String> placeholders, GenerationTemplateContext context) {
-        Set<String> datasetKeys = context.getCollections().stream()
-            .flatMap(dataset -> dataset.getKeys().stream())
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<String> collectionKeys = placeholders.stream()
-            .filter(datasetKeys::contains)
-            .toList();
-        if (collectionKeys.isEmpty()) {
-            return null;
-        }
-        List<String> unresolvedKeys = placeholders.stream()
-            .filter(key -> !collectionKeys.contains(key))
-            .filter(key -> !context.getScalarValues().containsKey(key))
-            .toList();
-        if (!unresolvedKeys.isEmpty()) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                unresolvedKeys.toString()
-            );
-        }
-        List<CollectionDataset> matchingDatasets = context.getCollections().stream()
-            .filter(dataset -> dataset.getKeys().containsAll(collectionKeys))
-            .toList();
-        if (matchingDatasets.isEmpty()) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                collectionKeys.toString()
-            );
-        }
-        if (matchingDatasets.size() > 1) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
-                collectionKeys.toString()
-            );
-        }
-        return matchingDatasets.getFirst();
-    }
-
     private Map<String, String> buildRowValues(
         Set<String> placeholders,
         GenerationTemplateContext context,
         CollectionDataset dataset,
         int itemIndex
     ) {
-        Map<String, String> rowValues = new HashMap<>(context.getScalarValues());
-        Map<String, String> datasetRow = dataset.getRows().get(itemIndex);
-        for (String placeholder : placeholders) {
-            if (dataset.getKeys().contains(placeholder)) {
-                rowValues.put(placeholder, datasetRow.getOrDefault(placeholder, ""));
-            }
-        }
-        return rowValues;
+        return CollectionTemplateProcessorSupport.buildRowValues(placeholders, context, dataset, itemIndex);
     }
 
     private void replaceRowValues(Row row, Map<String, String> values, Pattern placeholderPattern) {

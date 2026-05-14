@@ -23,7 +23,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +155,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         while (rowIndex < table.getRows().size()) {
             XWPFTableRow row = table.getRow(rowIndex);
             Set<String> placeholders = extractRowPlaceholders(row);
-            CollectionDataset dataset = resolveCollectionDataset(placeholders, context);
+            CollectionDataset dataset = CollectionTemplateProcessorSupport.resolveCollectionDataset(placeholders, context);
             if (dataset == null) {
                 for (XWPFTableCell cell : row.getTableCells()) {
                     for (XWPFParagraph paragraph : cell.getParagraphs()) {
@@ -184,7 +183,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         GenerationTemplateContext context
     ) {
         Set<String> placeholders = extractParagraphPlaceholders(paragraph, MappingScope.COLLECTION);
-        CollectionDataset dataset = resolveCollectionDataset(placeholders, context);
+        CollectionDataset dataset = CollectionTemplateProcessorSupport.resolveCollectionDataset(placeholders, context);
         if (dataset == null) {
             replaceParagraphText(paragraph, context.getScalarValues());
             return bodyElementIndex + 1;
@@ -222,59 +221,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         CollectionDataset dataset,
         int itemIndex
     ) {
-        Map<String, String> rowValues = new HashMap<>(context.getScalarValues());
-        if (dataset == null || itemIndex >= dataset.getRows().size()) {
-            return rowValues;
-        }
-        Map<String, String> datasetRow = dataset.getRows().get(itemIndex);
-        for (String placeholder : placeholders) {
-            if (dataset.getKeys().contains(placeholder)) {
-                rowValues.put(placeholder, datasetRow.getOrDefault(placeholder, ""));
-            }
-        }
-        return rowValues;
-    }
-
-    private CollectionDataset resolveCollectionDataset(Set<String> placeholders, GenerationTemplateContext context) {
-        Set<String> datasetKeys = context.getCollections().stream()
-            .flatMap(dataset -> dataset.getKeys().stream())
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<String> collectionKeys = placeholders.stream()
-            .filter(datasetKeys::contains)
-            .toList();
-        if (collectionKeys.isEmpty()) {
-            return null;
-        }
-        List<String> unresolvedKeys = placeholders.stream()
-            .filter(key -> !collectionKeys.contains(key))
-            .filter(key -> !context.getScalarValues().containsKey(key))
-            .toList();
-        if (!unresolvedKeys.isEmpty()) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                unresolvedKeys.toString()
-            );
-        }
-
-        List<CollectionDataset> matchingDatasets = context.getCollections().stream()
-            .filter(dataset -> dataset.getKeys().containsAll(collectionKeys))
-            .toList();
-        if (matchingDatasets.isEmpty()) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_MISSING_DATASET,
-                collectionKeys.toString()
-            );
-        }
-        if (matchingDatasets.size() > 1) {
-            throw new BusinessCrmException(
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
-                TemplateConstants.ErrorCodes.TEMPLATE_COLLECTION_PLACEHOLDERS_AMBIGUOUS,
-                collectionKeys.toString()
-            );
-        }
-        return matchingDatasets.getFirst();
+        return CollectionTemplateProcessorSupport.buildRowValues(placeholders, context, dataset, itemIndex);
     }
 
     private void copyRowTemplate(XWPFTableRow targetRow, XWPFTableRow templateRow, Map<String, String> values) {
