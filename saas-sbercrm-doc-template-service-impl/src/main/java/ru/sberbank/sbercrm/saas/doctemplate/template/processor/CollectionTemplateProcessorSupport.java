@@ -15,6 +15,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 final class CollectionTemplateProcessorSupport {
 
     static CollectionDataset resolveCollectionDataset(Set<String> placeholders, GenerationTemplateContext context) {
+        // Шаблонная строка может смешивать скалярные placeholder-ы и placeholder-ы коллекции.
+        // Dataset выбираем только по collection keys, а скалярные значения потом добавляются в каждую строку.
         List<String> collectionKeys = placeholders.stream()
             .filter(CollectionTemplateProcessorSupport::hasText)
             .filter(key -> context.getCollections().stream().anyMatch(dataset -> dataset.getKeys().contains(key)))

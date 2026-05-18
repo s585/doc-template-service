@@ -21,6 +21,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
+/**
+ * Загружает collection dataset для mapping-ов на основе {@link ReferenceValueSource}.
+ *
+ * <p>Берёт reference value из основного бизнес-объекта, постранично загружает связанные объекты
+ * и превращает каждую запись в строку dataset-а с ключами placeholder-ов шаблона.
+ */
 @Component
 @RequiredArgsConstructor
 public class ReferenceCollectionDatasetResolver implements CollectionDatasetResolver {

@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.BusinessObjectGateway;
@@ -25,6 +26,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class GenerationContextAssemblerImpl implements GenerationContextAssembler {
     private final BusinessObjectGateway businessObjectGateway;
@@ -36,6 +38,13 @@ public class GenerationContextAssemblerImpl implements GenerationContextAssemble
 
     @Override
     public GenerationTemplateContext assemble(GenerationJob job, UUID userId, Template template) {
+        log.debug(
+            "Assembling generation context: jobId={}, documentId={}, templateId={}, format={}",
+            job.getId(),
+            job.getDocumentId(),
+            template.getId(),
+            template.getFormat()
+        );
         Map<String, Object> sourceObject = resolveSourceObject(job, userId, template);
         Map<String, String> scalarValues = new HashMap<>();
         List<CollectionDataset> collections = new ArrayList<>();
@@ -43,6 +52,16 @@ public class GenerationContextAssemblerImpl implements GenerationContextAssemble
 
         List<TemplateMapping> mappings = template.getMappings() == null ? List.of() : template.getMappings();
         GenerationMappingPlan plan = generationMappingPlanner.build(mappings);
+        log.debug(
+            "Built generation mapping plan: jobId={}, documentId={}, templateId={}, "
+                + "scalarMappings={}, generatedFileNameMappings={}, collectionGroups={}",
+            job.getId(),
+            job.getDocumentId(),
+            template.getId(),
+            plan.scalarMappings().size(),
+            plan.generatedFileNameMappings().size(),
+            plan.collectionGroups().size()
+        );
 
         for (TemplateMapping scalarMapping : plan.scalarMappings()) {
             resolveScalarValue(scalarMapping, sourceObject, job, userId, scalarValues);
@@ -67,6 +86,16 @@ public class GenerationContextAssemblerImpl implements GenerationContextAssemble
         String generatedFileName = generatedFileBaseName.endsWith("." + extension)
             ? generatedFileBaseName
             : generatedFileBaseName + "." + extension;
+        log.debug(
+            "Generation context assembled: jobId={}, documentId={}, templateId={}, "
+                + "scalarKeys={}, collections={}, generatedFileName={}",
+            job.getId(),
+            job.getDocumentId(),
+            template.getId(),
+            scalarValues.keySet(),
+            describeCollections(collections),
+            generatedFileName
+        );
         return GenerationTemplateContext.builder()
             .scalarValues(scalarValues)
             .collections(collections)
@@ -162,9 +191,31 @@ public class GenerationContextAssemblerImpl implements GenerationContextAssemble
     private Map<String, Object> resolveSourceObject(GenerationJob job, UUID userId, Template template) {
         SelectDto selectDto = generationSelectBuilder.build(template);
         if (selectDto.getFields() == null || selectDto.getFields().isEmpty()) {
+            log.debug(
+                "Skip source object loading because generation select is empty: jobId={}, documentId={}, templateId={}",
+                job.getId(),
+                job.getDocumentId(),
+                template.getId()
+            );
             return null;
         }
+        log.debug(
+            "Loading source object for generation: jobId={}, documentId={}, templateId={}, "
+                + "entityId={}, objectId={}, selectedFieldsCount={}",
+            job.getId(),
+            job.getDocumentId(),
+            template.getId(),
+            job.getEntityId(),
+            job.getObjectId(),
+            selectDto.getFields().size()
+        );
         return businessObjectGateway.getObject(job.getTenantId(), userId, job.getEntityId(), job.getObjectId(), selectDto);
+    }
+
+    private List<String> describeCollections(List<CollectionDataset> collections) {
+        return collections.stream()
+            .map(dataset -> "keys=" + dataset.getKeys() + ", rowCount=" + dataset.getRows().size())
+            .toList();
     }
 
     private String toStringValue(Object value) {

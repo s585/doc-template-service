@@ -10,6 +10,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Данные для одного повторяемого collection-блока шаблона.
+ *
+ * <p>{@code keys} содержит placeholder-ы этого блока, а {@code rows} хранит значения
+ * для каждого повторения блока. Процессоры DOCX/XLSX используют эти данные, чтобы
+ * размножить строку или область шаблона по элементам коллекции.
+ */
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor

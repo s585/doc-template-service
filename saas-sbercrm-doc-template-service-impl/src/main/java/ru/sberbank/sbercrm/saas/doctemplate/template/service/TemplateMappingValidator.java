@@ -8,8 +8,17 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
+/**
+ * Валидирует допустимые сочетания scope и source у mapping-ов шаблона.
+ *
+ * <p>Правила защищают generation runtime от неоднозначных конфигураций: reference source
+ * разрешён только для collection mapping-ов, а имя файла не может строиться из reference source.
+ */
 @Component
 public class TemplateMappingValidator {
+    /**
+     * Проверяет список mapping-ов и выбрасывает бизнес-ошибку на первом некорректном placeholder-е.
+     */
     public void validate(List<TemplateMapping> mappings) {
         if (mappings == null) {
             return;

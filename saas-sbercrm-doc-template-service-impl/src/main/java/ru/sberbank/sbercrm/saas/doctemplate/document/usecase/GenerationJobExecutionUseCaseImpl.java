@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.document.usecase;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFound
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileResult;
@@ -87,14 +89,18 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             return;
         }
 
+        logTemplateDownload(job, attemptId, attemptNo, template.getS3Key());
         byte[] templateContent = fileStorageGateway.download(job.getTenantId(), effectiveUserId, template.getS3Key());
+        logTemplateDownloaded(job, attemptId, attemptNo, templateContent.length);
         GenerationTemplateContext generationContext = generationContextAssembler.assemble(job, effectiveUserId, template);
+        logContextAssembled(job, attemptId, attemptNo, generationContext);
         String generatedFileName = generationContext.getGeneratedFileName();
         byte[] generatedContent = templateProcessingFacade.generate(
             template.getFormat(),
             templateContent,
             generationContext
         );
+        logContentGenerated(job, attemptId, attemptNo, generatedFileName, generatedContent.length);
         FileRs uploadedFile = fileStorageGateway.upload(
             job.getTenantId(),
             effectiveUserId,
@@ -104,6 +110,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         );
         String checksum = calculateChecksum(generatedContent);
         long sizeBytes = generatedContent.length;
+        logGeneratedFileUploaded(job, attemptId, attemptNo, uploadedFile.getKey(), checksum, sizeBytes);
         GenerationTransitionContext context = buildTransitionContext(job, effectiveUserId, attemptId, attemptNo);
         GenerationArtifactMeta artifactMeta = GenerationArtifactMeta.builder()
             .s3Key(uploadedFile.getKey())
@@ -301,6 +308,109 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             generationWorkerIdentityProvider.getExecutionName(),
             fileKey
         );
+    }
+
+    private void logTemplateDownload(GenerationJob job, UUID attemptId, int attemptNo, String templateFileKey) {
+        log.debug(
+            "Downloading template for generation job: jobId={}, attemptId={}, attemptNo={}, "
+                + "documentId={}, templateId={}, format={}, templateFileKey={}",
+            job.getId(),
+            attemptId,
+            attemptNo,
+            job.getDocumentId(),
+            job.getTemplateId(),
+            job.getFormat(),
+            templateFileKey
+        );
+    }
+
+    private void logTemplateDownloaded(GenerationJob job, UUID attemptId, int attemptNo, long sizeBytes) {
+        log.debug(
+            "Downloaded template for generation job: jobId={}, attemptId={}, attemptNo={}, "
+                + "documentId={}, templateId={}, format={}, sizeBytes={}",
+            job.getId(),
+            attemptId,
+            attemptNo,
+            job.getDocumentId(),
+            job.getTemplateId(),
+            job.getFormat(),
+            sizeBytes
+        );
+    }
+
+    private void logContextAssembled(
+        GenerationJob job,
+        UUID attemptId,
+        int attemptNo,
+        GenerationTemplateContext generationContext
+    ) {
+        log.debug(
+            "Assembled generation context: jobId={}, attemptId={}, attemptNo={}, documentId={}, "
+                + "templateId={}, format={}, scalarKeys={}, collections={}, generatedFileName={}",
+            job.getId(),
+            attemptId,
+            attemptNo,
+            job.getDocumentId(),
+            job.getTemplateId(),
+            job.getFormat(),
+            generationContext.getScalarValues().keySet(),
+            describeCollections(generationContext),
+            generationContext.getGeneratedFileName()
+        );
+    }
+
+    private void logContentGenerated(
+        GenerationJob job,
+        UUID attemptId,
+        int attemptNo,
+        String generatedFileName,
+        long sizeBytes
+    ) {
+        log.debug(
+            "Generated document content: jobId={}, attemptId={}, attemptNo={}, documentId={}, "
+                + "templateId={}, format={}, generatedFileName={}, sizeBytes={}",
+            job.getId(),
+            attemptId,
+            attemptNo,
+            job.getDocumentId(),
+            job.getTemplateId(),
+            job.getFormat(),
+            generatedFileName,
+            sizeBytes
+        );
+    }
+
+    private void logGeneratedFileUploaded(
+        GenerationJob job,
+        UUID attemptId,
+        int attemptNo,
+        String fileKey,
+        String checksum,
+        long sizeBytes
+    ) {
+        log.debug(
+            "Uploaded generated file: jobId={}, attemptId={}, attemptNo={}, documentId={}, "
+                + "templateId={}, format={}, fileKey={}, checksum={}, sizeBytes={}",
+            job.getId(),
+            attemptId,
+            attemptNo,
+            job.getDocumentId(),
+            job.getTemplateId(),
+            job.getFormat(),
+            fileKey,
+            checksum,
+            sizeBytes
+        );
+    }
+
+    private List<String> describeCollections(GenerationTemplateContext generationContext) {
+        return generationContext.getCollections().stream()
+            .map(this::describeCollection)
+            .toList();
+    }
+
+    private String describeCollection(CollectionDataset dataset) {
+        return "keys=" + dataset.getKeys() + ", rowCount=" + dataset.getRows().size();
     }
 
     private void logReusedArtifact(GenerationJob job, UUID attemptId, int attemptNo, String fileKey) {

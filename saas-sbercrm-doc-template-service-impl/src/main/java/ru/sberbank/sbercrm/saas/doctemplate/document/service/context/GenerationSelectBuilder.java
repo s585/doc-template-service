@@ -12,11 +12,20 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSou
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSource;
 
+/**
+ * Формирует {@link SelectDto} для загрузки основного бизнес-объекта перед генерацией.
+ *
+ * <p>В select попадают только поля, необходимые mapping-ам шаблона: прямые source paths и поля,
+ * по которым затем будут найдены reference collections.
+ */
 @Component
 @RequiredArgsConstructor
 public class GenerationSelectBuilder {
     private final GenerationPathResolver generationPathResolver;
 
+    /**
+     * Собирает уникальный набор полей бизнес-объекта, нужных для всех mapping-ов шаблона.
+     */
     public SelectDto build(Template template) {
         Set<String> fields = new LinkedHashSet<>();
         if (template == null || template.getMappings() == null) {

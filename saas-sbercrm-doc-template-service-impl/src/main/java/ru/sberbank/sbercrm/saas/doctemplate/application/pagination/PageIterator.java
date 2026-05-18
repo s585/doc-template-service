@@ -8,9 +8,19 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 
+/**
+ * Утилита для последовательного обхода постраничного API.
+ *
+ * <p>Инкапсулирует инкремент номера страницы и условия остановки, чтобы вызывающий код
+ * работал с {@link Iterable} страниц и не дублировал paging-цикл в каждом gateway или обработчике.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PageIterator {
 
+    /**
+     * Возвращает lazy-итератор страниц, который вызывает {@code pageFetcher} только при переходе
+     * к следующей странице.
+     */
     public static <T> Iterable<List<T>> iteratePages(CommonRqDto request, Function<CommonRqDto, PageResult<T>> pageFetcher) {
         return () -> new Iterator<>() {
             private CommonRqDto nextRequest = request.toBuilder()

@@ -11,11 +11,20 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 
+/**
+ * Строит план обработки mapping-ов шаблона для generation runtime.
+ *
+ * <p>Planner отделяет mapping имени файла от подстановок в тело документа и группирует
+ * collection mapping-и по источнику, чтобы контекст генерации загружал каждую коллекцию один раз.
+ */
 @Component
 @RequiredArgsConstructor
 public class GenerationMappingPlanner {
     private final CollectionMappingClassifier collectionMappingClassifier;
 
+    /**
+     * Классифицирует mapping-и без обращения к внешним данным.
+     */
     public GenerationMappingPlan build(List<TemplateMapping> mappings) {
         List<TemplateMapping> scalarMappings = new ArrayList<>();
         List<TemplateMapping> generatedFileNameMappings = new ArrayList<>();
