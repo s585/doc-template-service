@@ -13,6 +13,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCase;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateGetUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateListingUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateUpdateUseCase;
@@ -25,6 +26,7 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
     private final TemplateConverter templateConverter;
     private final TemplateImportUseCase importTemplateUseCase;
     private final TemplateUpdateUseCase updateTemplateUseCase;
+    private final TemplateGetUseCase getTemplateUseCase;
     private final TemplateDeletionUseCase deleteTemplateUseCase;
     private final TemplateListingUseCase listTemplatesUseCase;
 
@@ -48,6 +50,11 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
             templateConverter.convertToModel(request)
         );
         return templateConverter.convertToRs(template);
+    }
+
+    @Override
+    public TemplateRs getTemplate(UUID tenantId, UUID templateId) {
+        return templateConverter.convertToRs(getTemplateUseCase.execute(tenantId, templateId));
     }
 
     @Override

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -71,6 +72,21 @@ public interface TemplateController {
         @PathVariable("templateId") UUID templateId,
         @Valid @org.springframework.web.bind.annotation.RequestBody TemplateUpdateRq request
     );
+
+    @Operation(summary = "Получить шаблон по идентификатору")
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Шаблон найден",
+            content = @Content(schema = @Schema(implementation = TemplateRs.class))
+        ),
+        @ApiResponse(responseCode = "404", description = "Шаблон не найден")
+    })
+    @GetMapping(
+        value = "/v1/doc/template/{templateId}",
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    TemplateRs getTemplate(@PathVariable("templateId") UUID templateId);
 
     @Operation(summary = "Удалить шаблон")
     @ApiResponses({

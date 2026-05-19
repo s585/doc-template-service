@@ -3,6 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -149,6 +150,80 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
 
         fileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource, templateFolderPath, templateFileName);
         assertThat(response.getCode()).isEqualTo(templateCode);
+    }
+
+    @Test
+    @DisplayName("Получение шаблона по идентификатору возвращает шаблон с маппингами")
+    void givenExistingTemplate_whenGetTemplate_thenReturnTemplateWithMappings() throws Exception {
+        // given
+        Template createdTemplate = templateMother.createTemplateWithMappings(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            "Шаблон для получения",
+            "SUPPLY_CONTRACT_GET",
+            "Описание шаблона",
+            TemplateFormat.DOCX,
+            "templates/" + ENTITY_ID + "/get.docx",
+            true,
+            List.of(
+                TemplateMapping.builder()
+                    .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.FILE_NAME)
+                        .type(TemplateValueType.STRING)
+                        .source(ConstantValueSource.builder().value("Имя файла").build())
+                        .build())
+                    .build(),
+                TemplateMapping.builder()
+                    .key("customer_name")
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
+                    .build()
+            )
+        );
+
+        // when / then
+        mockMvc.perform(
+                get("/v1/doc/template/{templateId}", createdTemplate.getId())
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(createdTemplate.getId().toString()))
+            .andExpect(jsonPath("$.name").value("Шаблон для получения"))
+            .andExpect(jsonPath("$.code").value("SUPPLY_CONTRACT_GET"))
+            .andExpect(jsonPath("$.description").value("Описание шаблона"))
+            .andExpect(jsonPath("$.format").value(TemplateFormat.DOCX.value()))
+            .andExpect(jsonPath("$.s3Key").value("templates/" + ENTITY_ID + "/get.docx"))
+            .andExpect(jsonPath("$.entityId").value(ENTITY_ID.toString()))
+            .andExpect(jsonPath("$.active").value(true))
+            .andExpect(jsonPath("$.mappings.length()").value(2))
+            .andExpect(
+                jsonPath(
+                    "$.mappings[*].key",
+                    containsInAnyOrder(TemplateConstants.MappingKeys.GENERATED_FILE_NAME, "customer_name")
+                )
+            );
+    }
+
+    @Test
+    @DisplayName("Получение отсутствующего шаблона возвращает 404")
+    void givenMissingTemplate_whenGetTemplate_thenReturnNotFound() throws Exception {
+        // given
+        UUID missingTemplateId = UUID.fromString("99999999-9999-9999-9999-999999999999");
+
+        // when / then
+        mockMvc.perform(
+                get("/v1/doc/template/{templateId}", missingTemplateId)
+                    .header("X-Tenant-Id", TENANT_ID)
+                    .header("X-User-Id", USER_ID)
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value(TemplateConstants.ErrorCodes.TEMPLATE_NOT_FOUND))
+            .andExpect(jsonPath("$.params[0]").value(missingTemplateId.toString()));
     }
 
     @Test

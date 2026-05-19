@@ -48,6 +48,14 @@ public class TemplateControllerImpl implements TemplateController {
     }
 
     @Override
+    public TemplateRs getTemplate(@PathVariable("templateId") UUID templateId) {
+        return templateWebAdapter.getTemplate(
+            getRequiredUuidHeader(TENANT_ID_HEADER),
+            templateId
+        );
+    }
+
+    @Override
     public void deleteTemplate(@PathVariable("templateId") UUID templateId) {
         templateWebAdapter.deleteTemplate(
             getRequiredUuidHeader(TENANT_ID_HEADER),

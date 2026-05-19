@@ -14,6 +14,8 @@ public interface TemplateWebAdapter {
 
     TemplateRs updateTemplate(UUID tenantId, UUID userId, UUID templateId, TemplateUpdateRq request);
 
+    TemplateRs getTemplate(UUID tenantId, UUID templateId);
+
     void deleteTemplate(UUID tenantId, UUID userId, UUID templateId);
 
     CommonRsDto listTemplates(UUID tenantId, CommonRqDto request);
