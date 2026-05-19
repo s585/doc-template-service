@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -20,21 +21,21 @@ public interface TemplateMappingDefinitionConverter {
 
     @Named("convertToScope")
     default MappingScope convertToScope(String value) {
-        return value == null ? null : MappingScope.fromValue(value);
+        return MappingScope.fromValue(value);
     }
 
     @Named("convertToScopeValue")
     default String convertToScopeValue(MappingScope value) {
-        return value == null ? null : value.value();
+        return value.value();
     }
 
     @Named("convertToType")
     default TemplateValueType convertToType(String value) {
-        return value == null ? null : TemplateValueType.fromValue(value);
+        return TemplateValueType.fromValue(value);
     }
 
     @Named("convertToTypeValue")
     default String convertToTypeValue(TemplateValueType value) {
-        return value == null ? null : value.value();
+        return value.value();
     }
 }

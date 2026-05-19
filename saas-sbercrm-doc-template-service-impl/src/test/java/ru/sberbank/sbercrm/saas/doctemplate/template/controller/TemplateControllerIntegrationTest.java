@@ -140,11 +140,11 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             .toList();
         assertThat(extractedMappings.get(0).getKey()).isEqualTo("deal_number");
         assertThat(extractedMappings.get(0).getDefinition().getScope()).isEqualTo(MappingScope.VALUE);
-        assertThat(extractedMappings.get(0).getDefinition().getType()).isNull();
+        assertThat(extractedMappings.get(0).getDefinition().getType()).isEqualTo(TemplateValueType.STRING);
         assertThat(extractedMappings.get(0).getDefinition().getSource()).isNull();
         assertThat(extractedMappings.get(1).getKey()).isEqualTo("product_name");
         assertThat(extractedMappings.get(1).getDefinition().getScope()).isEqualTo(MappingScope.COLLECTION);
-        assertThat(extractedMappings.get(1).getDefinition().getType()).isNull();
+        assertThat(extractedMappings.get(1).getDefinition().getType()).isEqualTo(TemplateValueType.STRING);
         assertThat(extractedMappings.get(1).getDefinition().getSource()).isNull();
 
         fileStorageWireMock.verifyUploadFile(TENANT_ID, USER_ID, fileStorageSource, templateFolderPath, templateFileName);
@@ -171,7 +171,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );
@@ -201,6 +204,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.VALUE.value())
+                                .type(TemplateValueType.STRING.value())
                                 .build()
                         )
                         .build()
@@ -278,7 +282,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );
@@ -294,6 +301,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.VALUE.value())
+                                .type(TemplateValueType.STRING.value())
                                 .source(
                                     ReferenceValueSourceDto.builder()
                                         .entityId(ENTITY_ID)
@@ -345,7 +353,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );
@@ -361,6 +372,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.COLLECTION.value())
+                                .type(TemplateValueType.STRING.value())
                                 .source(DirectValueSourceDto.builder().path("source.number").build())
                                 .build()
                         )
@@ -403,7 +415,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );
@@ -419,6 +434,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.VALUE.value())
+                                .type(TemplateValueType.STRING.value())
                                 .source(ConstantValueSourceDto.builder().value("contract").build())
                                 .build()
                         )
@@ -461,7 +477,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("old_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );
@@ -477,6 +496,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
                         .definition(
                             TemplateMappingDefinitionDto.builder()
                                 .scope(MappingScope.FILE_NAME.value())
+                                .type(TemplateValueType.STRING.value())
                                 .source(
                                     ReferenceValueSourceDto.builder()
                                         .entityId(ENTITY_ID)
@@ -532,7 +552,10 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
             List.of(
                 TemplateMapping.builder()
                     .key("delete_variable")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.VALUE).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             )
         );

@@ -33,11 +33,14 @@ public class FilterDto implements HasField {
     @Schema(title = "Название поля", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Pattern(regexp = FIELD_NAME_REGEXP)
     private String field;
+    @Nullable
     @Schema(title = "Название поля для операций с двумя полями (OVERLAPS)")
     @Pattern(regexp = FIELD_NAME_REGEXP)
     private String secondField;
+    @Nullable
     @Schema(title = "Тип операции")
     private Operation operation;
+    @Nullable
     @Schema(title = "Значение поля")
     @Builder.Default
     private List<Object> value = new ArrayList<>();

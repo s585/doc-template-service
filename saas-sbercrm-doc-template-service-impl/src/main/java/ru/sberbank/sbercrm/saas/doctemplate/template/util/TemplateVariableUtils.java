@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
@@ -36,7 +37,7 @@ public final class TemplateVariableUtils {
         }
     }
 
-    public static List<TemplateVariableInfo> extractVariables(String text, Pattern pattern, MappingScope scope) {
+    public static List<TemplateVariableInfo> extractVariables(@Nullable String text, Pattern pattern, MappingScope scope) {
         List<TemplateVariableInfo> occurrences = new ArrayList<>();
         Matcher matcher = pattern.matcher(text == null ? "" : text);
         while (matcher.find()) {
@@ -50,7 +51,11 @@ public final class TemplateVariableUtils {
         return occurrences;
     }
 
-    public static String replacePlaceholders(String sourceText, Map<String, String> values, Pattern placeholderPattern) {
+    public static String replacePlaceholders(
+        @Nullable String sourceText,
+        Map<String, String> values,
+        Pattern placeholderPattern
+    ) {
         Matcher matcher = placeholderPattern.matcher(sourceText == null ? "" : sourceText);
         StringBuilder result = new StringBuilder();
         while (matcher.find()) {

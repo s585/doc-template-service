@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service.context;
 
 import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
@@ -19,20 +20,24 @@ public class GenerationPathResolver {
     /**
      * Извлекает значение по пути вида {@code source.field.nestedField} из основного бизнес-объекта.
      */
-    public Object resolveSourcePath(Map<String, Object> sourceObject, String rawPath, String mappingKey) {
-        if (sourceObject == null) {
-            return null;
-        }
+    @Nullable
+    public Object resolveSourcePath(
+        Map<String, Object> sourceObject,
+        String rawPath,
+        String mappingKey
+    ) {
         return resolvePath(sourceObject, rawPath, SOURCE_PREFIX, mappingKey);
     }
 
     /**
      * Извлекает значение по пути вида {@code reference.field.nestedField} из объекта ссылочной коллекции.
      */
-    public Object resolveReferencePath(Map<String, Object> referenceObject, String rawPath, String mappingKey) {
-        if (referenceObject == null) {
-            return null;
-        }
+    @Nullable
+    public Object resolveReferencePath(
+        Map<String, Object> referenceObject,
+        String rawPath,
+        String mappingKey
+    ) {
         return resolvePath(referenceObject, rawPath, REFERENCE_PREFIX, mappingKey);
     }
 
@@ -43,7 +48,13 @@ public class GenerationPathResolver {
         return normalizePath(rawPath, SOURCE_PREFIX, mappingKey);
     }
 
-    private Object resolvePath(Map<String, Object> sourceObject, String rawPath, String expectedPrefix, String mappingKey) {
+    @Nullable
+    private Object resolvePath(
+        Map<String, Object> sourceObject,
+        String rawPath,
+        String expectedPrefix,
+        String mappingKey
+    ) {
         String normalizedPath = normalizePath(rawPath, expectedPrefix, mappingKey);
         Object currentNode = sourceObject;
         for (String segment : normalizedPath.split("\\.")) {
@@ -59,7 +70,7 @@ public class GenerationPathResolver {
     }
 
     private String normalizePath(String rawPath, String expectedPrefix, String mappingKey) {
-        String trimmedPath = rawPath == null ? "" : rawPath.trim();
+        String trimmedPath = rawPath.trim();
         if (!trimmedPath.startsWith(expectedPrefix)) {
             throw invalidBusinessObjectPath(mappingKey, rawPath);
         }

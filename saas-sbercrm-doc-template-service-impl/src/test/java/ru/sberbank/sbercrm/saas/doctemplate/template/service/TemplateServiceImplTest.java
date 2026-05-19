@@ -22,6 +22,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.repository.TemplateMappingRepository;
@@ -151,6 +152,7 @@ class TemplateServiceImplTest {
             .definition(
                 TemplateMappingDefinition.builder()
                     .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
                     .source(
                         ReferenceValueSource.builder()
                             .entityId(ENTITY_ID)
@@ -171,6 +173,7 @@ class TemplateServiceImplTest {
             .definition(
                 TemplateMappingDefinition.builder()
                     .scope(MappingScope.COLLECTION)
+                    .type(TemplateValueType.STRING)
                     .source(DirectValueSource.builder().path("source.number").build())
                     .build()
             )
@@ -183,6 +186,7 @@ class TemplateServiceImplTest {
             .definition(
                 TemplateMappingDefinition.builder()
                     .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
                     .source(DirectValueSource.builder().path("source.number").build())
                     .build()
             )
@@ -195,6 +199,7 @@ class TemplateServiceImplTest {
             .definition(
                 TemplateMappingDefinition.builder()
                     .scope(MappingScope.FILE_NAME)
+                    .type(TemplateValueType.STRING)
                     .source(
                         ReferenceValueSource.builder()
                             .entityId(ENTITY_ID)

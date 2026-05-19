@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
 
 /**
@@ -11,10 +12,10 @@ public interface GenerationErrorClassifier {
     /**
      * Классифицирует runtime-исключение из generation pipeline.
      */
-    GenerationErrorDecision classify(Throwable throwable);
+    GenerationErrorDecision classify(@Nullable Throwable throwable);
 
     /**
      * Классифицирует уже нормализованный код ошибки.
      */
-    GenerationErrorDecision classify(String errorCode, String errorMessage);
+    GenerationErrorDecision classify(@Nullable String errorCode, @Nullable String errorMessage);
 }

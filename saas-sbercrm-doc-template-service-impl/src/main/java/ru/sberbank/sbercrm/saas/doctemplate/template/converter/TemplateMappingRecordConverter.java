@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
@@ -15,7 +16,8 @@ public interface TemplateMappingRecordConverter extends RecordMapper<Record, Tem
     TemplateMapping map(TTemplateMappingRecord record);
 
     @Override
-    default TemplateMapping map(Record record) {
+    @Nullable
+    default TemplateMapping map(@Nullable Record record) {
         if (record == null) {
             return null;
         }

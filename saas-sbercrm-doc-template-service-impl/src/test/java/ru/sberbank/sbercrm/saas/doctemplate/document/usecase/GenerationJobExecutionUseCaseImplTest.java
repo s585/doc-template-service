@@ -42,10 +42,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationRetryPoli
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.GenerationWorkerIdentityProvider;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.GenerationContextAssembler;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
@@ -487,12 +489,16 @@ class GenerationJobExecutionUseCaseImplTest {
                 TemplateMapping.builder()
                     .key("deal_number")
                     .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.VALUE)
+                        .type(TemplateValueType.STRING)
                         .source(ConstantValueSource.builder().value("123").build())
                         .build())
                     .build(),
                 TemplateMapping.builder()
                     .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
                     .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.FILE_NAME)
+                        .type(TemplateValueType.STRING)
                         .source(ConstantValueSource.builder().value("result").build())
                         .build())
                     .build()

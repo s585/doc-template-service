@@ -28,12 +28,12 @@ public class GenerationSelectBuilder {
      */
     public SelectDto build(Template template) {
         Set<String> fields = new LinkedHashSet<>();
-        if (template == null || template.getMappings() == null) {
+        if (template.getMappings() == null) {
             return SelectDto.EMPTY;
         }
 
         for (TemplateMapping mapping : template.getMappings()) {
-            if (mapping == null || mapping.getDefinition() == null || mapping.getDefinition().getSource() == null) {
+            if (mapping.getDefinition() == null || mapping.getDefinition().getSource() == null) {
                 continue;
             }
             collectFields(fields, mapping);

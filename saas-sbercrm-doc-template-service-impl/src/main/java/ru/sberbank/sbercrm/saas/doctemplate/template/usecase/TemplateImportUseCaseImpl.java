@@ -150,6 +150,7 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(entry.getValue())
+                            .type(TemplateValueType.STRING)
                             .build()
                     )
                     .build())

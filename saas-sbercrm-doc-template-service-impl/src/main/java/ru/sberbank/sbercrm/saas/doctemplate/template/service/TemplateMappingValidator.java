@@ -20,9 +20,6 @@ public class TemplateMappingValidator {
      * Проверяет список mapping-ов и выбрасывает бизнес-ошибку на первом некорректном placeholder-е.
      */
     public void validate(List<TemplateMapping> mappings) {
-        if (mappings == null) {
-            return;
-        }
         mappings.stream()
             .filter(this::isInvalid)
             .findFirst()
@@ -36,7 +33,7 @@ public class TemplateMappingValidator {
     }
 
     private boolean isInvalid(TemplateMapping mapping) {
-        if (mapping == null || mapping.getDefinition() == null) {
+        if (mapping.getDefinition() == null) {
             return false;
         }
         if (TemplateConstants.MappingKeys.GENERATED_FILE_NAME.equals(mapping.getKey())) {

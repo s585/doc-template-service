@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.jooq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.SortField;
@@ -28,7 +29,7 @@ public class JooqQueryBuilder {
     private final ObjectMapper objectMapper;
 
     public Condition buildCondition(
-        Set<FilterDto> filters,
+        @Nullable Set<FilterDto> filters,
         Map<String, Field<?>> fieldMapping
     ) {
         if (filters == null || filters.isEmpty()) {
@@ -44,7 +45,7 @@ public class JooqQueryBuilder {
     }
 
     public List<SortField<?>> buildOrderBy(
-        List<SortTypeDto> sort,
+        @Nullable List<SortTypeDto> sort,
         Map<String, Field<?>> fieldMapping
     ) {
         if (sort == null || sort.isEmpty()) {
@@ -107,7 +108,7 @@ public class JooqQueryBuilder {
     }
 
     private List<Condition> convertToConditions(
-        List<Object> value,
+        @Nullable List<Object> value,
         Map<String, Field<?>> fieldMapping
     ) {
         if (value == null || value.isEmpty()) {
@@ -263,7 +264,7 @@ public class JooqQueryBuilder {
     }
 
     private Field<?> resolveMappedField(
-        String fieldName,
+        @Nullable String fieldName,
         Map<String, Field<?>> fieldMapping
     ) {
         if (fieldName == null || fieldName.isBlank()) {
@@ -286,14 +287,14 @@ public class JooqQueryBuilder {
         return filter.getValue().getFirst();
     }
 
-    private Collection<Object> convertValues(Field<?> field, Collection<Object> values) {
+    private Collection<Object> convertValues(Field<?> field, @Nullable Collection<Object> values) {
         if (values == null || values.isEmpty()) {
             throw new IllegalArgumentException("Filter values must not be empty");
         }
         return values.stream().map(value -> convertValue(field, value)).toList();
     }
 
-    private Object convertValue(Field<?> field, Object value) {
+    private Object convertValue(Field<?> field, @Nullable Object value) {
         Class<?> type = field.getType();
         if (type == null || value == null) {
             return value;
@@ -317,13 +318,13 @@ public class JooqQueryBuilder {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Condition compareEquals(Field<?> field, Object value) {
+    private Condition compareEquals(Field<?> field, @Nullable Object value) {
         Field rawField = field;
         return rawField.eq(value);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Condition compareNotEquals(Field<?> field, Object value) {
+    private Condition compareNotEquals(Field<?> field, @Nullable Object value) {
         Field rawField = field;
         return rawField.ne(value);
     }

@@ -3,6 +3,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.application.jooq;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.JSONB;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
@@ -13,7 +14,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCr
 public class JsonbHelper {
     private final ObjectMapper objectMapper;
 
-    public JSONB toJsonb(Object value) {
+    @Nullable
+    public JSONB toJsonb(@Nullable Object value) {
         if (value == null) {
             return null;
         }
@@ -25,7 +27,8 @@ public class JsonbHelper {
         }
     }
 
-    public <T> T fromJsonb(JSONB jsonb, Class<T> type) {
+    @Nullable
+    public <T> T fromJsonb(@Nullable JSONB jsonb, Class<T> type) {
         if (jsonb == null) {
             return null;
         }

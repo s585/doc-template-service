@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.domain;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobEvent;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJobStatus;
 
@@ -14,5 +15,5 @@ public interface GenerationJobStateMachine {
      *
      * <p>Недопустимый переход считается ошибкой реализации.
      */
-    GenerationJobStatus transit(GenerationJobStatus currentStatus, GenerationJobEvent event);
+    GenerationJobStatus transit(@Nullable GenerationJobStatus currentStatus, @Nullable GenerationJobEvent event);
 }

@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
@@ -13,7 +14,8 @@ public interface GenerationJobAttemptRecordConverter extends RecordMapper<Record
     GenerationJobAttempt map(TGenerationJobAttemptRecord record);
 
     @Override
-    default GenerationJobAttempt map(Record record) {
+    @Nullable
+    default GenerationJobAttempt map(@Nullable Record record) {
         if (record == null) {
             return null;
         }

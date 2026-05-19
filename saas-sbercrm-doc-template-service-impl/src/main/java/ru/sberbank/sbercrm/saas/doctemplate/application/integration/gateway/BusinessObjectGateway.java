@@ -33,8 +33,7 @@ public class BusinessObjectGateway {
 
     public Map<String, Object> getObject(UUID tenantId, UUID userId, UUID entityId, UUID objectId, SelectDto selectDto) {
         try {
-            SelectDto effectiveSelect = selectDto == null ? FULL_OBJECT_SELECT : selectDto;
-            return coreDataClient.getObjectWithSpecifiedFieldsInternal(tenantId, userId, objectId, entityId, effectiveSelect);
+            return coreDataClient.getObjectWithSpecifiedFieldsInternal(tenantId, userId, objectId, entityId, selectDto);
         } catch (FeignException.NotFound ex) {
             throw new NotFoundCrmException(
                 DocumentConstants.ErrorCodes.GENERATION_BUSINESS_OBJECT_NOT_FOUND,

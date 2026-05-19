@@ -34,7 +34,7 @@ public class JooqTemplateMappingRepository implements TemplateMappingRepository 
 
     @Override
     public void createAll(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
-        if (mappings == null || mappings.isEmpty()) {
+        if (mappings.isEmpty()) {
             return;
         }
 

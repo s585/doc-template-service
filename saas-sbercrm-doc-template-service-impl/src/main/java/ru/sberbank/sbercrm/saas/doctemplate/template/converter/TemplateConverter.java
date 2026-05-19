@@ -22,6 +22,6 @@ public interface TemplateConverter {
 
     @Named("convertFormatToValue")
     default String convertFormatToValue(TemplateFormat format) {
-        return format == null ? null : format.value();
+        return format.value();
     }
 }

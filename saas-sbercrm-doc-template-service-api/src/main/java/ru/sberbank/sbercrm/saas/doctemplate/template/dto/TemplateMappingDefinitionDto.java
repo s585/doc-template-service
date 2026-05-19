@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,11 +24,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ValueSourceDto;
 @Schema(description = "Определение маппинга переменной шаблона")
 public class TemplateMappingDefinitionDto {
 
+    @NotBlank
     @Schema(description = "Область применения переменной")
     private String scope;
 
+    @NotBlank
     @Schema(description = "Тип итогового значения")
-    @Nullable
     private String type;
 
     @Valid

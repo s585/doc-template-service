@@ -9,8 +9,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
@@ -32,6 +34,8 @@ class GenerationSourceValueResolverTest {
             .key("customer_name")
             .definition(
                 TemplateMappingDefinition.builder()
+                    .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
                     .source(
                         ReferenceValueSource.builder()
                             .path("reference.customer.name")
@@ -53,6 +57,8 @@ class GenerationSourceValueResolverTest {
             .key("customer_name")
             .definition(
                 TemplateMappingDefinition.builder()
+                    .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
                     .source(DirectValueSource.builder().path("source").build())
                     .build()
             )

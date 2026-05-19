@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -13,9 +14,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.PrimitiveE
 
 @Mapper(componentModel = "spring")
 public interface ExpressionConverter {
-    default Expression convertToModel(ExpressionDto dto) {
+    @Nullable
+    default Expression convertToModel(@Nullable ExpressionDto dto) {
+        if (dto == null) {
+            return null;
+        }
         return switch (dto) {
-            case null -> null;
             case OperationExpressionDto operationExpressionDto ->
                 convertOperationExpressionToModel(operationExpressionDto);
             case PrimitiveExpressionDto primitiveExpressionDto ->
@@ -25,7 +29,8 @@ public interface ExpressionConverter {
         };
     }
 
-    default ExpressionDto convertToDto(Expression model) {
+    @Nullable
+    default ExpressionDto convertToDto(@Nullable Expression model) {
         return switch (model) {
             case null -> null;
             case OperationExpression operationExpression ->
@@ -46,12 +51,14 @@ public interface ExpressionConverter {
     PrimitiveExpressionDto convertPrimitiveExpressionToDto(PrimitiveExpression model);
 
     @Named("convertToOperator")
-    default ExpressionOperator convertToOperator(String value) {
+    @Nullable
+    default ExpressionOperator convertToOperator(@Nullable String value) {
         return value == null ? null : ExpressionOperator.fromValue(value);
     }
 
     @Named("convertToOperatorValue")
-    default String convertToOperatorValue(ExpressionOperator value) {
+    @Nullable
+    default String convertToOperatorValue(@Nullable ExpressionOperator value) {
         return value == null ? null : value.value();
     }
 }

@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service;
 
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.springframework.stereotype.Service;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.AbstractCrmException;
@@ -16,7 +17,7 @@ public class GenerationErrorClassifierImpl implements GenerationErrorClassifier 
     );
 
     @Override
-    public GenerationErrorDecision classify(Throwable throwable) {
+    public GenerationErrorDecision classify(@Nullable Throwable throwable) {
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
             if (cause instanceof AbstractCrmException crmException) {
                 return classify(
@@ -35,7 +36,7 @@ public class GenerationErrorClassifierImpl implements GenerationErrorClassifier 
     }
 
     @Override
-    public GenerationErrorDecision classify(String errorCode, String errorMessage) {
+    public GenerationErrorDecision classify(@Nullable String errorCode, @Nullable String errorMessage) {
         String normalizedCode = errorCode == null || errorCode.isBlank()
             ? CrmErrorCodes.SYSTEM_UNEXPECTED
             : errorCode;
@@ -46,7 +47,7 @@ public class GenerationErrorClassifierImpl implements GenerationErrorClassifier 
         );
     }
 
-    private String resolveMessage(String message, String fallback) {
+    private String resolveMessage(@Nullable String message, String fallback) {
         return message == null || message.isBlank() ? fallback : message;
     }
 }

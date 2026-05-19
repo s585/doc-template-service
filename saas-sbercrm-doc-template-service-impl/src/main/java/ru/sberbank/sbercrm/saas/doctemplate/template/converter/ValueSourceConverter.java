@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.mapstruct.Mapper;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.ConstantValueSourceDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.source.DirectValueSourceDto;
@@ -12,9 +13,12 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSource;
 
 @Mapper(componentModel = "spring")
 public interface ValueSourceConverter {
-    default ValueSource convertToModel(ValueSourceDto dto) {
+    @Nullable
+    default ValueSource convertToModel(@Nullable ValueSourceDto dto) {
+        if (dto == null) {
+            return null;
+        }
         return switch (dto) {
-            case null -> null;
             case DirectValueSourceDto directValueSourceDto -> convertDirectValueSourceToModel(directValueSourceDto);
             case ReferenceValueSourceDto referenceValueSourceDto ->
                 convertReferenceValueSourceToModel(referenceValueSourceDto);
@@ -24,7 +28,8 @@ public interface ValueSourceConverter {
         };
     }
 
-    default ValueSourceDto convertToDto(ValueSource model) {
+    @Nullable
+    default ValueSourceDto convertToDto(@Nullable ValueSource model) {
         return switch (model) {
             case null -> null;
             case DirectValueSource directValueSource -> convertDirectValueSourceToDto(directValueSource);

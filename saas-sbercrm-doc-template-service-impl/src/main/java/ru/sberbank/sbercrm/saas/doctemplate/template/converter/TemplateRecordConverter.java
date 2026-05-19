@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
@@ -20,7 +21,8 @@ public interface TemplateRecordConverter extends RecordMapper<Record, Template> 
     Template map(TTemplateRecord record);
 
     @Override
-    default Template map(Record record) {
+    @Nullable
+    default Template map(@Nullable Record record) {
         if (record == null) {
             return null;
         }
@@ -29,11 +31,11 @@ public interface TemplateRecordConverter extends RecordMapper<Record, Template> 
 
     @Named("convertFormat")
     default TemplateFormat convertFormat(String value) {
-        return value == null ? null : TemplateFormat.fromValue(value);
+        return TemplateFormat.fromValue(value);
     }
 
     @Named("convertActive")
     default boolean convertActive(Boolean value) {
-        return Boolean.TRUE.equals(value);
+        return value;
     }
 }

@@ -64,7 +64,7 @@ final class CollectionTemplateProcessorSupport {
         int itemIndex
     ) {
         Map<String, String> rowValues = new HashMap<>(context.getScalarValues());
-        if (dataset == null || itemIndex >= dataset.getRows().size()) {
+        if (itemIndex >= dataset.getRows().size()) {
             return rowValues;
         }
 

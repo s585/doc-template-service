@@ -36,6 +36,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.PrimitiveExpression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
@@ -269,6 +270,8 @@ class GenerationContextAssemblerImplTest {
                     .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
                     .definition(
                         TemplateMappingDefinition.builder()
+                            .scope(MappingScope.FILE_NAME)
+                            .type(TemplateValueType.STRING)
                             .source(ConstantValueSource.builder().value("contract").build())
                             .build()
                     )
@@ -277,6 +280,8 @@ class GenerationContextAssemblerImplTest {
                     .key("customer_name")
                     .definition(
                         TemplateMappingDefinition.builder()
+                            .scope(MappingScope.VALUE)
+                            .type(TemplateValueType.STRING)
                             .source(ConstantValueSource.builder().value("Romashka LLC").build())
                             .build()
                     )
@@ -294,6 +299,8 @@ class GenerationContextAssemblerImplTest {
                     .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
                     .definition(
                         TemplateMappingDefinition.builder()
+                            .scope(MappingScope.FILE_NAME)
+                            .type(TemplateValueType.STRING)
                             .source(ConstantValueSource.builder().value("contract").build())
                             .build()
                     )
@@ -302,6 +309,8 @@ class GenerationContextAssemblerImplTest {
                     .key("customer_name")
                     .definition(
                         TemplateMappingDefinition.builder()
+                            .scope(MappingScope.VALUE)
+                            .type(TemplateValueType.STRING)
                             .source(DirectValueSource.builder().path("source.customer.name").build())
                             .build()
                     )
@@ -319,6 +328,8 @@ class GenerationContextAssemblerImplTest {
                     .key("customer_name")
                     .definition(
                         TemplateMappingDefinition.builder()
+                            .scope(MappingScope.VALUE)
+                            .type(TemplateValueType.STRING)
                             .source(ConstantValueSource.builder().value("Romashka LLC").build())
                             .expression(PrimitiveExpression.builder().value("unused").build())
                             .build()
@@ -345,6 +356,7 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.COLLECTION)
+                            .type(TemplateValueType.STRING)
                             .source(referenceSource.toBuilder().path("reference.product.name").build())
                             .build()
                     )
@@ -354,6 +366,7 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.COLLECTION)
+                            .type(TemplateValueType.STRING)
                             .source(referenceSource.toBuilder().path("reference.quantity").build())
                             .build()
                     )
@@ -379,13 +392,17 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.COLLECTION)
+                            .type(TemplateValueType.STRING)
                             .source(referenceSource.toBuilder().path("reference.product.name").build())
                             .build()
                     )
                     .build(),
                 TemplateMapping.builder()
                     .key("product_qty")
-                    .definition(TemplateMappingDefinition.builder().scope(MappingScope.COLLECTION).build())
+                    .definition(TemplateMappingDefinition.builder()
+                        .scope(MappingScope.COLLECTION)
+                        .type(TemplateValueType.STRING)
+                        .build())
                     .build()
             ))
             .build();
@@ -415,6 +432,7 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.COLLECTION)
+                            .type(TemplateValueType.STRING)
                             .source(documentReferenceSource.toBuilder().path("reference.product.name").build())
                             .build()
                     )
@@ -424,6 +442,7 @@ class GenerationContextAssemblerImplTest {
                     .definition(
                         TemplateMappingDefinition.builder()
                             .scope(MappingScope.COLLECTION)
+                            .type(TemplateValueType.STRING)
                             .source(contractReferenceSource.toBuilder().path("reference.product.name").build())
                             .build()
                     )

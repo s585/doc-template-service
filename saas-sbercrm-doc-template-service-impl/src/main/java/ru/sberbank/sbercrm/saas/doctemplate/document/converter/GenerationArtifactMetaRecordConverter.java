@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Record3;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
@@ -8,7 +9,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMet
 @Mapper(componentModel = "spring")
 public interface GenerationArtifactMetaRecordConverter extends RecordMapper<Record3<String, String, Long>, GenerationArtifactMeta> {
     @Override
-    default GenerationArtifactMeta map(Record3<String, String, Long> record) {
+    @Nullable
+    default GenerationArtifactMeta map(@Nullable Record3<String, String, Long> record) {
         if (record == null) {
             return null;
         }

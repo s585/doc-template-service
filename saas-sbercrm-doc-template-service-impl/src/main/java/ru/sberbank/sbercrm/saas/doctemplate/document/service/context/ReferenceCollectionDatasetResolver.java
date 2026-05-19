@@ -52,7 +52,7 @@ public class ReferenceCollectionDatasetResolver implements CollectionDatasetReso
         UUID userId
     ) {
         CollectionDataset dataset = initializeDataset(mappings);
-        if (mappings.isEmpty() || sourceObject == null) {
+        if (mappings.isEmpty()) {
             return dataset;
         }
 

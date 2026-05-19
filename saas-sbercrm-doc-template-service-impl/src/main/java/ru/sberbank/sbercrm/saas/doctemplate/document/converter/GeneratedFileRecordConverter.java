@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.converter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.mapstruct.Mapper;
@@ -16,7 +17,8 @@ public interface GeneratedFileRecordConverter extends RecordMapper<Record, Gener
     GeneratedFile map(TGeneratedFileRecord record);
 
     @Override
-    default GeneratedFile map(Record record) {
+    @Nullable
+    default GeneratedFile map(@Nullable Record record) {
         if (record == null) {
             return null;
         }
