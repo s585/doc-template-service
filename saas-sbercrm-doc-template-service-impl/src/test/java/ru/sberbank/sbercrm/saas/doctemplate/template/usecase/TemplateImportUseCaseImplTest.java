@@ -54,7 +54,7 @@ class TemplateImportUseCaseImplTest {
     void givenVariableWithDifferentScopes_whenExecute_thenThrowBusinessException() {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
+        docTemplateProperties.getFileStorage().setFolder("templates");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
@@ -99,7 +99,7 @@ class TemplateImportUseCaseImplTest {
     void givenUploadedFileAndCreateFailure_whenExecute_thenDeleteUploadedFile() {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
+        docTemplateProperties.getFileStorage().setFolder("templates");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
@@ -148,7 +148,7 @@ class TemplateImportUseCaseImplTest {
     void givenCleanupFailure_whenExecute_thenPropagatePrimaryException() {
         // given
         DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
+        docTemplateProperties.getFileStorage().setFolder("templates");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,

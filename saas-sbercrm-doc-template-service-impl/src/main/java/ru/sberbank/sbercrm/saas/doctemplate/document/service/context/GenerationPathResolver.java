@@ -48,6 +48,13 @@ public class GenerationPathResolver {
         return normalizePath(rawPath, SOURCE_PREFIX, mappingKey);
     }
 
+    /**
+     * Возвращает путь к полю reference-объекта без namespace-префикса.
+     */
+    public String normalizeReferencePath(String rawPath, String mappingKey) {
+        return normalizePath(rawPath, REFERENCE_PREFIX, mappingKey);
+    }
+
     @Nullable
     private Object resolvePath(
         Map<String, Object> sourceObject,

@@ -25,8 +25,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplatePrope
 class XlsxTemplateProcessorTest {
 
     @Test
-    @DisplayName("Процессор XLSX извлекает переменные из ячеек и помечает их областью COLLECTION")
-    void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithCollectionScope() throws IOException {
+    @DisplayName("Процессор XLSX извлекает переменные из ячеек и по умолчанию помечает их областью VALUE")
+    void givenXlsxContent_whenExtractVariables_thenReturnVariablesWithValueScope() throws IOException {
         XlsxTemplateProcessor systemUnderTest = createProcessor();
         byte[] content = createXlsxCollectionContent();
 
@@ -35,9 +35,9 @@ class XlsxTemplateProcessorTest {
         assertThat(variables)
             .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope)
             .containsExactlyInAnyOrder(
-                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.COLLECTION),
-                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.COLLECTION),
-                org.assertj.core.groups.Tuple.tuple("product_qty", MappingScope.COLLECTION)
+                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.VALUE),
+                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.VALUE),
+                org.assertj.core.groups.Tuple.tuple("product_qty", MappingScope.VALUE)
             );
     }
 

@@ -106,7 +106,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
         String generatedKey = generatedDocument.getFiles().getFirst().getS3Key();
         assertThat(generatedKey)
             .startsWith(
-                "doc-template/generated/"
+                "documents/"
                     + ENTITY_ID
                     + "/"
                     + OBJECT_ID
@@ -162,6 +162,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             )
         );
         CommonRqDto listRequest = CommonRqDto.builder()
+            .select(SelectDto.builder().fields(Set.of("product.name")).build())
             .filter(
                 Set.of(
                     FilterDto.builder()
@@ -254,6 +255,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             USER_ID,
             REFERENCE_ENTITY_ID,
             CommonRqDto.builder()
+                .select(SelectDto.builder().fields(Set.of("product.name", "quantity")).build())
                 .filter(
                     Set.of(
                         FilterDto.builder()
@@ -348,6 +350,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             USER_ID,
             REFERENCE_ENTITY_ID,
             CommonRqDto.builder()
+                .select(SelectDto.builder().fields(Set.of("customer.name")).build())
                 .filter(java.util.Set.of(
                     FilterDto.builder()
                         .field("document$c")
@@ -394,7 +397,11 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.files[0].status").value(GeneratedFileStatus.ERROR.name()))
-            .andExpect(jsonPath("$.files[0].errorCode").value("generation.business_object_path_invalid"));
+            .andExpect(jsonPath("$.files[0].errorCode").value("generation.business_object_path_invalid"))
+            .andExpect(
+                jsonPath("$.files[0].errorMessage")
+                    .value("Invalid business object path for mapping: key=customer_name, path=reference.customer.name")
+            );
 
         assertThat(generationJobService.findById(TENANT_ID, claimedJob.getId()))
             .get()

@@ -26,9 +26,10 @@ saas:
         placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'
     file-storage:
       source: "doc-template-service"
-      folder: "/doc-template"
+      folder: "templates"
+      generated-folder: "documents"
       stub-enabled: true
-      stub-root-path: "${java.io.tmpdir}/doc-template-file-storage"
+      stub-root-path: "${user.dir}"
     generation:
       scheduler-enabled: true
       dispatch-fixed-delay-ms: 250

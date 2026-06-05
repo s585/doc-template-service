@@ -110,7 +110,15 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         );
         String checksum = calculateChecksum(generatedContent);
         long sizeBytes = generatedContent.length;
-        logGeneratedFileUploaded(job, attemptId, attemptNo, uploadedFile.getKey(), checksum, sizeBytes);
+        logGeneratedFileUploaded(
+            job,
+            attemptId,
+            attemptNo,
+            uploadedFile.getKey(),
+            uploadedFile.getPath(),
+            checksum,
+            sizeBytes
+        );
         GenerationTransitionContext context = buildTransitionContext(job, effectiveUserId, attemptId, attemptNo);
         GenerationArtifactMeta artifactMeta = GenerationArtifactMeta.builder()
             .s3Key(uploadedFile.getKey())
@@ -126,7 +134,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
                 .sizeBytes(sizeBytes)
                 .build()
         );
-        logCompletedJob(job, attemptId, attemptNo, uploadedFile.getKey());
+        logCompletedJob(job, attemptId, attemptNo, uploadedFile.getKey(), uploadedFile.getPath());
     }
 
     private void completeWithExistingArtifact(
@@ -199,7 +207,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     }
 
     private String buildGeneratedFolderPath(GenerationJob job) {
-        return docTemplateProperties.getFileStorage().getFolder() + "/generated/" + job.getEntityId() + "/"
+        return docTemplateProperties.getFileStorage().getGeneratedFolder() + "/" + job.getEntityId() + "/"
             + job.getObjectId() + "/" + job.getDocumentId();
     }
 
@@ -294,10 +302,10 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         );
     }
 
-    private void logCompletedJob(GenerationJob job, UUID attemptId, int attemptNo, String fileKey) {
+    private void logCompletedJob(GenerationJob job, UUID attemptId, int attemptNo, String fileKey, String filePath) {
         log.info(
             "Completed generation job: jobId={}, attemptId={}, attemptNo={}, documentId={}, "
-                + "templateId={}, format={}, workerId={}, workerName={}, fileKey={}",
+                + "templateId={}, format={}, workerId={}, workerName={}, fileKey={}, filePath={}",
             job.getId(),
             attemptId,
             attemptNo,
@@ -306,7 +314,8 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             job.getFormat(),
             job.getLockedBy(),
             generationWorkerIdentityProvider.getExecutionName(),
-            fileKey
+            fileKey,
+            filePath
         );
     }
 
@@ -385,12 +394,13 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         UUID attemptId,
         int attemptNo,
         String fileKey,
+        String filePath,
         String checksum,
         long sizeBytes
     ) {
         log.debug(
             "Uploaded generated file: jobId={}, attemptId={}, attemptNo={}, documentId={}, "
-                + "templateId={}, format={}, fileKey={}, checksum={}, sizeBytes={}",
+                + "templateId={}, format={}, fileKey={}, filePath={}, checksum={}, sizeBytes={}",
             job.getId(),
             attemptId,
             attemptNo,
@@ -398,6 +408,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             job.getTemplateId(),
             job.getFormat(),
             fileKey,
+            filePath,
             checksum,
             sizeBytes
         );

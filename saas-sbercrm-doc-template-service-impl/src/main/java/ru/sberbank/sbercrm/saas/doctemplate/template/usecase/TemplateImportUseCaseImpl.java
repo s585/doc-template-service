@@ -65,6 +65,14 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
             )
         );
         String uploadedKey = uploadedFile.getKey();
+        log.info(
+            "Uploaded template file: entityId={}, code={}, format={}, fileKey={}, filePath={}",
+            request.getEntityId(),
+            request.getCode(),
+            format,
+            uploadedKey,
+            uploadedFile.getPath()
+        );
 
         try {
             Template template = templateService.create(

@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
+import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
@@ -31,7 +33,7 @@ class FileStorageGatewayStubTest {
         MockMultipartFile file = new MockMultipartFile("file", "template.docx", null, "hello".getBytes());
 
         // when
-        FileRs uploaded = systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/123", "test", file);
+        FileRs uploaded = systemUnderTest.upload(TENANT_ID, USER_ID, "templates/123", "test", file);
         byte[] downloaded = systemUnderTest.download(TENANT_ID, USER_ID, uploaded.getKey());
 
         // then
@@ -51,9 +53,9 @@ class FileStorageGatewayStubTest {
             new MockMultipartFile("file", "result.docx", null, "second".getBytes());
 
         FileRs firstUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "doc-template/generated/entity/object/document", "test", firstFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", firstFile);
         FileRs secondUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "doc-template/generated/entity/object/document", "test", secondFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", secondFile);
 
         assertThat(firstUpload.getKey()).isNotEqualTo(secondUpload.getKey());
         assertThat(systemUnderTest.download(TENANT_ID, USER_ID, firstUpload.getKey()))
@@ -77,14 +79,14 @@ class FileStorageGatewayStubTest {
         FileRs storedMatchingFile = systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "doc-template/generated/entity/object/document",
+            "documents/entity/object/document",
             "test",
             matchingFile
         );
         systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "doc-template/generated/entity/object/another-document",
+            "documents/entity/object/another-document",
             "test",
             otherFile
         );
@@ -94,7 +96,7 @@ class FileStorageGatewayStubTest {
             USER_ID,
             FileFilterRq.builder()
                 .source("doc-template-service")
-                .prefixKey("doc-template/generated/entity/object/document")
+                .prefixKey("documents/entity/object/document")
                 .originalFileName("result.docx")
                 .build()
         );
@@ -104,5 +106,17 @@ class FileStorageGatewayStubTest {
             assertThat(file.getFileName()).isEqualTo("result.docx");
             assertThat(file.getSize()).isEqualTo(5L);
         });
+    }
+
+    @Test
+    @DisplayName("Заглушка не позволяет прочитать файл за пределами локального корня")
+    void givenEscapingKey_whenDownload_thenThrowException() {
+        DocTemplateProperties properties = new DocTemplateProperties();
+        properties.getFileStorage().setSource("doc-template-service");
+        properties.getFileStorage().setStubRootPath(tempDir.toString());
+        FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
+
+        assertThatThrownBy(() -> systemUnderTest.download(TENANT_ID, USER_ID, "../secret.docx"))
+            .isInstanceOf(SystemCrmException.class);
     }
 }

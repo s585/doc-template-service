@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -126,6 +127,17 @@ class GenerationContextAssemblerImplTest {
         assertThat(dataset.getRows()).containsExactly(
             Map.of("product_name", "Product A", "product_qty", "2"),
             Map.of("product_name", "Product B", "product_qty", "1")
+        );
+        verify(businessObjectGateway).getListObjectsPage(
+            eq(TENANT_ID),
+            eq(USER_ID),
+            eq(ENTITY_ID),
+            argThat(request ->
+                request.getSelect() != null
+                    && request.getSelect().getFields().equals(Set.of("product.name", "quantity"))
+                    && request.getPaging() != null
+                    && request.getPaging().getPage() == 0
+            )
         );
         verify(businessObjectGateway, times(2)).getListObjectsPage(eq(TENANT_ID), eq(USER_ID), eq(ENTITY_ID), any());
     }

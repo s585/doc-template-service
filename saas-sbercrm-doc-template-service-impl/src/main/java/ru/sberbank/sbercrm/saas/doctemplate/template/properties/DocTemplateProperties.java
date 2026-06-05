@@ -27,7 +27,8 @@ public class DocTemplateProperties {
     @Data
     public static class FileStorage {
         private String source;
-        private String folder;
+        private String folder = "templates";
+        private String generatedFolder = "documents";
         private boolean stubEnabled;
         private String stubRootPath;
     }

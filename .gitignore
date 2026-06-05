@@ -7,3 +7,7 @@ ddl.sql
 **/target/
 .idea/
 META-INF/
+templates/
+documents/
+saas-sbercrm-doc-template-service-impl/templates/
+saas-sbercrm-doc-template-service-impl/documents/

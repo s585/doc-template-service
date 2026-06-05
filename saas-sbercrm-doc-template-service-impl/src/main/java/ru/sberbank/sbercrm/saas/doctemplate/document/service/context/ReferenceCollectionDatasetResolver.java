@@ -18,6 +18,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
 
@@ -66,7 +67,7 @@ public class ReferenceCollectionDatasetResolver implements CollectionDatasetReso
             return dataset;
         }
 
-        CommonRqDto request = buildRequest(referenceSource, referenceValue);
+        CommonRqDto request = buildRequest(mappings, referenceSource, referenceValue);
         for (List<Map<String, Object>> page : PageIterator.iteratePages(
             request,
             pageRequest -> businessObjectGateway.getListObjectsPage(
@@ -107,11 +108,16 @@ public class ReferenceCollectionDatasetResolver implements CollectionDatasetReso
             .build();
     }
 
-    private CommonRqDto buildRequest(ReferenceValueSource referenceSource, Object referenceValue) {
+    private CommonRqDto buildRequest(
+        List<TemplateMapping> mappings,
+        ReferenceValueSource referenceSource,
+        Object referenceValue
+    ) {
         PagingRqDto paging = referenceSource.getPaging() == null
             ? PagingRqDto.builder().page(0).size(100).build()
             : referenceSource.getPaging().toBuilder().page(0).build();
         return CommonRqDto.builder()
+            .select(buildSelect(mappings))
             .filter(Set.of(
                 FilterDto.builder()
                     .field(referenceSource.getReferenceFieldName())
@@ -121,6 +127,15 @@ public class ReferenceCollectionDatasetResolver implements CollectionDatasetReso
             ))
             .sort(referenceSource.getSort() == null ? List.of() : referenceSource.getSort())
             .paging(paging)
+            .build();
+    }
+
+    private SelectDto buildSelect(List<TemplateMapping> mappings) {
+        return SelectDto.builder()
+            .fields(mappings.stream()
+                .map(mapping -> (ReferenceValueSource) mapping.getDefinition().getSource())
+                .map(source -> generationPathResolver.normalizeReferencePath(source.getPath(), "reference-select"))
+                .collect(Collectors.toCollection(LinkedHashSet::new)))
             .build();
     }
 

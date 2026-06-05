@@ -62,7 +62,11 @@ public class FileStorageGatewayStub implements FileStorageGateway {
 
     @Override
     public List<FileRs> findAllByFilter(UUID tenantId, UUID userId, FileFilterRq filter) {
-        try (Stream<Path> stream = Files.walk(Path.of(docTemplateProperties.getFileStorage().getStubRootPath()))) {
+        Path rootPath = resolveStorageRootPath();
+        if (!Files.exists(rootPath)) {
+            return List.of();
+        }
+        try (Stream<Path> stream = Files.walk(rootPath)) {
             return stream
                 .filter(Files::isRegularFile)
                 .map(this::buildStoredFileResponse)
@@ -106,12 +110,12 @@ public class FileStorageGatewayStub implements FileStorageGateway {
 
     private FileRs buildStoredFileResponse(Path targetPath) {
         String key = normalizeRelativePath(
-            Path.of(docTemplateProperties.getFileStorage().getStubRootPath()).relativize(targetPath).toString()
+            resolveStorageRootPath().relativize(targetPath).toString()
         );
         OffsetDateTime updatedDate = resolveUpdatedDate(targetPath);
         return FileRs.builder()
             .key(key)
-            .path(targetPath.getParent() == null ? "" : targetPath.getParent().toString())
+            .path(targetPath.toAbsolutePath().toString())
             .source(docTemplateProperties.getFileStorage().getSource())
             .fileName(resolveOriginalFileName(targetPath.getFileName().toString()))
             .size(resolveFileSize(targetPath))
@@ -121,8 +125,23 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     }
 
     private Path resolveStoragePath(String key) {
-        return Path.of(docTemplateProperties.getFileStorage().getStubRootPath())
+        Path rootPath = resolveStorageRootPath();
+        Path targetPath = rootPath
             .resolve(normalizeRelativePath(key))
+            .normalize();
+        if (!targetPath.startsWith(rootPath)) {
+            throw new SystemCrmException(
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                CrmErrorCodes.FILE_STORAGE_REQUEST_FAILED,
+                key
+            );
+        }
+        return targetPath;
+    }
+
+    private Path resolveStorageRootPath() {
+        return Path.of(docTemplateProperties.getFileStorage().getStubRootPath())
+            .toAbsolutePath()
             .normalize();
     }
 

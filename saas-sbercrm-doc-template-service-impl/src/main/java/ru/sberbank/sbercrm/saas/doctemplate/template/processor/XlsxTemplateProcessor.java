@@ -48,7 +48,7 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
                 for (Row row : sheet) {
                     for (Cell cell : row) {
                         occurrences.addAll(
-                            TemplateVariableUtils.extractVariables(cell.toString(), placeholderPattern, MappingScope.COLLECTION)
+                            TemplateVariableUtils.extractVariables(cell.toString(), placeholderPattern, MappingScope.VALUE)
                         );
                     }
                 }
