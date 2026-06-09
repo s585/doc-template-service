@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mockito;
@@ -32,7 +31,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileF
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FeignFileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 @ExtendWith(MockitoExtension.class)
 class FeignFileStorageGatewayTest {
@@ -42,17 +41,14 @@ class FeignFileStorageGatewayTest {
     @Mock
     private FileStorageClient fileStorageClient;
 
-    @Mock
-    private DocTemplateProperties docTemplateProperties;
+    private final FileStorageProperties fileStorageProperties = new FileStorageProperties();
 
-    @InjectMocks
     private FeignFileStorageGateway systemUnderTest;
 
     @BeforeEach
     void setUp() {
-        DocTemplateProperties.FileStorage fileStorage = new DocTemplateProperties.FileStorage();
-        fileStorage.setSource("doc-template-service");
-        org.mockito.BDDMockito.given(docTemplateProperties.getFileStorage()).willReturn(fileStorage);
+        fileStorageProperties.setNamespace("doc-template-service");
+        systemUnderTest = new FeignFileStorageGateway(fileStorageClient, fileStorageProperties);
     }
 
     @Test

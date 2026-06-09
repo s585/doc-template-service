@@ -1,6 +1,7 @@
 saas:
   doc-template:
     file-storage:
-      folder: "templates"
-      stub-enabled: true
-      stub-root-path: "${user.dir}"
+      local:
+        enabled: true
+        templates-folder: "templates"
+        documents-folder: "documents"

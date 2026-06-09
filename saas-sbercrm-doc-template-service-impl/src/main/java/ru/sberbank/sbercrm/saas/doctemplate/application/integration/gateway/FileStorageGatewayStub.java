@@ -20,17 +20,14 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
 
 @Component
-@ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "saas.doc-template.file-storage.local", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class FileStorageGatewayStub implements FileStorageGateway {
-    private static final String GENERATED_STORAGE_PATH = "generated";
-    private static final String LOCAL_GENERATED_STORAGE_PATH = "documents";
-
-    private final DocTemplateProperties docTemplateProperties;
+    private final FileStorageProperties fileStorageProperties;
 
     @Override
     public FileRs upload(UUID tenantId, UUID userId, String path, String description, MultipartFile file) {
@@ -103,7 +100,7 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         return FileRs.builder()
             .key(key)
             .path(targetPath.toAbsolutePath().toString())
-            .source(docTemplateProperties.getFileStorage().getSource())
+            .source(fileStorageProperties.getNamespace())
             .fileName(fileName)
             .size(resolveFileSize(targetPath))
             .createdDate(updatedDate)
@@ -119,7 +116,7 @@ public class FileStorageGatewayStub implements FileStorageGateway {
         return FileRs.builder()
             .key(key)
             .path(targetPath.toAbsolutePath().toString())
-            .source(docTemplateProperties.getFileStorage().getSource())
+            .source(fileStorageProperties.getNamespace())
             .fileName(resolveOriginalFileName(targetPath.getFileName().toString()))
             .size(resolveFileSize(targetPath))
             .createdDate(updatedDate)
@@ -143,32 +140,18 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     }
 
     private Path resolveStorageRootPath() {
-        return Path.of(docTemplateProperties.getFileStorage().getStubRootPath())
+        return Path.of(fileStorageProperties.getLocal().getRootPath())
             .toAbsolutePath()
             .normalize();
     }
 
     private String buildKey(String path, String fileName) {
-        String normalizedPath = normalizeLocalUploadPath(path);
+        String normalizedPath = normalizeRelativePath(path);
         String sanitizedFileName = Path.of(fileName).getFileName().toString();
         String randomPrefix = UUID.randomUUID().toString();
         return normalizedPath.isBlank()
             ? randomPrefix + "_" + sanitizedFileName
             : normalizedPath + "/" + randomPrefix + "_" + sanitizedFileName;
-    }
-
-    private String normalizeLocalUploadPath(String path) {
-        String normalizedPath = normalizeRelativePath(path);
-        String generatedPrefix = normalizeRelativePath(
-            docTemplateProperties.getFileStorage().getFolder() + "/" + GENERATED_STORAGE_PATH
-        );
-        if (normalizedPath.equals(generatedPrefix)) {
-            return LOCAL_GENERATED_STORAGE_PATH;
-        }
-        if (normalizedPath.startsWith(generatedPrefix + "/")) {
-            return LOCAL_GENERATED_STORAGE_PATH + normalizedPath.substring(generatedPrefix.length());
-        }
-        return normalizedPath;
     }
 
     private boolean matchesFilter(FileRs file, FileFilterRq filter) {

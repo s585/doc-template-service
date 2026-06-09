@@ -13,7 +13,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileFilterRq;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 class FileStorageGatewayStubTest {
     private static final UUID TENANT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -26,10 +26,7 @@ class FileStorageGatewayStubTest {
     @DisplayName("Заглушка сохраняет файл локально и позволяет скачать его по ключу")
     void givenUploadedFile_whenDownload_thenReturnStoredFileInfo() throws Exception {
         // given
-        DocTemplateProperties properties = new DocTemplateProperties();
-        properties.getFileStorage().setSource("doc-template-service");
-        properties.getFileStorage().setFolder("/doc-template");
-        properties.getFileStorage().setStubRootPath(tempDir.toString());
+        FileStorageProperties properties = buildFileStorageProperties();
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile file = new MockMultipartFile("file", "template.docx", null, "hello".getBytes());
 
@@ -44,9 +41,7 @@ class FileStorageGatewayStubTest {
     @Test
     @DisplayName("Заглушка сохраняет generated файл как отдельные локальные файлы")
     void givenGeneratedFileUpload_whenUploadTwice_thenCreateDifferentKeys() throws Exception {
-        DocTemplateProperties properties = new DocTemplateProperties();
-        properties.getFileStorage().setSource("doc-template-service");
-        properties.getFileStorage().setStubRootPath(tempDir.toString());
+        FileStorageProperties properties = buildFileStorageProperties();
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile firstFile =
             new MockMultipartFile("file", "result.docx", null, "first".getBytes());
@@ -54,9 +49,9 @@ class FileStorageGatewayStubTest {
             new MockMultipartFile("file", "result.docx", null, "second".getBytes());
 
         FileRs firstUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/generated/entity/object/document", "test", firstFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", firstFile);
         FileRs secondUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/generated/entity/object/document", "test", secondFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", secondFile);
 
         assertThat(firstUpload.getKey()).isNotEqualTo(secondUpload.getKey());
         assertThat(firstUpload.getKey()).startsWith("documents/entity/object/document/");
@@ -70,10 +65,7 @@ class FileStorageGatewayStubTest {
     @Test
     @DisplayName("Заглушка умеет находить файлы по prefixKey и originalFileName")
     void givenStoredFiles_whenGetWithFilter_thenReturnMatchingFiles() {
-        DocTemplateProperties properties = new DocTemplateProperties();
-        properties.getFileStorage().setSource("doc-template-service");
-        properties.getFileStorage().setFolder("/doc-template");
-        properties.getFileStorage().setStubRootPath(tempDir.toString());
+        FileStorageProperties properties = buildFileStorageProperties();
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile matchingFile =
             new MockMultipartFile("file", "result.docx", null, "first".getBytes());
@@ -83,14 +75,14 @@ class FileStorageGatewayStubTest {
         FileRs storedMatchingFile = systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "/doc-template/generated/entity/object/document",
+            "documents/entity/object/document",
             "test",
             matchingFile
         );
         systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "/doc-template/generated/entity/object/another-document",
+            "documents/entity/object/another-document",
             "test",
             otherFile
         );
@@ -115,12 +107,17 @@ class FileStorageGatewayStubTest {
     @Test
     @DisplayName("Заглушка не позволяет прочитать файл за пределами локального корня")
     void givenEscapingKey_whenDownload_thenThrowException() {
-        DocTemplateProperties properties = new DocTemplateProperties();
-        properties.getFileStorage().setSource("doc-template-service");
-        properties.getFileStorage().setStubRootPath(tempDir.toString());
+        FileStorageProperties properties = buildFileStorageProperties();
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
 
         assertThatThrownBy(() -> systemUnderTest.download(TENANT_ID, USER_ID, "../secret.docx"))
             .isInstanceOf(SystemCrmException.class);
+    }
+
+    private FileStorageProperties buildFileStorageProperties() {
+        FileStorageProperties properties = new FileStorageProperties();
+        properties.setNamespace("doc-template-service");
+        properties.getLocal().setRootPath(tempDir.toString());
+        return properties;
     }
 }

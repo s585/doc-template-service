@@ -244,13 +244,14 @@ Stub поддерживает:
 - `findAllByFilter`;
 - `delete`.
 
-При `saas.doc-template.file-storage.stub-enabled=true` поднимается
+При `saas.doc-template.file-storage.local.enabled=true` поднимается
 dev endpoint `GET /internal/dev/file-storage/file?key=...`, который возвращает
 абсолютный локальный путь файла в stub-storage. Endpoint нужен только для
 локальной отладки штатного пути генерации и не активен при production gateway.
 Локальная разработка включается профилем `local`: в `application-local.yml`
-вместе задаются `stub-enabled=true`, `folder=templates` и
-`stub-root-path=${user.dir}`. В этом режиме
+вместе задаются `enabled=true`, `templates-folder=templates` и
+`documents-folder=documents`; локальный root по умолчанию резолвится в корень
+проекта. В этом режиме
 импортированные шаблоны пишутся в
 `templates/{entityId}/{randomUuid}_{templateFileName}`, а сгенерированные
 документы пишутся в

@@ -16,14 +16,19 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileR
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileStorageClient;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 @Component
-@ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(
+    prefix = "saas.doc-template.file-storage.local",
+    name = "enabled",
+    havingValue = "false",
+    matchIfMissing = true
+)
 @RequiredArgsConstructor
 public class FeignFileStorageGateway implements FileStorageGateway {
     private final FileStorageClient fileStorageClient;
-    private final DocTemplateProperties docTemplateProperties;
+    private final FileStorageProperties fileStorageProperties;
 
     @Override
     public FileRs upload(
@@ -35,10 +40,10 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     ) {
         try {
             return fileStorageClient.upload(
-                docTemplateProperties.getFileStorage().getSource(),
+                fileStorageProperties.getNamespace(),
                 FileRq.builder()
                     .path(path)
-                    .source(docTemplateProperties.getFileStorage().getSource())
+                    .source(fileStorageProperties.getNamespace())
                     .description(description)
                     .build(),
                 file,
@@ -54,7 +59,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     public void deleteFile(UUID tenantId, UUID userId, String key) {
         String normalizedKey = normalizeStorageKey(key);
         try {
-            fileStorageClient.deleteFile(docTemplateProperties.getFileStorage().getSource(), normalizedKey, tenantId, userId);
+            fileStorageClient.deleteFile(fileStorageProperties.getNamespace(), normalizedKey, tenantId, userId);
         } catch (FeignException.NotFound ex) {
             // Delete is idempotent for file storage: missing file must not block template deletion.
         } catch (FeignException ex) {
@@ -72,7 +77,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
         String normalizedKey = normalizeStorageKey(key);
         try {
             Response response = fileStorageClient.download(
-                docTemplateProperties.getFileStorage().getSource(),
+                fileStorageProperties.getNamespace(),
                 normalizedKey,
                 tenantId,
                 userId
@@ -92,7 +97,7 @@ public class FeignFileStorageGateway implements FileStorageGateway {
     public List<FileRs> findAllByFilter(UUID tenantId, UUID userId, FileFilterRq filter) {
         try {
             return fileStorageClient.getWithFilter(
-                docTemplateProperties.getFileStorage().getSource(),
+                fileStorageProperties.getNamespace(),
                 filter,
                 tenantId,
                 userId

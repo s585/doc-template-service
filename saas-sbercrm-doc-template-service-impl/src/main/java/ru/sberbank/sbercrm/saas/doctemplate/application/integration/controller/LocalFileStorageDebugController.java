@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.dto.LocalFileStorageFileRs;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 @RestController
 @RequestMapping("/internal/dev/file-storage")
-@ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "saas.doc-template.file-storage.local", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class LocalFileStorageDebugController {
-    private final DocTemplateProperties docTemplateProperties;
+    private final FileStorageProperties fileStorageProperties;
 
     @GetMapping("/file")
     public LocalFileStorageFileRs getFile(@RequestParam("key") String key) {
@@ -39,7 +39,7 @@ public class LocalFileStorageDebugController {
     }
 
     private Path resolveStorageRootPath() {
-        return Path.of(docTemplateProperties.getFileStorage().getStubRootPath())
+        return Path.of(fileStorageProperties.getLocal().getRootPath())
             .toAbsolutePath()
             .normalize();
     }

@@ -27,9 +27,9 @@ zonky:
 saas:
   doc-template:
     file-storage:
-      source: doc-template-service
-      folder: /doc-template
-      stub-enabled: false
+      namespace: doc-template-service
+      external:
+        folder: /doc-template
     template:
       variable:
         placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'

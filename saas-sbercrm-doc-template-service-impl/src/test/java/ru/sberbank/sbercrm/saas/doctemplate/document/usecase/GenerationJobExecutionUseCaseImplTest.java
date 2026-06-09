@@ -26,6 +26,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStoragePathResolver;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTransitionContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
@@ -50,7 +51,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefini
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,13 +83,10 @@ class GenerationJobExecutionUseCaseImplTest {
     private FileStorageGateway fileStorageGateway;
 
     @Mock
+    private FileStoragePathResolver fileStoragePathResolver;
+
+    @Mock
     private TemplateProcessingFacade templateProcessingFacade;
-
-    @Mock
-    private DocTemplateProperties docTemplateProperties;
-
-    @Mock
-    private DocTemplateProperties.FileStorage fileStorageProperties;
 
     @Mock
     private GenerationJobTransitionService generationJobTransitionService;
@@ -112,8 +109,6 @@ class GenerationJobExecutionUseCaseImplTest {
         Files.writeString(sourceFile, "template-content");
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
-        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -127,6 +122,8 @@ class GenerationJobExecutionUseCaseImplTest {
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
             .willReturn("generated".getBytes());
+        given(fileStoragePathResolver.generatedFolder(job))
+            .willReturn("/doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/" + DOCUMENT_ID);
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()
@@ -171,8 +168,6 @@ class GenerationJobExecutionUseCaseImplTest {
         Files.writeString(sourceFile, "template-content");
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
-        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -186,6 +181,8 @@ class GenerationJobExecutionUseCaseImplTest {
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
             .willReturn("generated".getBytes());
+        given(fileStoragePathResolver.generatedFolder(job))
+            .willReturn("/doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/" + DOCUMENT_ID);
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()
@@ -221,8 +218,6 @@ class GenerationJobExecutionUseCaseImplTest {
         Files.writeString(sourceFile, "template-content");
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
-        given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -236,6 +231,8 @@ class GenerationJobExecutionUseCaseImplTest {
             );
         given(templateProcessingFacade.generate(eq(TemplateFormat.DOCX), any(), any()))
             .willReturn("generated".getBytes());
+        given(fileStoragePathResolver.generatedFolder(job))
+            .willReturn("/doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/" + DOCUMENT_ID);
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "saas.doc-template")
 public class DocTemplateProperties {
     private final Template template = new Template();
-    private final FileStorage fileStorage = new FileStorage();
     private final Generation generation = new Generation();
 
     @Data
@@ -22,14 +21,6 @@ public class DocTemplateProperties {
     @Data
     public static class Variable {
         private String placeholderRegex;
-    }
-
-    @Data
-    public static class FileStorage {
-        private String source;
-        private String folder = "/doc-template";
-        private boolean stubEnabled;
-        private String stubRootPath;
     }
 
     @Data

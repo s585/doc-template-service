@@ -15,10 +15,18 @@ file-storage лежат вместе в `application-local.yml`:
 saas:
   doc-template:
     file-storage:
-      stub-enabled: true
-      folder: "templates"
-      stub-root-path: "${user.dir}"
+      namespace: "doc-template-service"
+      external:
+        folder: "/doc-template"
+      local:
+        enabled: true
+        templates-folder: "templates"
+        documents-folder: "documents"
 ```
+
+По умолчанию локальный root определяется как корень проекта: сервис идет вверх
+от текущей рабочей директории до `.git`. Если нужно положить файлы в другое
+место, можно явно задать `saas.doc-template.file-storage.local.root-path`.
 
 Запустить сервис локально можно с активным профилем:
 
@@ -100,7 +108,7 @@ curl --get 'http://localhost:8080/internal/dev/file-storage/file' \
 `{projectRoot}/documents/{entityId}/{objectId}/{documentId}/`.
 
 `/internal/dev/file-storage/file` активен только при
-`saas.doc-template.file-storage.stub-enabled=true`, что в штатной локальной
+`saas.doc-template.file-storage.local.enabled=true`, что в штатной локальной
 разработке задается профилем `local`. Если включен настоящий file-storage,
 endpoint не поднимается.
 

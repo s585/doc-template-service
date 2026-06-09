@@ -31,11 +31,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 @TestPropertySource(properties = {
-    "saas.doc-template.file-storage.stub-enabled=true",
-    "saas.doc-template.file-storage.folder=templates",
+    "saas.doc-template.file-storage.local.enabled=true",
     "saas.doc-template.generation.scheduler-enabled=false",
     "saas.doc-template.generation.retry-backoff-seconds=0,0,0,0"
 })
@@ -60,7 +59,7 @@ class GenerationJobExecutionUseCaseIntegrationTest extends AbstractIntegrationTe
     private FileStorageGateway fileStorageGateway;
 
     @Autowired
-    private DocTemplateProperties docTemplateProperties;
+    private FileStorageProperties fileStorageProperties;
 
     @SpyBean
     private GenerationJobTransitionService generationJobTransitionService;
@@ -73,7 +72,7 @@ class GenerationJobExecutionUseCaseIntegrationTest extends AbstractIntegrationTe
     void givenArtifactPersistFailure_whenExecute_thenGenerationStillCompletes() throws Exception {
         String templateKey = "templates/" + ENTITY_ID + "/execute-persist-fail.docx";
         StubStorageTestUtils.writeToStubStorage(
-            docTemplateProperties,
+            fileStorageProperties,
             templateKey,
             DocxTestUtils.createDocx("Contract for ${customer_name}")
         );

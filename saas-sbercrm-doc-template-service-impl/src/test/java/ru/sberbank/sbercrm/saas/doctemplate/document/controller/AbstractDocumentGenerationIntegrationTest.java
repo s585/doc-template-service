@@ -25,14 +25,14 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ReferenceValueSource;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.template.properties.FileStorageProperties;
 
 abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     protected FileStorageGateway fileStorageGateway;
 
     @Autowired
-    protected DocTemplateProperties docTemplateProperties;
+    protected FileStorageProperties fileStorageProperties;
 
     protected Template createDocxTemplate(
         String templateKey,
@@ -134,11 +134,11 @@ abstract class AbstractDocumentGenerationIntegrationTest extends AbstractIntegra
     }
 
     protected void writeTemplateToStubStorage(String key, byte[] content) throws Exception {
-        StubStorageTestUtils.writeToStubStorage(docTemplateProperties, key, content);
+        StubStorageTestUtils.writeToStubStorage(fileStorageProperties, key, content);
     }
 
     protected void deleteTemplateFromStubStorage(String key) throws Exception {
-        StubStorageTestUtils.deleteFromStubStorage(docTemplateProperties, key);
+        StubStorageTestUtils.deleteFromStubStorage(fileStorageProperties, key);
     }
 
     protected byte[] createDocx(String text) throws Exception {

@@ -12,8 +12,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 
 @TestPropertySource(properties = {
-    "saas.doc-template.file-storage.stub-enabled=true",
-    "saas.doc-template.file-storage.folder=templates",
+    "saas.doc-template.file-storage.local.enabled=true",
     "saas.doc-template.generation.scheduler-enabled=true",
     "saas.doc-template.generation.dispatch-fixed-delay-ms=50",
     "saas.doc-template.generation.worker-pool-size=1"

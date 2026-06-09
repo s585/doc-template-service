@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import ru.sberbank.sbercrm.saas.doctemplate.AbstractIntegrationTest;
 
-@TestPropertySource(properties = "saas.doc-template.file-storage.stub-enabled=false")
+@TestPropertySource(properties = "saas.doc-template.file-storage.local.enabled=false")
 class FeignFileStorageGatewayIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired

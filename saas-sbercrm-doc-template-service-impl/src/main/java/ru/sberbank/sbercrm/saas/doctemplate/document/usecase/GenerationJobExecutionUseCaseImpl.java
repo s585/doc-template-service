@@ -15,6 +15,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.NotFound
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStoragePathResolver;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationArtifactMeta;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationErrorDecision;
@@ -36,7 +37,6 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.InMemoryMultipartFile
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
 @Slf4j
@@ -49,8 +49,8 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     private final GenerationJobAttemptService generationJobAttemptService;
     private final GenerationContextAssembler generationContextAssembler;
     private final FileStorageGateway fileStorageGateway;
+    private final FileStoragePathResolver fileStoragePathResolver;
     private final TemplateProcessingFacade templateProcessingFacade;
-    private final DocTemplateProperties docTemplateProperties;
     private final GenerationJobTransitionService generationJobTransitionService;
     private final GenerationWorkerIdentityProvider generationWorkerIdentityProvider;
 
@@ -104,7 +104,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
         FileRs uploadedFile = fileStorageGateway.upload(
             job.getTenantId(),
             effectiveUserId,
-            buildGeneratedFolderPath(job),
+            fileStoragePathResolver.generatedFolder(job),
             template.getDescription(),
             buildMultipartFile(generatedFileName, template.getFormat(), generatedContent)
         );
@@ -204,11 +204,6 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
             case DOCX -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             case XLSX -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         };
-    }
-
-    private String buildGeneratedFolderPath(GenerationJob job) {
-        return docTemplateProperties.getFileStorage().getFolder() + "/generated/" + job.getEntityId() + "/"
-            + job.getObjectId() + "/" + job.getDocumentId();
     }
 
     private Optional<GenerationArtifactMeta> findExistingGeneratedArtifact(GenerationJob job, int attemptNo) {

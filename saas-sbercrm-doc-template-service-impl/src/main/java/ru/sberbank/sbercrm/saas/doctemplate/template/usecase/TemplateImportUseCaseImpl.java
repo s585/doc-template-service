@@ -12,7 +12,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.Business
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStoragePathResolver;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.InMemoryMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
@@ -38,7 +38,7 @@ import java.util.UUID;
 public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     private final TemplateService templateService;
     private final FileStorageGateway fileStorageGateway;
-    private final DocTemplateProperties docTemplateProperties;
+    private final FileStoragePathResolver fileStoragePathResolver;
     private final TemplateProcessingFacade templateProcessingFacade;
 
     @Override
@@ -50,7 +50,7 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
         TemplateFormat format = TemplateFileUtils.resolveFormat(originalFileName);
         byte[] content = TemplateFileUtils.readBytes(file);
         List<TemplateMapping> mappings = buildMappings(request.getName(), format, content);
-        String folderPath = buildFolderPath(request.getEntityId());
+        String folderPath = fileStoragePathResolver.templateFolder(request.getEntityId());
 
         FileRs uploadedFile = fileStorageGateway.upload(
             tenantId,
@@ -117,10 +117,6 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
         } catch (AbstractCrmException ex) {
             log.warn("Failed to rollback uploaded file with key={}", key, ex);
         }
-    }
-
-    private String buildFolderPath(UUID entityId) {
-        return docTemplateProperties.getFileStorage().getFolder() + "/" + entityId;
     }
 
     private List<TemplateMapping> buildMappings(String templateName, TemplateFormat format, byte[] content) {

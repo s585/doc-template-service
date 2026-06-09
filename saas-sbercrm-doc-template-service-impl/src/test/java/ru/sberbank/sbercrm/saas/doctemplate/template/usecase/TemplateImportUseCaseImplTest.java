@@ -24,7 +24,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.Business
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
+import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStoragePathResolver;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
@@ -44,6 +44,9 @@ class TemplateImportUseCaseImplTest {
     private FileStorageGateway fileStorageGateway;
 
     @Mock
+    private FileStoragePathResolver fileStoragePathResolver;
+
+    @Mock
     private TemplateProcessingFacade templateProcessingFacade;
 
     @InjectMocks
@@ -53,12 +56,10 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")
     void givenVariableWithDifferentScopes_whenExecute_thenThrowBusinessException() {
         // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-                docTemplateProperties,
+            fileStoragePathResolver,
             templateProcessingFacade
         );
         TemplateCreationCmd command = TemplateCreationCmd.builder()
@@ -98,12 +99,10 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт удаляет файл из file storage, если создание шаблона завершается ошибкой")
     void givenUploadedFileAndCreateFailure_whenExecute_thenDeleteUploadedFile() {
         // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-                docTemplateProperties,
+            fileStoragePathResolver,
             templateProcessingFacade
         );
         String templateName = "Договор";
@@ -124,6 +123,7 @@ class TemplateImportUseCaseImplTest {
         );
         given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
             .willReturn(List.of(TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.VALUE).build()));
+        given(fileStoragePathResolver.templateFolder(ENTITY_ID)).willReturn("/doc-template/" + ENTITY_ID);
         given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
             .willReturn(FileRs.builder().key(uploadedKey).build());
         given(templateService.create(eq(TENANT_ID), any()))
@@ -147,12 +147,10 @@ class TemplateImportUseCaseImplTest {
     @DisplayName("Импорт пробрасывает ошибку rollback, если удаление загруженного файла завершается runtime-ошибкой")
     void givenCleanupFailure_whenExecute_thenPropagatePrimaryException() {
         // given
-        DocTemplateProperties docTemplateProperties = new DocTemplateProperties();
-        docTemplateProperties.getFileStorage().setFolder("/doc-template");
         systemUnderTest = new TemplateImportUseCaseImpl(
             templateService,
             fileStorageGateway,
-                docTemplateProperties,
+            fileStoragePathResolver,
             templateProcessingFacade
         );
         String uploadedKey = "templates/template.docx";
@@ -170,6 +168,7 @@ class TemplateImportUseCaseImplTest {
         );
         given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
             .willReturn(List.of());
+        given(fileStoragePathResolver.templateFolder(ENTITY_ID)).willReturn("/doc-template/" + ENTITY_ID);
         given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
             .willReturn(FileRs.builder().key(uploadedKey).build());
         given(templateService.create(eq(TENANT_ID), any()))
