@@ -35,6 +35,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplatePrope
 
 @TestPropertySource(properties = {
     "saas.doc-template.file-storage.stub-enabled=true",
+    "saas.doc-template.file-storage.folder=templates",
     "saas.doc-template.generation.scheduler-enabled=false",
     "saas.doc-template.generation.retry-backoff-seconds=0,0,0,0"
 })

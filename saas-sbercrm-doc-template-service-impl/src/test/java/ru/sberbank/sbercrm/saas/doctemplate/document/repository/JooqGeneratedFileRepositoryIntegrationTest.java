@@ -95,7 +95,7 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
             USER_ID,
             DOCUMENT_ID,
             "DOCX",
-            "documents/file.docx",
+            "generated/file.docx",
             "checksum-value",
             128L
         );
@@ -104,7 +104,7 @@ class JooqGeneratedFileRepositoryIntegrationTest extends AbstractIntegrationTest
             .singleElement()
             .satisfies(file -> {
                 assertThat(file.getStatus()).isEqualTo(GeneratedFileStatus.DONE.name());
-                assertThat(file.getS3Key()).isEqualTo("documents/file.docx");
+                assertThat(file.getS3Key()).isEqualTo("generated/file.docx");
                 assertThat(file.getChecksum()).isEqualTo("checksum-value");
                 assertThat(file.getSizeBytes()).isEqualTo(128L);
                 assertThat(file.getErrorCode()).isNull();

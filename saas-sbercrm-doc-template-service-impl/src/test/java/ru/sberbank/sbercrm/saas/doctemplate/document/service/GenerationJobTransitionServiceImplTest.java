@@ -343,7 +343,7 @@ class GenerationJobTransitionServiceImplTest {
         mockRecoveryTransaction();
 
         GenerationArtifactMeta artifactMeta = GenerationArtifactMeta.builder()
-            .s3Key("documents/key.docx")
+            .s3Key("generated/key.docx")
             .checksum("checksum")
             .sizeBytes(11L)
             .build();

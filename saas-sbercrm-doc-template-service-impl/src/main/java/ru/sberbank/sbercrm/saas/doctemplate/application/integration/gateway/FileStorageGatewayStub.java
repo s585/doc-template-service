@@ -27,6 +27,9 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
 @ConditionalOnProperty(prefix = "saas.doc-template.file-storage", name = "stub-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class FileStorageGatewayStub implements FileStorageGateway {
+    private static final String GENERATED_STORAGE_PATH = "generated";
+    private static final String LOCAL_GENERATED_STORAGE_PATH = "documents";
+
     private final DocTemplateProperties docTemplateProperties;
 
     @Override
@@ -146,12 +149,26 @@ public class FileStorageGatewayStub implements FileStorageGateway {
     }
 
     private String buildKey(String path, String fileName) {
-        String normalizedPath = normalizeRelativePath(path);
+        String normalizedPath = normalizeLocalUploadPath(path);
         String sanitizedFileName = Path.of(fileName).getFileName().toString();
         String randomPrefix = UUID.randomUUID().toString();
         return normalizedPath.isBlank()
             ? randomPrefix + "_" + sanitizedFileName
             : normalizedPath + "/" + randomPrefix + "_" + sanitizedFileName;
+    }
+
+    private String normalizeLocalUploadPath(String path) {
+        String normalizedPath = normalizeRelativePath(path);
+        String generatedPrefix = normalizeRelativePath(
+            docTemplateProperties.getFileStorage().getFolder() + "/" + GENERATED_STORAGE_PATH
+        );
+        if (normalizedPath.equals(generatedPrefix)) {
+            return LOCAL_GENERATED_STORAGE_PATH;
+        }
+        if (normalizedPath.startsWith(generatedPrefix + "/")) {
+            return LOCAL_GENERATED_STORAGE_PATH + normalizedPath.substring(generatedPrefix.length());
+        }
+        return normalizedPath;
     }
 
     private boolean matchesFilter(FileRs file, FileFilterRq filter) {

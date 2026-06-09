@@ -8,7 +8,8 @@
 4. сохранение результата в тот же локальный stub-storage;
 5. поиск итогового файла на диске по `s3Key`.
 
-В стандартном `application.yml` файловый stub уже включен:
+Локальный режим включается профилем `local`. Все настройки локального
+file-storage лежат вместе в `application-local.yml`:
 
 ```yaml
 saas:
@@ -16,8 +17,14 @@ saas:
     file-storage:
       stub-enabled: true
       folder: "templates"
-      generated-folder: "documents"
       stub-root-path: "${user.dir}"
+```
+
+Запустить сервис локально можно с активным профилем:
+
+```bash
+mvn -pl saas-sbercrm-doc-template-service-impl spring-boot:run \
+  -Dspring-boot.run.profiles=local
 ```
 
 При импорте и успешной генерации сервис пишет в лог и storage key, и локальный
@@ -93,8 +100,9 @@ curl --get 'http://localhost:8080/internal/dev/file-storage/file' \
 `{projectRoot}/documents/{entityId}/{objectId}/{documentId}/`.
 
 `/internal/dev/file-storage/file` активен только при
-`saas.doc-template.file-storage.stub-enabled=true`. Если включен настоящий
-file-storage, endpoint не поднимается.
+`saas.doc-template.file-storage.stub-enabled=true`, что в штатной локальной
+разработке задается профилем `local`. Если включен настоящий file-storage,
+endpoint не поднимается.
 
 ## Ограничение
 

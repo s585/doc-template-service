@@ -28,6 +28,7 @@ class FileStorageGatewayStubTest {
         // given
         DocTemplateProperties properties = new DocTemplateProperties();
         properties.getFileStorage().setSource("doc-template-service");
+        properties.getFileStorage().setFolder("/doc-template");
         properties.getFileStorage().setStubRootPath(tempDir.toString());
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile file = new MockMultipartFile("file", "template.docx", null, "hello".getBytes());
@@ -53,11 +54,13 @@ class FileStorageGatewayStubTest {
             new MockMultipartFile("file", "result.docx", null, "second".getBytes());
 
         FileRs firstUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", firstFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/generated/entity/object/document", "test", firstFile);
         FileRs secondUpload =
-            systemUnderTest.upload(TENANT_ID, USER_ID, "documents/entity/object/document", "test", secondFile);
+            systemUnderTest.upload(TENANT_ID, USER_ID, "/doc-template/generated/entity/object/document", "test", secondFile);
 
         assertThat(firstUpload.getKey()).isNotEqualTo(secondUpload.getKey());
+        assertThat(firstUpload.getKey()).startsWith("documents/entity/object/document/");
+        assertThat(secondUpload.getKey()).startsWith("documents/entity/object/document/");
         assertThat(systemUnderTest.download(TENANT_ID, USER_ID, firstUpload.getKey()))
             .isEqualTo("first".getBytes());
         assertThat(systemUnderTest.download(TENANT_ID, USER_ID, secondUpload.getKey()))
@@ -69,6 +72,7 @@ class FileStorageGatewayStubTest {
     void givenStoredFiles_whenGetWithFilter_thenReturnMatchingFiles() {
         DocTemplateProperties properties = new DocTemplateProperties();
         properties.getFileStorage().setSource("doc-template-service");
+        properties.getFileStorage().setFolder("/doc-template");
         properties.getFileStorage().setStubRootPath(tempDir.toString());
         FileStorageGatewayStub systemUnderTest = new FileStorageGatewayStub(properties);
         MockMultipartFile matchingFile =
@@ -79,14 +83,14 @@ class FileStorageGatewayStubTest {
         FileRs storedMatchingFile = systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "documents/entity/object/document",
+            "/doc-template/generated/entity/object/document",
             "test",
             matchingFile
         );
         systemUnderTest.upload(
             TENANT_ID,
             USER_ID,
-            "documents/entity/object/another-document",
+            "/doc-template/generated/entity/object/another-document",
             "test",
             otherFile
         );

@@ -28,8 +28,7 @@ saas:
   doc-template:
     file-storage:
       source: doc-template-service
-      folder: templates
-      generated-folder: documents
+      folder: /doc-template
       stub-enabled: false
     template:
       variable:

@@ -26,9 +26,8 @@ saas:
         placeholder-regex: '\$\{([A-Za-z0-9_.$]+)}'
     file-storage:
       source: "doc-template-service"
-      folder: "templates"
-      generated-folder: "documents"
-      stub-enabled: true
+      folder: "/doc-template"
+      stub-enabled: false
       stub-root-path: "${user.dir}"
     generation:
       scheduler-enabled: true

@@ -58,7 +58,7 @@ class FeignFileStorageGatewayTest {
     @Test
     @DisplayName("Загрузка файла проксируется в file storage client")
     void givenUploadRequest_whenUpload_thenReturnClientResponse() throws Exception {
-        String path = "templates";
+        String path = "/doc-template/templates";
         String description = "contract template";
         MultipartFile file = new MockMultipartFile("file", "template.docx", "application/octet-stream", "hello".getBytes(StandardCharsets.UTF_8));
         FileRs expected = FileRs.builder().key("templates/template.docx").path(path).build();
@@ -82,7 +82,7 @@ class FeignFileStorageGatewayTest {
     @Test
     @DisplayName("Загрузка файла оборачивает ошибку клиента в SystemCrmException")
     void givenUploadFeignFailure_whenUpload_thenThrowSystemCrmException() throws Exception {
-        String path = "templates";
+        String path = "/doc-template/templates";
         MultipartFile file = new MockMultipartFile("file", "template.docx", "application/octet-stream", new byte[0]);
         FeignException exception = feignException(500, "upload", "http://localhost/internal/v1/file/upload");
         given(fileStorageClient.upload(
@@ -299,11 +299,11 @@ class FeignFileStorageGatewayTest {
     @DisplayName("Поиск файлов по фильтру проксируется в file storage client")
     void givenFilter_whenFindAllByFilter_thenReturnClientResponse() {
         FileFilterRq filter = FileFilterRq.builder()
-            .prefixKey("documents/document")
+            .prefixKey("doc-template/generated/document")
             .originalFileName("result.docx")
             .build();
         List<FileRs> expectedFiles = List.of(
-            FileRs.builder().key("documents/result.docx").fileName("result.docx").build()
+            FileRs.builder().key("generated/result.docx").fileName("result.docx").build()
         );
         given(fileStorageClient.getWithFilter("doc-template-service", filter, TENANT_ID, USER_ID))
             .willReturn(expectedFiles);
@@ -317,7 +317,7 @@ class FeignFileStorageGatewayTest {
     @Test
     @DisplayName("Поиск файлов по фильтру оборачивает ошибку клиента в SystemCrmException")
     void givenFindAllByFilterFeignFailure_whenFindAllByFilter_thenThrowSystemCrmException() {
-        FileFilterRq filter = FileFilterRq.builder().prefixKey("documents/document").build();
+        FileFilterRq filter = FileFilterRq.builder().prefixKey("doc-template/generated/document").build();
         given(fileStorageClient.getWithFilter("doc-template-service", filter, TENANT_ID, USER_ID))
             .willThrow(feignException(500, "getWithFilter", "http://localhost/internal/v1/file/find"));
 

@@ -248,8 +248,10 @@ Stub поддерживает:
 dev endpoint `GET /internal/dev/file-storage/file?key=...`, который возвращает
 абсолютный локальный путь файла в stub-storage. Endpoint нужен только для
 локальной отладки штатного пути генерации и не активен при production gateway.
-Для локальной разработки `stub-root-path` по умолчанию указывает на корень
-проекта. Импортированные шаблоны пишутся в
+Локальная разработка включается профилем `local`: в `application-local.yml`
+вместе задаются `stub-enabled=true`, `folder=templates` и
+`stub-root-path=${user.dir}`. В этом режиме
+импортированные шаблоны пишутся в
 `templates/{entityId}/{randomUuid}_{templateFileName}`, а сгенерированные
 документы пишутся в
 `documents/{entityId}/{objectId}/{documentId}/{randomUuid}_{generatedFileName}`.
@@ -783,7 +785,7 @@ Recovery зависших `PROCESSING` job и бизнес-retry не должн
 ### Идемпотентность результата генерации
 
 - generation flow на стороне сервиса формирует детерминированный folder path для generated
-  artifacts: `.../documents/{entityId}/{objectId}/{documentId}`;
+  artifacts: `.../generated/{entityId}/{objectId}/{documentId}`;
 - имя generated файла определяется шаблоном и его mapping-ами, поэтому при поиске reuse
   используется связка `prefixKey + originalFileName`;
 - этого недостаточно для полной идемпотентности в рабочем контуре, потому что текущий

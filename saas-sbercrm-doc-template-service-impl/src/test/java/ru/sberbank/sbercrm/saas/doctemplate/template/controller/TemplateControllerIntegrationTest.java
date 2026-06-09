@@ -51,7 +51,7 @@ class TemplateControllerIntegrationTest extends AbstractIntegrationTest {
         String templateCode = "SUPPLY_CONTRACT_IMPORT";
         String templateFileName = "import-happy-path.docx";
         String fileStorageSource = "doc-template-service";
-        String templateFolderPath = "templates/" + ENTITY_ID;
+        String templateFolderPath = "/doc-template/" + ENTITY_ID;
         String expectedS3Key = "templates/" + ENTITY_ID + "/" + templateFileName;
 
         TemplateCreationRq request = TemplateCreationRq.builder()

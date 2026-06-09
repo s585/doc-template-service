@@ -207,7 +207,7 @@ public class GenerationJobExecutionUseCaseImpl implements GenerationJobExecution
     }
 
     private String buildGeneratedFolderPath(GenerationJob job) {
-        return docTemplateProperties.getFileStorage().getGeneratedFolder() + "/" + job.getEntityId() + "/"
+        return docTemplateProperties.getFileStorage().getFolder() + "/generated/" + job.getEntityId() + "/"
             + job.getObjectId() + "/" + job.getDocumentId();
     }
 

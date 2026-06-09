@@ -113,7 +113,7 @@ class GenerationJobExecutionUseCaseImplTest {
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
         given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getGeneratedFolder()).willReturn("documents");
+        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -130,7 +130,7 @@ class GenerationJobExecutionUseCaseImplTest {
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()
-                    .key("documents/result.docx")
+                    .key("generated/result.docx")
                     .path(tempDir.resolve("result.docx").toString())
                     .fileName("result.docx")
                     .build()
@@ -138,19 +138,26 @@ class GenerationJobExecutionUseCaseImplTest {
 
         systemUnderTest.execute(job);
 
+        verify(fileStorageGateway).upload(
+            eq(TENANT_ID),
+            eq(USER_ID),
+            eq("/doc-template/generated/" + ENTITY_ID + "/" + OBJECT_ID + "/" + DOCUMENT_ID),
+            eq("desc"),
+            any()
+        );
         verify(generationJobTransitionService).startGenerationAttempt(job, USER_ID);
         verify(generationContextAssembler).assemble(job, USER_ID, template);
         verify(generationJobTransitionService).persistUploadedArtifact(
             eq(buildTransitionContext()),
             argThat(meta ->
-                "documents/result.docx".equals(meta.s3Key())
+                "generated/result.docx".equals(meta.s3Key())
                     && meta.checksum() != null
                     && meta.sizeBytes() == 9L
             )
         );
         verify(generationJobTransitionService).completeGeneration(
             eq(buildTransitionContext()),
-            argThat(result -> "documents/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
+            argThat(result -> "generated/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
         );
         verify(generationJobTransitionService, never()).failGeneration(eq(buildTransitionContext()), any());
     }
@@ -165,7 +172,7 @@ class GenerationJobExecutionUseCaseImplTest {
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
         given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getGeneratedFolder()).willReturn("documents");
+        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -182,7 +189,7 @@ class GenerationJobExecutionUseCaseImplTest {
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()
-                    .key("documents/direct.docx")
+                    .key("generated/direct.docx")
                     .path(tempDir.resolve("direct.docx").toString())
                     .fileName("direct.docx")
                     .build()
@@ -193,7 +200,7 @@ class GenerationJobExecutionUseCaseImplTest {
         verify(generationJobTransitionService).persistUploadedArtifact(
             eq(buildTransitionContext()),
             argThat(meta ->
-                "documents/direct.docx".equals(meta.s3Key())
+                "generated/direct.docx".equals(meta.s3Key())
                     && meta.checksum() != null
                     && meta.sizeBytes() == 9L
             )
@@ -215,7 +222,7 @@ class GenerationJobExecutionUseCaseImplTest {
 
         given(generationWorkerIdentityProvider.getExecutionName()).willReturn("worker@host:123:generation-1");
         given(docTemplateProperties.getFileStorage()).willReturn(fileStorageProperties);
-        given(fileStorageProperties.getGeneratedFolder()).willReturn("documents");
+        given(fileStorageProperties.getFolder()).willReturn("/doc-template");
         given(generationJobTransitionService.startGenerationAttempt(job, USER_ID)).willReturn(buildAttempt(1));
         given(templateService.findAggregateById(TENANT_ID, TEMPLATE_ID)).willReturn(Optional.of(template));
         given(fileStorageGateway.download(TENANT_ID, USER_ID, "templates/template.docx"))
@@ -232,7 +239,7 @@ class GenerationJobExecutionUseCaseImplTest {
         given(fileStorageGateway.upload(eq(TENANT_ID), eq(USER_ID), any(), eq("desc"), any()))
             .willReturn(
                 FileRs.builder()
-                    .key("documents/result.docx")
+                    .key("generated/result.docx")
                     .path(tempDir.resolve("result.docx").toString())
                     .fileName("result.docx")
                     .build()
@@ -241,7 +248,7 @@ class GenerationJobExecutionUseCaseImplTest {
             .given(generationJobTransitionService)
             .persistUploadedArtifact(
                 eq(buildTransitionContext()),
-                argThat(meta -> "documents/result.docx".equals(meta.s3Key()))
+                argThat(meta -> "generated/result.docx".equals(meta.s3Key()))
             );
 
         systemUnderTest.execute(job);
@@ -249,14 +256,14 @@ class GenerationJobExecutionUseCaseImplTest {
         verify(generationJobTransitionService).persistUploadedArtifact(
             eq(buildTransitionContext()),
             argThat(meta ->
-                "documents/result.docx".equals(meta.s3Key())
+                "generated/result.docx".equals(meta.s3Key())
                     && meta.checksum() != null
                     && meta.sizeBytes() == 9L
             )
         );
         verify(generationJobTransitionService).completeGeneration(
             eq(buildTransitionContext()),
-            argThat(result -> "documents/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
+            argThat(result -> "generated/result.docx".equals(result.s3Key()) && result.sizeBytes() == 9L)
         );
         verify(generationJobTransitionService, never()).retryGeneration(eq(buildTransitionContext()), any());
         verify(generationJobTransitionService, never()).failGeneration(eq(buildTransitionContext()), any());
@@ -269,7 +276,7 @@ class GenerationJobExecutionUseCaseImplTest {
         GenerationJobAttempt attempt = buildAttempt(2);
         Template template = buildTemplate();
         GenerationArtifactMeta existingArtifact = GenerationArtifactMeta.builder()
-            .s3Key("documents/existing.docx")
+            .s3Key("generated/existing.docx")
             .checksum("precalculated-checksum")
             .sizeBytes(8L)
             .build();
@@ -285,14 +292,14 @@ class GenerationJobExecutionUseCaseImplTest {
         verify(generationJobAttemptService).findLatestArtifactBeforeAttempt(JOB_ID, 2);
         verify(generationJobTransitionService, never()).persistUploadedArtifact(any(), any());
         verify(generationContextAssembler, never()).assemble(any(), any(), any());
-        verify(fileStorageGateway, never()).download(TENANT_ID, USER_ID, "documents/existing.docx");
+        verify(fileStorageGateway, never()).download(TENANT_ID, USER_ID, "generated/existing.docx");
         verify(fileStorageGateway, never()).download(TENANT_ID, USER_ID, "templates/template.docx");
         verify(templateProcessingFacade, never()).generate(any(), any(), any());
         verify(fileStorageGateway, never()).upload(eq(TENANT_ID), eq(USER_ID), any(), any(), any());
         verify(generationJobTransitionService).completeGeneration(
             eq(buildTransitionContext(2)),
             argThat(result ->
-                "documents/existing.docx".equals(result.s3Key())
+                "generated/existing.docx".equals(result.s3Key())
                     && 8L == result.sizeBytes()
                     && "precalculated-checksum".equals(result.checksum())
             )
@@ -306,7 +313,7 @@ class GenerationJobExecutionUseCaseImplTest {
         GenerationJobAttempt attempt = buildAttempt(2);
         Template template = buildTemplate();
         GenerationArtifactMeta existingArtifact = GenerationArtifactMeta.builder()
-            .s3Key("documents/existing.docx")
+            .s3Key("generated/existing.docx")
             .build();
         GenerationRetryDecision failDecision = new GenerationRetryDecision(
             GenerationRetryAction.FAIL_FINAL,
