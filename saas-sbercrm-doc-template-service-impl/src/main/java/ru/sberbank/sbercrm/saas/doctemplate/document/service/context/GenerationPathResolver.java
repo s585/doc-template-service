@@ -65,11 +65,11 @@ public class GenerationPathResolver {
         String normalizedPath = normalizePath(rawPath, expectedPrefix, mappingKey);
         Object currentNode = sourceObject;
         for (String segment : normalizedPath.split("\\.")) {
-            if (segment.isBlank() || !(currentNode instanceof Map<?, ?> currentMap)) {
+            if (segment.isBlank()) {
                 throw invalidBusinessObjectPath(mappingKey, rawPath);
             }
-            if (!currentMap.containsKey(segment)) {
-                throw invalidBusinessObjectPath(mappingKey, rawPath);
+            if (!(currentNode instanceof Map<?, ?> currentMap) || !currentMap.containsKey(segment)) {
+                return null;
             }
             currentNode = currentMap.get(segment);
         }

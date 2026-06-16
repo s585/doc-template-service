@@ -1,6 +1,7 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -24,6 +25,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateCreationRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(
@@ -122,7 +124,7 @@ public interface TemplateController {
         @ApiResponse(
             responseCode = "200",
             description = "Список доступных шаблонов",
-            content = @Content(schema = @Schema(implementation = CommonRsDto.class))
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = TemplateRs.class)))
         ),
         @ApiResponse(responseCode = "404", description = "Сущность или объект не найдены")
     })
@@ -130,7 +132,7 @@ public interface TemplateController {
         value = "/v1/doc/{entityId}/{objectId}/template/list",
         produces = MediaType.APPLICATION_JSON_VALUE
     )
-    CommonRsDto listAvailableTemplates(
+    List<TemplateRs> listAvailableTemplates(
         @PathVariable UUID entityId,
         @PathVariable UUID objectId
     );

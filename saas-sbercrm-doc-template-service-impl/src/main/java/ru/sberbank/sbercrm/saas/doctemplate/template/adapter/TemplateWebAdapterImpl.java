@@ -12,12 +12,14 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.converter.TemplateConverter;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
+import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateAvailableListingUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateDeletionUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateGetUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateImportUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateListingUseCase;
 import ru.sberbank.sbercrm.saas.doctemplate.template.usecase.TemplateUpdateUseCase;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -29,6 +31,7 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
     private final TemplateGetUseCase getTemplateUseCase;
     private final TemplateDeletionUseCase deleteTemplateUseCase;
     private final TemplateListingUseCase listTemplatesUseCase;
+    private final TemplateAvailableListingUseCase listAvailableTemplatesUseCase;
 
     @Override
     public TemplateRs importTemplate(UUID tenantId, UUID userId, TemplateCreationRq request, MultipartFile file) {
@@ -69,5 +72,12 @@ public class TemplateWebAdapterImpl implements TemplateWebAdapter {
             listTemplatesUseCase.execute(tenantId, request),
             templateConverter::convertToRs
         );
+    }
+
+    @Override
+    public List<TemplateRs> listAvailableTemplates(UUID tenantId, UUID userId, UUID entityId, UUID objectId) {
+        return listAvailableTemplatesUseCase.execute(tenantId, userId, entityId, objectId).stream()
+            .map(templateConverter::convertToRs)
+            .toList();
     }
 }

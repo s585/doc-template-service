@@ -26,6 +26,8 @@ public interface TemplateService {
 
     PageResult<Template> findAll(UUID tenantId, CommonRqDto request);
 
+    List<Template> findAllActiveByEntityIdOrderByNameAndId(UUID tenantId, UUID entityId);
+
     void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings);
 
     void replaceMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings);

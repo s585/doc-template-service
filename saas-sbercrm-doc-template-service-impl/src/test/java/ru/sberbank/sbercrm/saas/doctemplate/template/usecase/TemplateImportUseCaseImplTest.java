@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,8 +27,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileR
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStoragePathResolver;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
@@ -51,6 +54,43 @@ class TemplateImportUseCaseImplTest {
 
     @InjectMocks
     private TemplateImportUseCaseImpl systemUnderTest;
+
+    @Test
+    @DisplayName("Импорт допускает повтор placeholder-а в документе и создает один mapping на ключ")
+    void givenRepeatedVariableInDocument_whenExecute_thenCreateSingleMappingForKey() {
+        UUID templateId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        TemplateCreationCmd command = TemplateCreationCmd.builder()
+            .entityId(ENTITY_ID)
+            .name("Договор")
+            .description("Описание")
+            .code("CONTRACT")
+            .build();
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "template.docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            new byte[] {1, 2, 3}
+        );
+        given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
+            .willReturn(List.of(
+                TemplateVariableInfo.builder().key("client_name").scope(MappingScope.VALUE).build(),
+                TemplateVariableInfo.builder().key("client_name").scope(MappingScope.VALUE).build()
+            ));
+        given(fileStoragePathResolver.templateFolder(ENTITY_ID)).willReturn("/doc-template/" + ENTITY_ID);
+        given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
+            .willReturn(FileRs.builder().key("templates/template.docx").build());
+        given(templateService.create(eq(TENANT_ID), any()))
+            .willReturn(Template.builder().id(templateId).build());
+        given(templateService.getMappings(TENANT_ID, templateId)).willReturn(List.of());
+
+        systemUnderTest.execute(TENANT_ID, USER_ID, command, file);
+
+        ArgumentCaptor<List<TemplateMapping>> mappingsCaptor = ArgumentCaptor.captor();
+        verify(templateService).createMappings(eq(TENANT_ID), eq(templateId), eq(USER_ID), mappingsCaptor.capture());
+        assertThat(mappingsCaptor.getValue())
+            .extracting(TemplateMapping::getKey)
+            .containsOnlyOnce("client_name");
+    }
 
     @Test
     @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")

@@ -1,6 +1,8 @@
 package ru.sberbank.sbercrm.saas.doctemplate.template.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
@@ -20,6 +22,26 @@ public class TemplateMappingValidator {
      * Проверяет список mapping-ов и выбрасывает бизнес-ошибку на первом некорректном placeholder-е.
      */
     public void validate(List<TemplateMapping> mappings) {
+        checkDuplicateKeys(mappings);
+        checkInvalidMappings(mappings);
+    }
+
+    private void checkDuplicateKeys(List<TemplateMapping> mappings) {
+        Set<String> keys = new HashSet<>();
+        mappings.stream()
+            .filter(mapping -> mapping.getKey() != null)
+            .filter(mapping -> !keys.add(mapping.getKey()))
+            .findFirst()
+            .ifPresent(mapping -> {
+                throw new BusinessCrmException(
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
+                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
+                    mapping.getKey()
+                );
+            });
+    }
+
+    private void checkInvalidMappings(List<TemplateMapping> mappings) {
         mappings.stream()
             .filter(this::isInvalid)
             .findFirst()

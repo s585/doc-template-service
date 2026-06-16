@@ -5,6 +5,7 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
@@ -32,6 +33,7 @@ import java.util.regex.Pattern;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
 import org.apache.xmlbeans.XmlCursor;
 
@@ -233,11 +235,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             if (templateCell.getCTTc().getTcPr() != null) {
                 targetCell.getCTTc().setTcPr((CTTcPr) templateCell.getCTTc().getTcPr().copy());
             }
-            String cellText = TemplateVariableUtils.replacePlaceholders(templateCell.getText(), values, getPlaceholderPattern());
-            for (int i = targetCell.getParagraphs().size() - 1; i >= 0; i--) {
-                targetCell.removeParagraph(i);
-            }
-            targetCell.setText(cellText);
+            copyCellTemplate(templateCell, targetCell, values);
         }
     }
 
@@ -273,10 +271,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             values,
             getPlaceholderPattern()
         );
-        for (int i = targetParagraph.getRuns().size() - 1; i >= 0; i--) {
-            targetParagraph.removeRun(i);
-        }
-        targetParagraph.createRun().setText(paragraphText);
+        replaceRunsPreservingFirstRunStyle(targetParagraph, templateParagraph, paragraphText);
     }
 
     private void replaceParagraphText(XWPFParagraph paragraph, Map<String, String> values) {
@@ -288,9 +283,45 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         if (sourceText.equals(replacedText)) {
             return;
         }
-        for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
-            paragraph.removeRun(i);
+        replaceRunsPreservingFirstRunStyle(paragraph, paragraph, replacedText);
+    }
+
+    private void copyCellTemplate(XWPFTableCell sourceCell, XWPFTableCell targetCell, Map<String, String> values) {
+        for (int i = targetCell.getParagraphs().size() - 1; i >= 0; i--) {
+            targetCell.removeParagraph(i);
         }
-        paragraph.createRun().setText(replacedText);
+        for (XWPFParagraph sourceParagraph : sourceCell.getParagraphs()) {
+            XWPFParagraph targetParagraph = targetCell.addParagraph();
+            copyParagraphTemplate(targetParagraph, sourceParagraph, values);
+        }
+    }
+
+    private void replaceRunsPreservingFirstRunStyle(
+        XWPFParagraph targetParagraph,
+        XWPFParagraph styleSourceParagraph,
+        String text
+    ) {
+        XWPFRun styleSourceRun = styleSourceParagraph.getRuns().isEmpty()
+            ? null
+            : styleSourceParagraph.getRuns().getFirst();
+        XWPFRun targetRun;
+        if (targetParagraph.getRuns().isEmpty()) {
+            targetRun = targetParagraph.createRun();
+        } else {
+            targetRun = targetParagraph.getRuns().getFirst();
+            targetRun.setText("", 0);
+        }
+        copyRunStyle(targetRun, styleSourceRun);
+        targetRun.setText(text, 0);
+        for (int i = targetParagraph.getRuns().size() - 1; i > 0; i--) {
+            targetParagraph.removeRun(i);
+        }
+    }
+
+    private void copyRunStyle(XWPFRun targetRun, XWPFRun sourceRun) {
+        if (sourceRun == null || sourceRun.getCTR().getRPr() == null) {
+            return;
+        }
+        targetRun.getCTR().setRPr((CTRPr) sourceRun.getCTR().getRPr().copy());
     }
 }

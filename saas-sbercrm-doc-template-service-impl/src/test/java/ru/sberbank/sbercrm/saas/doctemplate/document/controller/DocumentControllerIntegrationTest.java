@@ -40,11 +40,14 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
     private static final UUID REQUEST_ID_REFERENCE = UUID.fromString("66666666-6666-6666-6666-666666666666");
     private static final UUID REQUEST_ID_ERROR = UUID.fromString("77777777-7777-7777-7777-777777777777");
     private static final UUID REQUEST_ID_REFERENCE_TABLE = UUID.fromString("12121212-1212-1212-1212-121212121212");
+    private static final UUID REQUEST_ID_MISSING_REFERENCE = UUID.fromString("13131313-1313-1313-1313-131313131313");
     private static final UUID TEMPLATE_SUFFIX_DONE = UUID.fromString("88888888-8888-8888-8888-888888888888");
     private static final UUID TEMPLATE_SUFFIX_ERROR = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static final UUID TEMPLATE_SUFFIX_MISSING_REFERENCE = UUID.fromString("14141414-1414-1414-1414-141414141414");
     private static final UUID WORKER_ID_DONE = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private static final UUID WORKER_ID_ERROR = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     private static final UUID WORKER_ID_ERROR_CLAIM_CHECK = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    private static final UUID WORKER_ID_MISSING_REFERENCE = UUID.fromString("15151515-1515-1515-1515-151515151515");
     private static final UUID REFERENCE_ENTITY_ID = UUID.fromString("99999999-9999-9999-9999-999999999999");
 
     @Autowired
@@ -325,7 +328,92 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
     }
 
     @Test
-    @DisplayName("Детерминированная ошибка в reference path завершает файл и job в ERROR без повторной попытки")
+    @DisplayName("Отсутствующее значение по reference path подставляется пустой строкой")
+    void givenMissingReferencePathValue_whenExecuteThenSubstituteEmptyString() throws Exception {
+        String templateKey = "templates/" + ENTITY_ID + "/missing-reference-" + TEMPLATE_SUFFIX_MISSING_REFERENCE + ".docx";
+        writeTemplateToStubStorage(templateKey, createDocxListItem("Contract for ${customer_name}"));
+        SelectDto selectDto = SelectDto.builder()
+            .fields(java.util.Set.of("document$c.id", "document$c.dealProduct$c"))
+            .build();
+        businessObjectWireMock.stubGetObjectWithSpecifiedFields(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            OBJECT_ID,
+            selectDto,
+            Map.of(
+                "document$c",
+                Map.of(
+                    "id", "doc-missing-reference",
+                    "dealProduct$c", List.of()
+                )
+            )
+        );
+        businessObjectWireMock.stubListObjects(
+            TENANT_ID,
+            USER_ID,
+            REFERENCE_ENTITY_ID,
+            CommonRqDto.builder()
+                .select(SelectDto.builder().fields(Set.of("customer.name")).build())
+                .filter(java.util.Set.of(
+                    FilterDto.builder()
+                        .field("document$c")
+                        .operation(FilterDto.Operation.EQUAL)
+                        .value(List.of("doc-missing-reference"))
+                        .build()
+                ))
+                .sort(List.of())
+                .paging(PagingRqDto.builder().page(0).size(100).build())
+                .build(),
+            Map.of(
+                "data",
+                List.of(Map.of("customer", Map.of())),
+                "errors",
+                List.of(),
+                "commonErrors",
+                List.of(),
+                "paging",
+                Map.of("currentPage", 0, "recordsOnPage", 1)
+            )
+        );
+
+        Template template = createDocxTemplateWithMappings(
+            templateKey,
+            "Шаблон с отсутствующим reference значением",
+            "DOC_MISSING_REFERENCE_" + TEMPLATE_SUFFIX_MISSING_REFERENCE,
+            "Описание шаблона с отсутствующим reference значением",
+            List.of(
+                buildReferenceValueMapping(
+                    "customer_name",
+                    REFERENCE_ENTITY_ID,
+                    "source.document$c.dealProduct$c",
+                    "document$c",
+                    "source.document$c.id",
+                    "reference.customer.name"
+                )
+            )
+        );
+
+        DocumentRs createdDocument = createDocument(template.getId(), OBJECT_ID, REQUEST_ID_MISSING_REFERENCE);
+
+        var claimedJob = generationJobService.claimNextJobs(WORKER_ID_MISSING_REFERENCE, 1).getFirst();
+        generationJobExecutionUseCase.execute(claimedJob);
+
+        DocumentRs generatedDocument = getDocument(createdDocument.getId());
+        assertThat(generatedDocument.getFiles().getFirst().getStatus()).isEqualTo(GeneratedFileStatus.DONE.name());
+
+        byte[] generatedFile = fileStorageGateway.download(
+            TENANT_ID,
+            USER_ID,
+            generatedDocument.getFiles().getFirst().getS3Key()
+        );
+        String generatedText = readDocxText(generatedFile);
+        assertThat(generatedText).contains("Contract for");
+        assertThat(generatedText).doesNotContain("${customer_name}");
+    }
+
+    @Test
+    @DisplayName("Детерминированная ошибка в синтаксически невалидном reference path завершает файл и job в ERROR без повторной попытки")
     void givenInvalidReferencePath_whenExecuteThenFailWithoutRetry() throws Exception {
         String templateKey = "templates/" + ENTITY_ID + "/non-retry-" + TEMPLATE_SUFFIX_ERROR + ".docx";
         writeTemplateToStubStorage(templateKey, createDocxListItem("Contract for ${customer_name}"));
@@ -345,29 +433,6 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                 )
             )
         );
-        businessObjectWireMock.stubListObjects(
-            TENANT_ID,
-            USER_ID,
-            REFERENCE_ENTITY_ID,
-            CommonRqDto.builder()
-                .select(SelectDto.builder().fields(Set.of("customer.name")).build())
-                .filter(java.util.Set.of(
-                    FilterDto.builder()
-                        .field("document$c")
-                        .operation(FilterDto.Operation.EQUAL)
-                        .value(List.of("doc-2"))
-                        .build()
-                ))
-                .sort(List.of())
-                .paging(PagingRqDto.builder().page(0).size(100).build())
-                .build(),
-            Map.of(
-                "data", List.of(
-                    Map.of("name", "Broken reference object")
-                )
-            )
-        );
-
         Template template = createDocxTemplateWithMappings(
             templateKey,
             "Шаблон без retry",
@@ -380,7 +445,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
                     "source.document$c.dealProduct$c",
                     "document$c",
                     "source.document$c.id",
-                    "reference.customer.name"
+                    "reference."
                 )
             )
         );
@@ -400,7 +465,7 @@ class DocumentControllerIntegrationTest extends AbstractDocumentGenerationIntegr
             .andExpect(jsonPath("$.files[0].errorCode").value("generation.business_object_path_invalid"))
             .andExpect(
                 jsonPath("$.files[0].errorMessage")
-                    .value("Invalid business object path for mapping: key=customer_name, path=reference.customer.name")
+                    .value("Invalid business object path for mapping: key=reference-select, path=reference.")
             );
 
         assertThat(generationJobService.findById(TENANT_ID, claimedJob.getId()))

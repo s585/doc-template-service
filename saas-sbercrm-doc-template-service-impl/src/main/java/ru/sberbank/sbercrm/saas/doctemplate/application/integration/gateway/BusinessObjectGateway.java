@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -19,6 +21,9 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.pagination.PageResult;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
 
 @Component
@@ -71,18 +76,50 @@ public class BusinessObjectGateway {
     }
 
     public PageResult<Map<String, Object>> getListObjectsPage(UUID tenantId, UUID userId, UUID entityId, CommonRqDto request) {
+        CommonRsDto response = executeCoreDataRequest(
+            () -> coreDataClient.getListObjectsV3(tenantId, userId, entityId, request),
+            buildEntityContext(entityId)
+        );
+        return PageResult.<Map<String, Object>>builder()
+            .data(extractData(response, entityId))
+            .paging(response == null ? null : response.getPaging())
+            .build();
+    }
+
+    public List<CheckDataByFilterRsDto> checkDataByEachFilter(
+        UUID tenantId,
+        UUID userId,
+        UUID entityId,
+        Map<String, Object> data,
+        List<FilterDto> filters
+    ) {
+        if (CollectionUtils.isEmpty(filters)) {
+            return List.of();
+        }
+
+        return executeCoreDataRequest(
+            () -> coreDataClient.checkDataByEachFilter(
+                tenantId,
+                userId,
+                entityId,
+                CheckDataByFilterRqDto.builder()
+                    .data(data)
+                    .filter(filters)
+                    .build()
+            ),
+            buildEntityContext(entityId)
+        );
+    }
+
+    private <T> T executeCoreDataRequest(Supplier<T> request, String context) {
         try {
-            CommonRsDto response = coreDataClient.getListObjectsV3(tenantId, userId, entityId, request);
-            return PageResult.<Map<String, Object>>builder()
-                .data(extractData(response, entityId))
-                .paging(response == null ? null : response.getPaging())
-                .build();
+            return request.get();
         } catch (RetryableException ex) {
             throw new SystemCrmException(
                 CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED,
                 CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED,
                 ex,
-                "entityId=" + entityId
+                context
             );
         } catch (FeignException ex) {
             if (isRetriableResponseStatus(ex.status())) {
@@ -90,14 +127,14 @@ public class BusinessObjectGateway {
                     CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED,
                     CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED,
                     ex,
-                    "entityId=" + entityId
+                    context
                 );
             }
             throw new SystemCrmException(
                 CrmErrorCodes.SYSTEM_UNEXPECTED,
                 CrmErrorCodes.SYSTEM_UNEXPECTED,
                 ex,
-                "entityId=" + entityId
+                context
             );
         }
     }
@@ -141,5 +178,9 @@ public class BusinessObjectGateway {
 
     private String buildObjectContext(UUID entityId, UUID objectId) {
         return "entityId=" + entityId + ", objectId=" + objectId;
+    }
+
+    private String buildEntityContext(UUID entityId) {
+        return "entityId=" + entityId;
     }
 }

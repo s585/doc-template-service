@@ -152,6 +152,18 @@ public class JooqTemplateRepository implements TemplateRepository {
     }
 
     @Override
+    public List<Template> findAllActiveByEntityIdOrderByNameAndId(UUID tenantId, UUID entityId) {
+        return dslContext.selectFrom(T_TEMPLATE)
+            .where(
+                T_TEMPLATE.TENANT_ID.eq(tenantId),
+                T_TEMPLATE.ENTITY_ID.eq(entityId),
+                T_TEMPLATE.ACTIVE.isTrue()
+            )
+            .orderBy(T_TEMPLATE.NAME.asc(), T_TEMPLATE.ID.asc())
+            .fetch(templateRecordConverter);
+    }
+
+    @Override
     public boolean existsByCode(UUID tenantId, String code, UUID excludedTemplateId) {
         Condition condition = DSL.and(
             T_TEMPLATE.TENANT_ID.eq(tenantId),

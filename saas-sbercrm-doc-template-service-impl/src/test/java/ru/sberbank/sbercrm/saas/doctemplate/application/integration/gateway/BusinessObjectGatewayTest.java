@@ -27,6 +27,9 @@ import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.CoreD
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
 
@@ -88,6 +91,51 @@ class BusinessObjectGatewayTest {
         assertThat(actual).hasSize(2);
         assertThat(actual.getFirst()).containsEntry("name", "Product A");
         verify(coreDataClient).getListObjectsV3(TENANT_ID, USER_ID, ENTITY_ID, request);
+    }
+
+    @Test
+    @DisplayName("Gateway проксирует batch-проверку условий в core client")
+    void givenFilters_whenCheckDataByEachFilter_thenReturnClientResponse() {
+        Map<String, Object> data = Map.of("source", Map.of("status", "APPROVED"));
+        FilterDto filter = FilterDto.builder()
+            .field("source.status")
+            .operation(FilterDto.Operation.EQUAL)
+            .value(List.of("APPROVED"))
+            .build();
+        List<CheckDataByFilterRsDto> expected = List.of(CheckDataByFilterRsDto.builder().result(true).build());
+        CheckDataByFilterRqDto expectedRequest = CheckDataByFilterRqDto.builder()
+            .data(data)
+            .filter(List.of(filter))
+            .build();
+        given(coreDataClient.checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, expectedRequest))
+            .willReturn(expected);
+
+        List<CheckDataByFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            data,
+            List.of(filter)
+        );
+
+        assertThat(actual).isEqualTo(expected);
+        verify(coreDataClient).checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, expectedRequest);
+    }
+
+    @Test
+    @DisplayName("Gateway не вызывает core client для пустого списка условий")
+    void givenEmptyFilters_whenCheckDataByEachFilter_thenReturnEmptyResponse() {
+        List<CheckDataByFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            Map.of(),
+            List.of()
+        );
+
+        assertThat(actual).isEmpty();
+        verify(coreDataClient, org.mockito.Mockito.never())
+            .checkDataByEachFilter(org.mockito.Mockito.any(), org.mockito.Mockito.any(), org.mockito.Mockito.any(), org.mockito.Mockito.any());
     }
 
     @Test

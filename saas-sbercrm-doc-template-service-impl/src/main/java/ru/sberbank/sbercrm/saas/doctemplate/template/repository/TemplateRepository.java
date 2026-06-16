@@ -22,6 +22,8 @@ public interface TemplateRepository {
 
     List<Template> findAllByEntityId(UUID tenantId, UUID entityId);
 
+    List<Template> findAllActiveByEntityIdOrderByNameAndId(UUID tenantId, UUID entityId);
+
     boolean existsByCode(UUID tenantId, String code, UUID excludedTemplateId);
 
     void deleteById(UUID tenantId, UUID templateId);

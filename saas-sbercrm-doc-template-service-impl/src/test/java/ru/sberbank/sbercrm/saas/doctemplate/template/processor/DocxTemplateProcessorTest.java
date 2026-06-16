@@ -15,6 +15,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,68 @@ class DocxTemplateProcessorTest {
                 .extracting(XWPFParagraph::getText)
                 .contains("Платеж 100 RUB", "Платеж 250 RUB")
                 .doesNotContain("Платеж ${payment_amount} ${currency}");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX заменяет все вхождения повторяющегося placeholder-а")
+    void givenRepeatedPlaceholder_whenGenerate_thenReplaceAllOccurrences() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxWithRepeatedPlaceholder();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("client_name", "Direct LLC"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            assertThat(document.getParagraphs().getFirst().getText())
+                .isEqualTo("Клиент Direct LLC, повтор Direct LLC");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX сохраняет размер шрифта при замене scalar placeholder-а")
+    void givenStyledPlaceholder_whenGenerate_thenPreserveFontSize() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createStyledDocxParagraph();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("client_name", "Direct LLC"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            XWPFRun run = document.getParagraphs().getFirst().getRuns().getFirst();
+            assertThat(document.getParagraphs().getFirst().getText()).isEqualTo("Клиент Direct LLC");
+            assertThat(run.getFontSize()).isEqualTo(18);
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX сохраняет размер шрифта при замене placeholder-а в таблице")
+    void givenStyledTablePlaceholder_whenGenerate_thenPreserveFontSize() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createStyledDocxTable();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("client_name", "Direct LLC"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            XWPFParagraph paragraph = document.getTables().getFirst().getRow(0).getCell(0).getParagraphs().getFirst();
+            assertThat(paragraph.getText()).isEqualTo("Клиент Direct LLC");
+            assertThat(paragraph.getRuns().getFirst().getFontSize()).isEqualTo(16);
         }
     }
 
@@ -253,6 +316,39 @@ class DocxTemplateProcessorTest {
             listParagraph.setNumID(BigInteger.ONE);
             listParagraph.createRun().setText("Платеж ${payment_amount} ${currency}");
 
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createDocxWithRepeatedPlaceholder() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            document.createParagraph().createRun().setText("Клиент ${client_name}, повтор ${client_name}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createStyledDocxParagraph() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFRun run = document.createParagraph().createRun();
+            run.setFontSize(18);
+            run.setText("Клиент ${client_name}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createStyledDocxTable() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFTable table = document.createTable(1, 1);
+            XWPFParagraph paragraph = table.getRow(0).getCell(0).getParagraphs().getFirst();
+            XWPFRun run = paragraph.createRun();
+            run.setFontSize(16);
+            run.setText("Клиент ${client_name}");
             document.write(outputStream);
             return outputStream.toByteArray();
         }

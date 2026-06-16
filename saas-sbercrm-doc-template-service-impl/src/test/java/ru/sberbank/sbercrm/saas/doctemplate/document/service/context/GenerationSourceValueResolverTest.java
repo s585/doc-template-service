@@ -1,5 +1,6 @@
 package ru.sberbank.sbercrm.saas.doctemplate.document.service.context;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -68,5 +69,40 @@ class GenerationSourceValueResolverTest {
         assertThatThrownBy(() -> systemUnderTest.resolve(mapping, sourceObject, null, null))
             .isInstanceOf(BusinessCrmException.class)
             .hasMessage(DocumentConstants.ErrorCodes.GENERATION_BUSINESS_OBJECT_PATH_INVALID);
+    }
+
+    @Test
+    @DisplayName("Resolver возвращает пустую строку для отсутствующего конечного поля DIRECT path")
+    void givenMissingDirectField_whenResolve_thenReturnEmptyString() {
+        TemplateMapping mapping = directMapping("customer_name", "source.customer.name");
+        Map<String, Object> sourceObject = Map.of("customer", Map.of("title", "Direct LLC"));
+
+        Object actual = systemUnderTest.resolve(mapping, sourceObject, null, null);
+
+        assertThat(actual).isEqualTo("");
+    }
+
+    @Test
+    @DisplayName("Resolver возвращает пустую строку для отсутствующего промежуточного объекта DIRECT path")
+    void givenMissingIntermediateObject_whenResolve_thenReturnEmptyString() {
+        TemplateMapping mapping = directMapping("customer_name", "source.customer.name");
+        Map<String, Object> sourceObject = Map.of("deal", Map.of("name", "D-1"));
+
+        Object actual = systemUnderTest.resolve(mapping, sourceObject, null, null);
+
+        assertThat(actual).isEqualTo("");
+    }
+
+    private TemplateMapping directMapping(String key, String path) {
+        return TemplateMapping.builder()
+            .key(key)
+            .definition(
+                TemplateMappingDefinition.builder()
+                    .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
+                    .source(DirectValueSource.builder().path(path).build())
+                    .build()
+            )
+            .build();
     }
 }

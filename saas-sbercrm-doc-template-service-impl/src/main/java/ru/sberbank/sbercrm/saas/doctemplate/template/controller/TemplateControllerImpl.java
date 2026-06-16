@@ -3,10 +3,8 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
@@ -16,6 +14,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.adapter.TemplateWebAdapter;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -70,8 +69,13 @@ public class TemplateControllerImpl implements TemplateController {
     }
 
     @Override
-    public CommonRsDto listAvailableTemplates(UUID entityId, UUID objectId) {
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "List available templates is not implemented yet");
+    public List<TemplateRs> listAvailableTemplates(UUID entityId, UUID objectId) {
+        return templateWebAdapter.listAvailableTemplates(
+            getRequiredUuidHeader(TENANT_ID_HEADER),
+            getRequiredUuidHeader(USER_ID_HEADER),
+            entityId,
+            objectId
+        );
     }
 
     private UUID getRequiredUuidHeader(String headerName) {

@@ -7,6 +7,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateCreationRq;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateRs;
 import ru.sberbank.sbercrm.saas.doctemplate.template.dto.TemplateUpdateRq;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface TemplateWebAdapter {
@@ -19,4 +20,6 @@ public interface TemplateWebAdapter {
     void deleteTemplate(UUID tenantId, UUID userId, UUID templateId);
 
     CommonRsDto listTemplates(UUID tenantId, CommonRqDto request);
+
+    List<TemplateRs> listAvailableTemplates(UUID tenantId, UUID userId, UUID entityId, UUID objectId);
 }

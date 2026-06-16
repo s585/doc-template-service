@@ -94,6 +94,22 @@ class TemplateServiceImplTest {
     }
 
     @Test
+    @DisplayName("createMappings отклоняет дублирующиеся ключи mapping-ов")
+    void givenDuplicateMappingKeys_whenCreateMappings_thenThrowBusinessException() {
+        List<TemplateMapping> mappings = List.of(
+            validValueMapping("customer_name"),
+            validValueMapping("customer_name")
+        );
+
+        assertThatThrownBy(() -> systemUnderTest.createMappings(TENANT_ID, TEMPLATE_ID, USER_ID, mappings))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(ex -> assertThat(((BusinessCrmException) ex).getCode())
+                .isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID));
+
+        verify(templateMappingRepository, never()).createAll(TENANT_ID, TEMPLATE_ID, USER_ID, mappings);
+    }
+
+    @Test
     @DisplayName("createMappings отклоняет generated_file_name с REFERENCE source")
     void givenGeneratedFileNameWithReferenceSource_whenCreateMappings_thenThrowBusinessException() {
         List<TemplateMapping> mappings = List.of(invalidGeneratedFileNameReferenceMapping());
@@ -162,6 +178,18 @@ class TemplateServiceImplTest {
                             .path("reference.paymentId")
                             .build()
                     )
+                    .build()
+            )
+            .build();
+    }
+
+    private TemplateMapping validValueMapping(String key) {
+        return TemplateMapping.builder()
+            .key(key)
+            .definition(
+                TemplateMappingDefinition.builder()
+                    .scope(MappingScope.VALUE)
+                    .type(TemplateValueType.STRING)
                     .build()
             )
             .build();

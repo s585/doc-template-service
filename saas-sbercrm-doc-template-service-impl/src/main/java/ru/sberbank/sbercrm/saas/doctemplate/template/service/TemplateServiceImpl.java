@@ -80,6 +80,11 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
+    public List<Template> findAllActiveByEntityIdOrderByNameAndId(UUID tenantId, UUID entityId) {
+        return templateRepository.findAllActiveByEntityIdOrderByNameAndId(tenantId, entityId);
+    }
+
+    @Override
     public void createMappings(UUID tenantId, UUID templateId, UUID userId, List<TemplateMapping> mappings) {
         templateMappingValidator.validate(mappings);
         templateMappingRepository.createAll(tenantId, templateId, userId, mappings);
