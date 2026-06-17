@@ -27,15 +27,13 @@ public class FileStorageProperties {
         private String documentsFolder = "documents";
 
         private static String resolveDefaultRootPath() {
-            Path currentPath = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
-            Path projectRoot = currentPath;
-            while (projectRoot != null) {
+            Path defaultRootPath = Path.of("").toAbsolutePath().normalize();
+            for (Path projectRoot = defaultRootPath; projectRoot != null; projectRoot = projectRoot.getParent()) {
                 if (Files.exists(projectRoot.resolve(".git"))) {
                     return projectRoot.toString();
                 }
-                projectRoot = projectRoot.getParent();
             }
-            return currentPath.toString();
+            return defaultRootPath.toString();
         }
     }
 }

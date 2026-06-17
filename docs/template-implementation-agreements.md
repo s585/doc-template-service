@@ -11,7 +11,8 @@
 ## Ответственность слоев
 - `controller` не конвертирует DTO в модели и обратно.
 - `TemplateWebAdapter` выполняет конвертацию `dto <-> model` и вызывает use case / service.
-- `usecase` может вызывать сервисы, репозитории, feign-клиенты и форматные обработчики.
+- `usecase` оркестрирует сценарий через сервисы, gateway и форматные обработчики;
+  прямой доступ из use case к repository не используется.
 - `service` работает с моделью `Template` и связанными доменными сущностями.
 - `repository` работает с внутренними моделями и `JSONB`.
 
@@ -30,8 +31,11 @@
 - Форматные обработчики отвечают за извлечение переменных и определение `scope`.
 - Для `scope = FILE_NAME` при import создается отдельный mapping с фиксированным ключом `generated_file_name`.
 - Значение для `generated_file_name` по умолчанию берется из `TemplateCreationRq.name` через `CONSTANT` source.
-- Для `DOCX`: текст/header/footer -> `VALUE`, таблицы -> `TABLE`.
-- Для `XLSX`: на текущем этапе все найденные переменные считаются `TABLE`.
+- Для `DOCX`: текст/header/footer -> `VALUE`, таблицы и numbered/bulleted list
+  items -> `COLLECTION`.
+- Для `XLSX`: при import найденные переменные считаются `VALUE`; во время
+  generation строка может стать repeat-unit, если её placeholders соответствуют
+  collection dataset.
 
 ## Конвертация и библиотеки
 - Для `DTO <-> model` используется `MapStruct`.

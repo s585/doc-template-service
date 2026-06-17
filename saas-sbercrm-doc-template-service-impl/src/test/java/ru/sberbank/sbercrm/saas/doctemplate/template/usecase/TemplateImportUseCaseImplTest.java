@@ -85,11 +85,13 @@ class TemplateImportUseCaseImplTest {
 
         systemUnderTest.execute(TENANT_ID, USER_ID, command, file);
 
-        ArgumentCaptor<List<TemplateMapping>> mappingsCaptor = ArgumentCaptor.captor();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TemplateMapping>> mappingsCaptor = ArgumentCaptor.forClass(List.class);
         verify(templateService).createMappings(eq(TENANT_ID), eq(templateId), eq(USER_ID), mappingsCaptor.capture());
-        assertThat(mappingsCaptor.getValue())
-            .extracting(TemplateMapping::getKey)
-            .containsOnlyOnce("client_name");
+        List<String> capturedKeys = mappingsCaptor.getValue().stream()
+            .map(TemplateMapping::getKey)
+            .toList();
+        assertThat(capturedKeys).containsOnlyOnce("client_name");
     }
 
     @Test

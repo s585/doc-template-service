@@ -31,7 +31,7 @@ public interface CoreDataClient {
     );
 
     @PostMapping("/internal/data/{entityId}/check-each")
-    List<CheckDataByFilterRsDto> checkDataByEachFilter(
+    List<CheckDataByEachFilterRsDto> checkDataByEachFilter(
         @RequestHeader(TENANT_ID_HEADER) UUID tenantId,
         @RequestHeader(USER_ID_HEADER) UUID userId,
         @PathVariable("entityId") UUID entityId,

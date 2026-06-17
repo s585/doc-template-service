@@ -265,8 +265,8 @@ dev endpoint `GET /internal/dev/file-storage/file?key=...`, который во�
 - вызов выполняется через `Feign`-клиент;
 - для интеграционных тестов используется `WireMock` (а не файловый stub).
 
-Для постраничной выборки связанных business objects используется отдельный
-`BusinessObjectPageIterator`.
+Для постраничной выборки связанных business objects используется общий
+`PageIterator`, который вызывает `BusinessObjectGateway#getListObjectsPage`.
 
 Архитектурное правило для `REFERENCE`-lookup:
 
@@ -276,6 +276,20 @@ dev endpoint `GET /internal/dev/file-storage/file?key=...`, который во�
   business objects в памяти;
 - в runtime-контекст попадают только уже спроецированные значения строк
   коллекции.
+
+Для проверки доступности шаблонов по `displayCondition` gateway использует
+endpoint core data `checkDataByEachFilter`.
+
+Контракт проверки:
+
+- вход — исходный business object как `data` и список `FilterDto`;
+- порядок результатов гарантируется core data и соответствует порядку фильтров
+  в запросе;
+- пустой список фильтров не отправляется в core data и сразу возвращает пустой
+  результат;
+- `RetryableException`, HTTP `5xx`, `429`, `408` маппятся в
+  `core_client.request_failed`;
+- прочие HTTP ошибки маппятся в `system.unexpected`.
 
 Классификация ошибок интеграции с core:
 
@@ -317,6 +331,31 @@ dev endpoint `GET /internal/dev/file-storage/file?key=...`, который во�
 - получение списка документов по `entityId + objectId` с пагинацией.
 
 Список документов использует общий пагинируемый контракт сервиса.
+
+## Внешний API шаблонов
+
+Поддерживаются операции:
+
+- импорт шаблона из `multipart/form-data`;
+- обновление шаблона;
+- получение шаблона по `templateId`;
+- удаление шаблона;
+- получение списка шаблонов через `CommonRqDto` с фильтрацией, сортировкой и
+  пагинацией;
+- получение списка доступных шаблонов для `entityId + objectId`.
+
+Список доступных шаблонов:
+
+- endpoint: `POST /v1/doc/{entityId}/{objectId}/template/list`;
+- входное тело не принимает;
+- результат — голый `List<TemplateRs>`, без `CommonRsDto` и без пагинации;
+- сервис сначала загружает business object по `entityId + objectId`;
+- затем выбирает активные шаблоны этой сущности, отсортированные по `name, id`;
+- шаблоны без `displayCondition` считаются доступными без вызова core data;
+- шаблоны с `displayCondition` проверяются batch-вызовом
+  `CoreDataClient#checkDataByEachFilter`;
+- соответствие результата проверки шаблону определяется порядком ответов core
+  data.
 
 ## Поток обработки generation сейчас
 
@@ -457,7 +496,11 @@ placeholder-ам шаблона, а не последовательный `repla
 
 - результат не зависит от порядка обхода `values`;
 - вложенные/каскадные подстановки не поддерживаются и не являются контрактом;
-- отсутствие значения оставляет исходный placeholder без изменений.
+- если placeholder отсутствует в runtime-map значений, processor оставляет
+  исходный placeholder без изменений;
+- если mapping path валиден синтаксически, но значение не найдено в business
+  object, resolver передаёт в runtime-map пустую строку, и placeholder
+  заменяется на пустое значение.
 
 ### Повторяющиеся блоки
 
@@ -495,6 +538,7 @@ placeholder-ам шаблона, а не последовательный `repla
 
 Текущие обязательные правила:
 
+- ключи mappings внутри одного шаблона не должны дублироваться;
 - `REFERENCE` разрешен только для `COLLECTION`;
 - `COLLECTION` с заполненным source разрешен только для `REFERENCE`;
 - зарезервированный `generated_file_name` разрешен только со `scope = FILE_NAME`;
@@ -821,4 +865,4 @@ Recovery зависших `PROCESSING` job и бизнес-retry не должн
 2. уточнение классификации retriable/non-retriable ошибок по реальным интеграциям;
 3. опциональная публикация attempt/history в технический read API или admin diagnostics;
 4. добавление `generation_job_attempt`-ориентированной observability и метрик;
-5. реализация data resolver для `DirectValueSource` и `ReferenceValueSource`.
+5. расширение expression evaluator за пределы текущей no-op реализации.

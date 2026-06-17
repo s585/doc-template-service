@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.BusinessObjectGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByEachFilterRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
@@ -48,7 +48,7 @@ public class TemplateAvailableListingUseCaseImpl implements TemplateAvailableLis
             return templates;
         }
 
-        List<CheckDataByFilterRsDto> checkResults = businessObjectGateway.checkDataByEachFilter(
+        List<CheckDataByEachFilterRsDto> checkResults = businessObjectGateway.checkDataByEachFilter(
             tenantId,
             userId,
             entityId,

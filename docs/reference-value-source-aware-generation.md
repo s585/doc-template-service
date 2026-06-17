@@ -64,7 +64,7 @@ Assembler остался orchestration-слоем и перестал знать
 Для reference lookup добавлен page iterator:
 
 - `BusinessObjectGateway` загружает одну страницу;
-- `BusinessObjectPageIterator` выполняет paging;
+- общий `PageIterator` выполняет paging;
 - page-by-page обработка сразу проецирует raw business objects в dataset rows.
 
 Это убрало дублирующие lookup-циклы по нескольким mapping keys одной и той же

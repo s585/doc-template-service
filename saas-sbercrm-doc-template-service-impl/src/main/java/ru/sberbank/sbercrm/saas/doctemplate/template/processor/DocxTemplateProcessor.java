@@ -2,6 +2,7 @@ package ru.sberbank.sbercrm.saas.doctemplate.template.processor;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -85,7 +86,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
                 );
             }
             return variables;
-        } catch (IOException | InvalidFormatException ex) {
+        } catch (IOException | InvalidFormatException | NotOfficeXmlFileException ex) {
             throw new BusinessCrmException(
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
@@ -116,7 +117,7 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
             }
             document.write(outputStream);
             return outputStream.toByteArray();
-        } catch (IOException | InvalidFormatException ex) {
+        } catch (IOException | InvalidFormatException | NotOfficeXmlFileException ex) {
             throw new BusinessCrmException(
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,

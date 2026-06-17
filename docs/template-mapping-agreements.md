@@ -14,7 +14,7 @@
   "id": "uuid",
   "key": "string",
   "definition": {
-    "scope": "FILE_NAME | VALUE | TABLE",
+    "scope": "FILE_NAME | VALUE | COLLECTION",
     "type": "STRING | NUMBER | DATE | DATETIME | BOOLEAN",
     "expression": {},
     "source": {
@@ -28,7 +28,7 @@
 
 - `FILE_NAME`: значение используется при формировании имени файла
 - `VALUE`: обычное одиночное значение для подстановки в шаблон
-- `TABLE`: значение резолвится для каждого объекта в табличном/списочном контексте
+- `COLLECTION`: значение резолвится для каждой строки повторяемого блока
 
 ## Тип значения
 
@@ -38,7 +38,7 @@
 - `DATETIME`
 - `BOOLEAN`
 
-Для `TABLE` поле `definition.type` описывает тип одного резолвленного элемента, а не всей коллекции.
+Для `COLLECTION` поле `definition.type` описывает тип одного резолвленного элемента, а не всей коллекции.
 
 ## Expression
 
@@ -51,7 +51,7 @@
 - прямой доступ к `source.*`, `reference.*`, `targetPath` запрещен
 - fallback выражается через `coalesce`
 - результат expression должен быть совместим с `definition.type`
-- для `TABLE` в рамках MVP поддерживаются только поэлементные операции
+- для `COLLECTION` поддерживаются только поэлементные операции
 
 Форма узла expression:
 
@@ -143,7 +143,13 @@ targetPath + "." + path without "reference."
 - совместимость `expression` и результирующего типа
 - некорректные `path` и `referenceValuePath`
 
-Стратегия обработки runtime-ошибок пока не зафиксирована.
+Runtime-семантика:
+
+- синтаксически некорректный path считается ошибкой mapping;
+- если path валиден, но значение в business object отсутствует, generation не
+  падает, а подставляет пустую строку;
+- отсутствие связанных reference-объектов даёт пустую коллекцию;
+- дублирующиеся `key` в mappings одного шаблона запрещены.
 
 ## Примеры
 

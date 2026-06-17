@@ -25,9 +25,53 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateCon
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.template.properties.DocTemplateProperties;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
 
 class DocxTemplateProcessorTest {
+
+    @Test
+    @DisplayName("Процессор поддерживает только DOCX формат")
+    void whenSupports_thenReturnTrueOnlyForDocx() {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+
+        assertThat(systemUnderTest.supports(TemplateFormat.DOCX)).isTrue();
+        assertThat(systemUnderTest.supports(TemplateFormat.XLSX)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX падает бизнес-ошибкой при извлечении переменных из битого файла")
+    void givenInvalidContent_whenExtractVariables_thenThrowBusinessException() {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+
+        assertThatThrownBy(() -> systemUnderTest.extractVariables("not-a-docx".getBytes()))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED);
+                assertThat(exception.getParams()).containsExactly(TemplateFormat.DOCX.value());
+            });
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX падает бизнес-ошибкой при генерации из битого файла")
+    void givenInvalidContent_whenGenerate_thenThrowBusinessException() {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+
+        assertThatThrownBy(() -> systemUnderTest.generate(
+            "not-a-docx".getBytes(),
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of())
+                .collections(List.of())
+                .build()
+        ))
+            .isInstanceOf(BusinessCrmException.class)
+            .satisfies(throwable -> {
+                BusinessCrmException exception = (BusinessCrmException) throwable;
+                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED);
+                assertThat(exception.getParams()).containsExactly(TemplateFormat.DOCX.value());
+            });
+    }
 
     @Test
     @DisplayName("Процессор DOCX извлекает переменные из текста, таблиц, верхнего и нижнего колонтитулов")
@@ -122,6 +166,78 @@ class DocxTemplateProcessorTest {
     }
 
     @Test
+    @DisplayName("Процессор DOCX заменяет numbered paragraph как scalar, если dataset не найден")
+    void givenNumberedParagraphWithoutDataset_whenGenerate_thenReplaceAsScalarParagraph() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxListOnlyContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("payment_amount", "100"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            assertThat(document.getParagraphs())
+                .extracting(XWPFParagraph::getText)
+                .containsExactly("Платеж 100");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX вставляет collection paragraph перед следующим body element")
+    void givenCollectionParagraphBeforeAnotherParagraph_whenGenerate_thenInsertRowsInPlace() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxListBeforeParagraphContent();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of())
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("payment_amount")))
+                        .rows(List.of(
+                            Map.of("payment_amount", "100"),
+                            Map.of("payment_amount", "250")
+                        ))
+                        .build()
+                ))
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            assertThat(document.getParagraphs())
+                .extracting(XWPFParagraph::getText)
+                .containsExactly("Платеж 100", "Платеж 250", "Итого");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX удаляет лишние runs после замены текста параграфа")
+    void givenPlaceholderSplitAcrossRuns_whenGenerate_thenKeepSingleStyledRun() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxParagraphWithMultipleRuns();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of("client_name", "Direct LLC"))
+                .collections(List.of())
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            XWPFParagraph paragraph = document.getParagraphs().getFirst();
+            assertThat(paragraph.getText()).isEqualTo("Клиент Direct LLC");
+            assertThat(paragraph.getRuns()).hasSize(1);
+            assertThat(paragraph.getRuns().getFirst().getFontSize()).isEqualTo(14);
+        }
+    }
+
+    @Test
     @DisplayName("Процессор DOCX сохраняет размер шрифта при замене scalar placeholder-а")
     void givenStyledPlaceholder_whenGenerate_thenPreserveFontSize() throws IOException {
         DocxTemplateProcessor systemUnderTest = createProcessor();
@@ -194,6 +310,33 @@ class DocxTemplateProcessorTest {
             assertThat(table.getRow(2).getCell(0).getText()).isEqualTo("Product B");
             assertThat(table.getRow(2).getCell(1).getText()).isEqualTo("1");
             assertThat(table.getRow(2).getCell(2).getText()).isEqualTo("RUB");
+        }
+    }
+
+    @Test
+    @DisplayName("Процессор DOCX копирует свойства строк и ячеек при размножении таблицы")
+    void givenTableCollectionWithRowAndCellProperties_whenGenerate_thenCopyProperties() throws IOException {
+        DocxTemplateProcessor systemUnderTest = createProcessor();
+        byte[] content = createDocxTableWithRowAndCellProperties();
+
+        byte[] generated = systemUnderTest.generate(
+            content,
+            GenerationTemplateContext.builder()
+                .scalarValues(Map.of())
+                .collections(List.of(
+                    CollectionDataset.builder()
+                        .keys(new LinkedHashSet<>(List.of("product_name")))
+                        .rows(List.of(Map.of("product_name", "Product A")))
+                        .build()
+                ))
+                .build()
+        );
+
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(generated))) {
+            XWPFTable table = document.getTables().getFirst();
+            assertThat(table.getRow(1).getCtRow().getTrPr()).isNotNull();
+            assertThat(table.getRow(1).getCell(0).getCTTc().getTcPr()).isNotNull();
+            assertThat(table.getRow(1).getCell(0).getText()).isEqualTo("Product A");
         }
     }
 
@@ -330,6 +473,31 @@ class DocxTemplateProcessorTest {
         }
     }
 
+    private byte[] createDocxListBeforeParagraphContent() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFParagraph listParagraph = document.createParagraph();
+            listParagraph.setNumID(BigInteger.ONE);
+            listParagraph.createRun().setText("Платеж ${payment_amount}");
+            document.createParagraph().createRun().setText("Итого");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createDocxParagraphWithMultipleRuns() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun firstRun = paragraph.createRun();
+            firstRun.setFontSize(14);
+            firstRun.setText("Клиент ${client");
+            paragraph.createRun().setText("_name}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
     private byte[] createStyledDocxParagraph() throws IOException {
         try (XWPFDocument document = new XWPFDocument();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -364,6 +532,19 @@ class DocxTemplateProcessorTest {
             table.getRow(1).getCell(0).setText("${product_name}");
             table.getRow(1).getCell(1).setText("${product_qty}");
             table.getRow(1).getCell(2).setText("${currency}");
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] createDocxTableWithRowAndCellProperties() throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            XWPFTable table = document.createTable(2, 1);
+            table.getRow(0).getCell(0).setText("Product");
+            table.getRow(1).getCtRow().addNewTrPr();
+            table.getRow(1).getCell(0).getCTTc().addNewTcPr();
+            table.getRow(1).getCell(0).setText("${product_name}");
             document.write(outputStream);
             return outputStream.toByteArray();
         }

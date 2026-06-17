@@ -22,7 +22,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRqDto;
-import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByEachFilterRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
 
@@ -86,7 +86,7 @@ public class BusinessObjectGateway {
             .build();
     }
 
-    public List<CheckDataByFilterRsDto> checkDataByEachFilter(
+    public List<CheckDataByEachFilterRsDto> checkDataByEachFilter(
         UUID tenantId,
         UUID userId,
         UUID entityId,

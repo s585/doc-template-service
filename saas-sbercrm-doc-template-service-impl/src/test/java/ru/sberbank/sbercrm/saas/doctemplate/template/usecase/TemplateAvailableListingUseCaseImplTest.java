@@ -16,7 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.BusinessObjectGateway;
-import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByEachFilterRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
@@ -85,6 +85,31 @@ class TemplateAvailableListingUseCaseImplTest {
         verify(businessObjectGateway, never()).checkDataByEachFilter(any(), any(), any(), any(), any());
     }
 
+    @Test
+    @DisplayName("Шаблон с условием исключается, если core вернул меньше результатов проверки")
+    void givenFewerCheckResultsThanConditions_whenExecute_thenSkipTemplatesWithoutResult() {
+        Map<String, Object> businessObject = Map.of("source", Map.of("status", "APPROVED"));
+        FilterDto firstCondition = condition("source.status", "APPROVED");
+        FilterDto secondCondition = condition("source.type", "CONTRACT");
+        Template firstAvailable = template("first-available", firstCondition);
+        Template withoutResult = template("without-result", secondCondition);
+
+        given(businessObjectGateway.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID)).willReturn(businessObject);
+        given(templateService.findAllActiveByEntityIdOrderByNameAndId(TENANT_ID, ENTITY_ID))
+            .willReturn(List.of(firstAvailable, withoutResult));
+        given(businessObjectGateway.checkDataByEachFilter(
+            TENANT_ID,
+            USER_ID,
+            ENTITY_ID,
+            businessObject,
+            List.of(firstCondition, secondCondition)
+        )).willReturn(List.of(checkResult(true)));
+
+        List<Template> result = systemUnderTest.execute(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID);
+
+        assertThat(result).containsExactly(firstAvailable);
+    }
+
     private Template template(String code, FilterDto displayCondition) {
         return Template.builder()
             .id(UUID.nameUUIDFromBytes(code.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
@@ -102,8 +127,8 @@ class TemplateAvailableListingUseCaseImplTest {
             .build();
     }
 
-    private CheckDataByFilterRsDto checkResult(boolean result) {
-        return CheckDataByFilterRsDto.builder()
+    private CheckDataByEachFilterRsDto checkResult(boolean result) {
+        return CheckDataByEachFilterRsDto.builder()
             .result(result)
             .build();
     }

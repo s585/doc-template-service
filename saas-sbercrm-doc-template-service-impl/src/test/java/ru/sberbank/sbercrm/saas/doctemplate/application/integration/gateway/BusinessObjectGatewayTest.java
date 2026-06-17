@@ -14,9 +14,13 @@ import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,9 +32,10 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRqDto;
-import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByFilterRsDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CheckDataByEachFilterRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.FilterDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
+import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,6 +99,68 @@ class BusinessObjectGatewayTest {
     }
 
     @Test
+    @DisplayName("Gateway сохраняет paging из ответа list-objects")
+    void givenListObjectsResponseWithPaging_whenGetListObjectsPage_thenReturnPaging() {
+        CommonRqDto request = CommonRqDto.builder().paging(PagingRqDto.builder().page(0).size(100).build()).build();
+        PagingRsDto paging = PagingRsDto.builder()
+            .currentPage(1L)
+            .recordsOnPage(0L)
+            .totalPageAmount(1L)
+            .totalRecordsAmount(0L)
+            .build();
+        CommonRsDto response = CommonRsDto.builder()
+            .data(null)
+            .paging(paging)
+            .build();
+        given(coreDataClient.getListObjectsV3(TENANT_ID, USER_ID, ENTITY_ID, request)).willReturn(response);
+
+        var actual = systemUnderTest.getListObjectsPage(TENANT_ID, USER_ID, ENTITY_ID, request);
+
+        assertThat(actual.getData()).isEmpty();
+        assertThat(actual.getPaging()).isEqualTo(paging);
+    }
+
+    @Test
+    @DisplayName("Gateway возвращает пустую страницу при null ответе list-objects")
+    void givenNullListObjectsResponse_whenGetListObjectsPage_thenReturnEmptyPage() {
+        CommonRqDto request = CommonRqDto.builder().paging(PagingRqDto.builder().page(0).size(100).build()).build();
+        given(coreDataClient.getListObjectsV3(TENANT_ID, USER_ID, ENTITY_ID, request)).willReturn(null);
+
+        var actual = systemUnderTest.getListObjectsPage(TENANT_ID, USER_ID, ENTITY_ID, request);
+
+        assertThat(actual.getData()).isEmpty();
+        assertThat(actual.getPaging()).isNull();
+    }
+
+    @Test
+    @DisplayName("Gateway падает, если data в list-objects ответе не является списком")
+    void givenNonListData_whenGetListObjects_thenThrowSystemCrmException() {
+        CommonRqDto request = CommonRqDto.builder().paging(PagingRqDto.builder().page(0).size(100).build()).build();
+        CommonRsDto response = CommonRsDto.builder()
+            .data(Map.of("id", "1"))
+            .build();
+        given(coreDataClient.getListObjectsV3(TENANT_ID, USER_ID, ENTITY_ID, request)).willReturn(response);
+
+        assertThatThrownBy(() -> systemUnderTest.getListObjects(TENANT_ID, USER_ID, ENTITY_ID, request))
+            .isInstanceOf(SystemCrmException.class)
+            .hasMessage(CrmErrorCodes.SYSTEM_UNEXPECTED);
+    }
+
+    @Test
+    @DisplayName("Gateway падает, если элемент data в list-objects ответе не является объектом")
+    void givenNonMapListItem_whenGetListObjects_thenThrowSystemCrmException() {
+        CommonRqDto request = CommonRqDto.builder().paging(PagingRqDto.builder().page(0).size(100).build()).build();
+        CommonRsDto response = CommonRsDto.builder()
+            .data(List.of("not-an-object"))
+            .build();
+        given(coreDataClient.getListObjectsV3(TENANT_ID, USER_ID, ENTITY_ID, request)).willReturn(response);
+
+        assertThatThrownBy(() -> systemUnderTest.getListObjects(TENANT_ID, USER_ID, ENTITY_ID, request))
+            .isInstanceOf(SystemCrmException.class)
+            .hasMessage(CrmErrorCodes.SYSTEM_UNEXPECTED);
+    }
+
+    @Test
     @DisplayName("Gateway проксирует batch-проверку условий в core client")
     void givenFilters_whenCheckDataByEachFilter_thenReturnClientResponse() {
         Map<String, Object> data = Map.of("source", Map.of("status", "APPROVED"));
@@ -102,7 +169,7 @@ class BusinessObjectGatewayTest {
             .operation(FilterDto.Operation.EQUAL)
             .value(List.of("APPROVED"))
             .build();
-        List<CheckDataByFilterRsDto> expected = List.of(CheckDataByFilterRsDto.builder().result(true).build());
+        List<CheckDataByEachFilterRsDto> expected = List.of(CheckDataByEachFilterRsDto.builder().result(true).build());
         CheckDataByFilterRqDto expectedRequest = CheckDataByFilterRqDto.builder()
             .data(data)
             .filter(List.of(filter))
@@ -110,7 +177,7 @@ class BusinessObjectGatewayTest {
         given(coreDataClient.checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, expectedRequest))
             .willReturn(expected);
 
-        List<CheckDataByFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
+        List<CheckDataByEachFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
             TENANT_ID,
             USER_ID,
             ENTITY_ID,
@@ -125,7 +192,7 @@ class BusinessObjectGatewayTest {
     @Test
     @DisplayName("Gateway не вызывает core client для пустого списка условий")
     void givenEmptyFilters_whenCheckDataByEachFilter_thenReturnEmptyResponse() {
-        List<CheckDataByFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
+        List<CheckDataByEachFilterRsDto> actual = systemUnderTest.checkDataByEachFilter(
             TENANT_ID,
             USER_ID,
             ENTITY_ID,
@@ -136,6 +203,53 @@ class BusinessObjectGatewayTest {
         assertThat(actual).isEmpty();
         verify(coreDataClient, org.mockito.Mockito.never())
             .checkDataByEachFilter(org.mockito.Mockito.any(), org.mockito.Mockito.any(), org.mockito.Mockito.any(), org.mockito.Mockito.any());
+    }
+
+    @Test
+    @DisplayName("Gateway маппит retryable transport ошибку batch-проверки в core_client.request_failed")
+    void givenRetryableException_whenCheckDataByEachFilter_thenThrowRetriableCoreClientException() {
+        FilterDto filter = FilterDto.builder()
+            .field("source.status")
+            .operation(FilterDto.Operation.EQUAL)
+            .value(List.of("APPROVED"))
+            .build();
+        CheckDataByFilterRqDto expectedRequest = CheckDataByFilterRqDto.builder()
+            .data(Map.of())
+            .filter(List.of(filter))
+            .build();
+        willThrow(retryableError("timeout"))
+            .given(coreDataClient)
+            .checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, expectedRequest);
+
+        assertThatThrownBy(() -> systemUnderTest.checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, Map.of(), List.of(filter)))
+            .isInstanceOf(SystemCrmException.class)
+            .hasMessage(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED);
+    }
+
+    @ParameterizedTest(name = "HTTP {0} -> {2}")
+    @MethodSource("feignStatusMappings")
+    @DisplayName("Gateway маппит HTTP ошибки batch-проверки в ожидаемые CRM ошибки")
+    void givenFeignError_whenCheckDataByEachFilter_thenThrowExpectedCrmException(
+        int status,
+        String reason,
+        String expectedErrorCode
+    ) {
+        FilterDto filter = FilterDto.builder()
+            .field("source.status")
+            .operation(FilterDto.Operation.EQUAL)
+            .value(List.of("APPROVED"))
+            .build();
+        CheckDataByFilterRqDto expectedRequest = CheckDataByFilterRqDto.builder()
+            .data(Map.of())
+            .filter(List.of(filter))
+            .build();
+        willThrow(feignError(status, reason))
+            .given(coreDataClient)
+            .checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, expectedRequest);
+
+        assertThatThrownBy(() -> systemUnderTest.checkDataByEachFilter(TENANT_ID, USER_ID, ENTITY_ID, Map.of(), List.of(filter)))
+            .isInstanceOf(SystemCrmException.class)
+            .hasMessage(expectedErrorCode);
     }
 
     @Test
@@ -152,19 +266,6 @@ class BusinessObjectGatewayTest {
     }
 
     @Test
-    @DisplayName("Gateway маппит 5xx от core service в retriable core_client.request_failed")
-    void given5xxFromClient_whenGetObject_thenThrowRetriableCoreClientException() throws Exception {
-        SelectDto fullSelect = SelectDto.builder().fields(java.util.Set.of("*")).build();
-        willThrow(feignError(500, "Internal Error"))
-            .given(coreDataClient)
-            .getObjectWithSpecifiedFieldsInternal(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID, fullSelect);
-
-        assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
-            .isInstanceOf(SystemCrmException.class)
-            .hasMessage(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED);
-    }
-
-    @Test
     @DisplayName("Gateway маппит retryable transport ошибку в retriable core_client.request_failed")
     void givenRetryableException_whenGetObject_thenThrowRetriableCoreClientException() throws Exception {
         SelectDto fullSelect = SelectDto.builder().fields(java.util.Set.of("*")).build();
@@ -177,17 +278,32 @@ class BusinessObjectGatewayTest {
             .hasMessage(CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED);
     }
 
-    @Test
-    @DisplayName("Gateway маппит 4xx от core service (кроме 404) в system unexpected")
-    void given4xxFromClient_whenGetObject_thenThrowSystemCrmException() throws Exception {
+    @ParameterizedTest(name = "HTTP {0} -> {2}")
+    @MethodSource("feignStatusMappings")
+    @DisplayName("Gateway маппит HTTP ошибки получения объекта в ожидаемые CRM ошибки")
+    void givenFeignError_whenGetObject_thenThrowExpectedCrmException(
+        int status,
+        String reason,
+        String expectedErrorCode
+    ) throws Exception {
         SelectDto fullSelect = SelectDto.builder().fields(java.util.Set.of("*")).build();
-        willThrow(feignError(400, "Bad Request"))
+        willThrow(feignError(status, reason))
             .given(coreDataClient)
             .getObjectWithSpecifiedFieldsInternal(TENANT_ID, USER_ID, OBJECT_ID, ENTITY_ID, fullSelect);
 
         assertThatThrownBy(() -> systemUnderTest.getObject(TENANT_ID, USER_ID, ENTITY_ID, OBJECT_ID))
             .isInstanceOf(SystemCrmException.class)
-            .hasMessage(CrmErrorCodes.SYSTEM_UNEXPECTED);
+            .hasMessage(expectedErrorCode);
+    }
+
+    private static Stream<Arguments> feignStatusMappings() {
+        return Stream.of(
+            Arguments.of(408, "Request Timeout", CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED),
+            Arguments.of(429, "Too Many Requests", CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED),
+            Arguments.of(500, "Internal Error", CrmErrorCodes.CORE_CLIENT_REQUEST_FAILED),
+            Arguments.of(400, "Bad Request", CrmErrorCodes.SYSTEM_UNEXPECTED),
+            Arguments.of(42, "Invalid Status", CrmErrorCodes.SYSTEM_UNEXPECTED)
+        );
     }
 
     private FeignException feignError(int status, String reason) {

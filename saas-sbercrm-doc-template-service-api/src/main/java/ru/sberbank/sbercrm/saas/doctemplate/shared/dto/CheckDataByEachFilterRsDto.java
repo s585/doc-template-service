@@ -5,14 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-import java.util.Map;
-
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckDataByFilterRsDto {
+public class CheckDataByEachFilterRsDto {
     public FilterDto filter;
     public Boolean result;
 }
