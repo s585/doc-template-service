@@ -35,6 +35,7 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
     private static final UUID DOCX_FILE_ID = UUID.fromString("42424242-4242-4242-4242-424242424242");
     private static final UUID XLSX_FILE_ID = UUID.fromString("43434343-4343-4343-4343-434343434343");
     private static final UUID PDF_FILE_ID = UUID.fromString("44444444-5555-6666-7777-888888888888");
+    private static final UUID ERROR_FILE_ID = UUID.fromString("45454545-4545-4545-4545-454545454545");
 
     @Autowired
     private JooqDocumentQueryRepository systemUnderTest;
@@ -76,7 +77,7 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    @DisplayName("Поиск по объекту применяет сортировку и пагинацию и возвращает файлы документа")
+    @DisplayName("Поиск по объекту применяет сортировку и пагинацию и возвращает только документы с DONE файлами")
     void givenMultipleDocuments_whenFindAllByObject_thenApplySortAndPaging() {
         insertDocument(FIRST_DOCUMENT_ID, ENTITY_ID, FIRST_DOCUMENT_ID, REQUEST_ID_ONE, "2026-04-08T09:00:00+03:00");
         insertDocument(SECOND_DOCUMENT_ID, ENTITY_ID, FIRST_DOCUMENT_ID, REQUEST_ID_TWO, "2026-04-08T11:00:00+03:00");
@@ -89,9 +90,10 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
             "2026-04-08T15:00:00+03:00"
         );
 
-        insertGeneratedFile(DOCX_FILE_ID, FIRST_DOCUMENT_ID, "DOCX", "2026-04-08T09:00:00+03:00");
-        insertGeneratedFile(XLSX_FILE_ID, SECOND_DOCUMENT_ID, "XLSX", "2026-04-08T11:00:00+03:00");
-        insertGeneratedFile(PDF_FILE_ID, THIRD_DOCUMENT_ID, "PDF", "2026-04-08T13:00:00+03:00");
+        insertGeneratedFile(DOCX_FILE_ID, FIRST_DOCUMENT_ID, "DOCX", GeneratedFileStatus.DONE, "2026-04-08T09:00:00+03:00");
+        insertGeneratedFile(XLSX_FILE_ID, SECOND_DOCUMENT_ID, "XLSX", GeneratedFileStatus.DONE, "2026-04-08T11:00:00+03:00");
+        insertGeneratedFile(ERROR_FILE_ID, SECOND_DOCUMENT_ID, "PDF", GeneratedFileStatus.ERROR, "2026-04-08T11:30:00+03:00");
+        insertGeneratedFile(PDF_FILE_ID, THIRD_DOCUMENT_ID, "PDF", GeneratedFileStatus.PROCESSING, "2026-04-08T13:00:00+03:00");
 
         CommonRqDto request = CommonRqDto.builder()
             .paging(PagingRqDto.builder().page(0).size(2).build())
@@ -102,9 +104,16 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
 
         assertThat(documents)
             .extracting(Document::getId)
-            .containsExactly(THIRD_DOCUMENT_ID, SECOND_DOCUMENT_ID);
+            .containsExactly(SECOND_DOCUMENT_ID, FIRST_DOCUMENT_ID);
         assertThat(documents)
-            .allSatisfy(document -> assertThat(document.getFiles()).hasSize(1));
+            .allSatisfy(document -> assertThat(document.getFiles())
+                .allSatisfy(file -> assertThat(file.getStatus()).isEqualTo(GeneratedFileStatus.DONE.name())));
+        assertThat(documents)
+            .filteredOn(document -> document.getId().equals(SECOND_DOCUMENT_ID))
+            .singleElement()
+            .satisfies(document -> assertThat(document.getFiles())
+                .extracting(file -> file.getFormat(), file -> file.getStatus())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("XLSX", GeneratedFileStatus.DONE.name())));
     }
 
     @Test
@@ -119,6 +128,8 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
             REQUEST_ID_THREE,
             "2026-04-08T13:00:00+03:00"
         );
+        insertGeneratedFile(DOCX_FILE_ID, FIRST_DOCUMENT_ID, "DOCX", GeneratedFileStatus.DONE, "2026-04-08T09:00:00+03:00");
+        insertGeneratedFile(XLSX_FILE_ID, SECOND_DOCUMENT_ID, "XLSX", GeneratedFileStatus.DONE, "2026-04-08T11:00:00+03:00");
 
         CommonRqDto request = CommonRqDto.builder()
             .paging(PagingRqDto.builder().page(0).size(10).build())
@@ -156,12 +167,22 @@ class JooqDocumentQueryRepositoryIntegrationTest extends AbstractIntegrationTest
     }
 
     private void insertGeneratedFile(UUID fileId, UUID documentId, String format, String createdAt) {
+        insertGeneratedFile(fileId, documentId, format, GeneratedFileStatus.PENDING, createdAt);
+    }
+
+    private void insertGeneratedFile(
+        UUID fileId,
+        UUID documentId,
+        String format,
+        GeneratedFileStatus status,
+        String createdAt
+    ) {
         dslContext.insertInto(T_GENERATED_FILE)
             .set(T_GENERATED_FILE.ID, fileId)
             .set(T_GENERATED_FILE.TENANT_ID, TENANT_ID)
             .set(T_GENERATED_FILE.DOCUMENT_ID, documentId)
             .set(T_GENERATED_FILE.FORMAT, format)
-            .set(T_GENERATED_FILE.STATUS, GeneratedFileStatus.PENDING.name())
+            .set(T_GENERATED_FILE.STATUS, status.name())
             .set(T_GENERATED_FILE.CREATED_AT, OffsetDateTime.parse(createdAt))
             .set(T_GENERATED_FILE.UPDATED_AT, OffsetDateTime.parse(createdAt))
             .set(T_GENERATED_FILE.CREATED_BY, USER_ID)

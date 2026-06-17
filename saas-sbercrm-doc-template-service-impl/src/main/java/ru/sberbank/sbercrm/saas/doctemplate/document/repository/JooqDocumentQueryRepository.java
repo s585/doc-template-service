@@ -17,6 +17,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.converter.GeneratedFileReco
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.Document;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedDocument;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFile;
+import ru.sberbank.sbercrm.saas.doctemplate.document.model.GeneratedFileStatus;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.CommonRqDto;
 
 import static ru.sberbank.sbercrm.saas.doctemplate.jooq.tables.TGeneratedDocument.T_GENERATED_DOCUMENT;
@@ -49,8 +50,9 @@ public class JooqDocumentQueryRepository implements DocumentQueryRepository {
         Condition condition = T_GENERATED_DOCUMENT.TENANT_ID.eq(tenantId)
             .and(T_GENERATED_DOCUMENT.ENTITY_ID.eq(entityId))
             .and(T_GENERATED_DOCUMENT.OBJECT_ID.eq(objectId))
+            .and(hasDoneFileCondition())
             .and(jooqQueryBuilder.buildCondition(request.getFilter(), DocumentConstants.JooqFieldMappings.FIELDS));
-        Field<List<GeneratedFile>> filesField = buildFilesField();
+        Field<List<GeneratedFile>> filesField = buildFilesField(T_GENERATED_FILE.STATUS.eq(GeneratedFileStatus.DONE.name()));
 
         return dslContext.select(T_GENERATED_DOCUMENT.fields())
             .select(filesField)
@@ -67,6 +69,7 @@ public class JooqDocumentQueryRepository implements DocumentQueryRepository {
         Condition condition = T_GENERATED_DOCUMENT.TENANT_ID.eq(tenantId)
             .and(T_GENERATED_DOCUMENT.ENTITY_ID.eq(entityId))
             .and(T_GENERATED_DOCUMENT.OBJECT_ID.eq(objectId))
+            .and(hasDoneFileCondition())
             .and(jooqQueryBuilder.buildCondition(request.getFilter(), DocumentConstants.JooqFieldMappings.FIELDS));
 
         return dslContext.fetchCount(
@@ -75,15 +78,33 @@ public class JooqDocumentQueryRepository implements DocumentQueryRepository {
     }
 
     private Field<List<GeneratedFile>> buildFilesField() {
+        return buildFilesField(DSL.trueCondition());
+    }
+
+    private Field<List<GeneratedFile>> buildFilesField(Condition fileCondition) {
         return DSL.multiset(
             DSL.select(T_GENERATED_FILE.fields())
                 .from(T_GENERATED_FILE)
                 .where(
                     T_GENERATED_FILE.TENANT_ID.eq(T_GENERATED_DOCUMENT.TENANT_ID),
-                    T_GENERATED_FILE.DOCUMENT_ID.eq(T_GENERATED_DOCUMENT.ID)
+                    T_GENERATED_FILE.DOCUMENT_ID.eq(T_GENERATED_DOCUMENT.ID),
+                    fileCondition
                 )
                 .orderBy(T_GENERATED_FILE.CREATED_AT.asc(), T_GENERATED_FILE.ID.asc())
         ).convertFrom(result -> result.map(generatedFileRecordConverter));
+    }
+
+    private Condition hasDoneFileCondition() {
+        var doneFile = T_GENERATED_FILE.as("done_file");
+        return DSL.exists(
+            DSL.selectOne()
+                .from(doneFile)
+                .where(
+                    doneFile.TENANT_ID.eq(T_GENERATED_DOCUMENT.TENANT_ID),
+                    doneFile.DOCUMENT_ID.eq(T_GENERATED_DOCUMENT.ID),
+                    doneFile.STATUS.eq(GeneratedFileStatus.DONE.name())
+                )
+        );
     }
 
     private Document toDocument(Record record, Field<List<GeneratedFile>> filesField) {
