@@ -21,12 +21,15 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.Template;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingLayout;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSourceKind;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 import ru.sberbank.sbercrm.saas.doctemplate.template.util.TemplateFileUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,19 +124,21 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
 
     private List<TemplateMapping> buildMappings(String templateName, TemplateFormat format, byte[] content) {
         Map<String, MappingScope> variableToScope = new LinkedHashMap<>();
-        for (TemplateVariableInfo occurrence : templateProcessingFacade.extractVariables(format, content)) {
-            MappingScope currentScope = variableToScope.get(occurrence.getKey());
-            if (currentScope != null && currentScope != occurrence.getScope()) {
+        Map<String, List<TemplateVariableInfo>> variablesByKey = new LinkedHashMap<>();
+        for (TemplateVariableInfo variable : templateProcessingFacade.extractVariables(format, content)) {
+            MappingScope currentScope = variableToScope.get(variable.getKey());
+            if (currentScope != null && currentScope != variable.getScope()) {
                 throw new BusinessCrmException(
                     TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
                     TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
-                    occurrence.getKey()
+                    variable.getKey()
                 );
             }
-            variableToScope.putIfAbsent(occurrence.getKey(), occurrence.getScope());
+            variableToScope.putIfAbsent(variable.getKey(), variable.getScope());
+            variablesByKey.computeIfAbsent(variable.getKey(), ignored -> new ArrayList<>()).add(variable);
         }
 
-        List<TemplateMapping> mappings = new java.util.ArrayList<>();
+        List<TemplateMapping> mappings = new ArrayList<>();
         mappings.add(
             TemplateMapping.builder()
                 .key(TemplateConstants.MappingKeys.GENERATED_FILE_NAME)
@@ -155,12 +160,43 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
                         TemplateMappingDefinition.builder()
                             .scope(entry.getValue())
                             .type(TemplateValueType.STRING)
+                            .layout(buildLayout(variablesByKey.get(entry.getKey())))
                             .build()
                     )
                     .build())
                 .toList()
         );
         return mappings;
+    }
+
+    private TemplateMappingLayout buildLayout(List<TemplateVariableInfo> variables) {
+        return TemplateMappingLayout.builder()
+            .allowedSourceKinds(buildAllowedSourceKinds(variables))
+            .build();
+    }
+
+    private List<ValueSourceKind> buildAllowedSourceKinds(List<TemplateVariableInfo> variables) {
+        List<ValueSourceKind> allowedSourceKinds = new ArrayList<>(List.of(
+            ValueSourceKind.CONSTANT,
+            ValueSourceKind.DIRECT
+        ));
+        if (isUsedOnlyInSingleRepeatableBlock(variables)) {
+            allowedSourceKinds.add(ValueSourceKind.REFERENCE);
+        }
+        return allowedSourceKinds;
+    }
+
+    private boolean isUsedOnlyInSingleRepeatableBlock(List<TemplateVariableInfo> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return false;
+        }
+        List<String> blockIds = variables.stream()
+            .map(TemplateVariableInfo::getBlockId)
+            .filter(blockId -> blockId != null && !blockId.isBlank())
+            .distinct()
+            .toList();
+        return blockIds.size() == 1
+            && variables.stream().allMatch(variable -> blockIds.getFirst().equals(variable.getBlockId()));
     }
 
 }

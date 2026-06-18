@@ -9,10 +9,15 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.MappingScope;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
 
-@Mapper(componentModel = "spring", uses = {ExpressionConverter.class, ValueSourceConverter.class})
+@Mapper(componentModel = "spring", uses = {
+    ExpressionConverter.class,
+    ValueSourceConverter.class,
+    TemplateMappingLayoutConverter.class
+})
 public interface TemplateMappingDefinitionConverter {
     @Mapping(target = "scope", source = "scope", qualifiedByName = "convertToScope")
     @Mapping(target = "type", source = "type", qualifiedByName = "convertToType")
+    @Mapping(target = "layout", ignore = true)
     TemplateMappingDefinition convertToModel(TemplateMappingDefinitionDto dto);
 
     @Mapping(target = "scope", source = "scope", qualifiedByName = "convertToScopeValue")

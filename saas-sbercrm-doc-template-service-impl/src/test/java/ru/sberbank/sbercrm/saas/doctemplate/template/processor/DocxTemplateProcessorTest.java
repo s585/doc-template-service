@@ -87,14 +87,22 @@ class DocxTemplateProcessorTest {
 
         // then
         assertThat(variables)
-            .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope)
+            .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope, TemplateVariableInfo::getBlockId)
             .containsExactlyInAnyOrder(
-                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("header_number", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("footer_number", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.COLLECTION),
-                org.assertj.core.groups.Tuple.tuple("payment_amount", MappingScope.COLLECTION),
-                org.assertj.core.groups.Tuple.tuple("currency", MappingScope.COLLECTION)
+                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.VALUE, null),
+                org.assertj.core.groups.Tuple.tuple("header_number", MappingScope.VALUE, null),
+                org.assertj.core.groups.Tuple.tuple("footer_number", MappingScope.VALUE, null),
+                org.assertj.core.groups.Tuple.tuple(
+                    "product_name",
+                    MappingScope.COLLECTION,
+                    "docx:block:001:product_name"
+                ),
+                org.assertj.core.groups.Tuple.tuple(
+                    "payment_amount",
+                    MappingScope.COLLECTION,
+                    "docx:block:002:payment_amount"
+                ),
+                org.assertj.core.groups.Tuple.tuple("currency", MappingScope.COLLECTION, "docx:block:002:payment_amount")
             );
     }
 

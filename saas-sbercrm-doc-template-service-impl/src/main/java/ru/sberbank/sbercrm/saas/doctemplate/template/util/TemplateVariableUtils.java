@@ -38,6 +38,15 @@ public final class TemplateVariableUtils {
     }
 
     public static List<TemplateVariableInfo> extractVariables(@Nullable String text, Pattern pattern, MappingScope scope) {
+        return extractVariables(text, pattern, scope, null);
+    }
+
+    public static List<TemplateVariableInfo> extractVariables(
+        @Nullable String text,
+        Pattern pattern,
+        MappingScope scope,
+        @Nullable String blockId
+    ) {
         List<TemplateVariableInfo> occurrences = new ArrayList<>();
         Matcher matcher = pattern.matcher(text == null ? "" : text);
         while (matcher.find()) {
@@ -45,6 +54,7 @@ public final class TemplateVariableUtils {
                 TemplateVariableInfo.builder()
                     .key(matcher.group(1))
                     .scope(scope)
+                    .blockId(blockId)
                     .build()
             );
         }

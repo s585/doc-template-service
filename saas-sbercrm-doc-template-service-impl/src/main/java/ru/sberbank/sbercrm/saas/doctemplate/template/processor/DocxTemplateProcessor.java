@@ -53,22 +53,14 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         try (XWPFDocument document = new XWPFDocument(OPCPackage.open(new ByteArrayInputStream(content)))) {
             Pattern placeholderPattern = getPlaceholderPattern();
             List<TemplateVariableInfo> variables = new ArrayList<>();
-            for (XWPFParagraph paragraph : document.getParagraphs()) {
-                variables.addAll(
-                    TemplateVariableUtils.extractVariables(
-                        paragraph.getText(),
-                        placeholderPattern,
-                        paragraph.getNumID() == null ? MappingScope.VALUE : MappingScope.COLLECTION
-                    )
-                );
-            }
-            for (XWPFTable table : document.getTables()) {
-                for (XWPFTableRow row : table.getRows()) {
-                    for (XWPFTableCell cell : row.getTableCells()) {
-                        variables.addAll(
-                            TemplateVariableUtils.extractVariables(cell.getText(), placeholderPattern, MappingScope.COLLECTION)
-                        );
-                    }
+            int[] blockNumber = {1};
+            for (IBodyElement bodyElement : document.getBodyElements()) {
+                if (bodyElement instanceof XWPFParagraph paragraph) {
+                    variables.addAll(extractParagraphVariables(paragraph, placeholderPattern, blockNumber));
+                    continue;
+                }
+                if (bodyElement instanceof XWPFTable table) {
+                    variables.addAll(extractTableVariables(table, placeholderPattern, blockNumber));
                 }
             }
             if (document.getHeaderList() != null) {
@@ -131,6 +123,54 @@ public class DocxTemplateProcessor implements FormatAwareTemplateProcessor {
         return TemplateVariableUtils.compilePlaceholderPattern(
             docTemplateProperties.getTemplate().getVariable().getPlaceholderRegex()
         );
+    }
+
+    private List<TemplateVariableInfo> extractParagraphVariables(
+        XWPFParagraph paragraph,
+        Pattern placeholderPattern,
+        int[] blockNumber
+    ) {
+        MappingScope scope = paragraph.getNumID() == null ? MappingScope.VALUE : MappingScope.COLLECTION;
+        List<TemplateVariableInfo> variables = TemplateVariableUtils.extractVariables(
+            paragraph.getText(),
+            placeholderPattern,
+            scope
+        );
+        if (scope == MappingScope.COLLECTION) {
+            assignBlockId(variables, "docx", blockNumber);
+        }
+        return variables;
+    }
+
+    private List<TemplateVariableInfo> extractTableVariables(
+        XWPFTable table,
+        Pattern placeholderPattern,
+        int[] blockNumber
+    ) {
+        List<TemplateVariableInfo> variables = new ArrayList<>();
+        for (XWPFTableRow row : table.getRows()) {
+            List<TemplateVariableInfo> rowVariables = new ArrayList<>();
+            for (XWPFTableCell cell : row.getTableCells()) {
+                rowVariables.addAll(
+                    TemplateVariableUtils.extractVariables(cell.getText(), placeholderPattern, MappingScope.COLLECTION)
+                );
+            }
+            assignBlockId(rowVariables, "docx", blockNumber);
+            variables.addAll(rowVariables);
+        }
+        return variables;
+    }
+
+    private void assignBlockId(List<TemplateVariableInfo> variables, String formatPrefix, int[] blockNumber) {
+        if (variables.isEmpty()) {
+            return;
+        }
+        String blockId = formatBlockId(formatPrefix, blockNumber[0]++, variables.getFirst().getKey());
+        variables.forEach(variable -> variable.setBlockId(blockId));
+    }
+
+    private String formatBlockId(String formatPrefix, int blockNumber, String anchorKey) {
+        return String.format("%s:block:%03d:%s", formatPrefix, blockNumber, anchorKey);
     }
 
     private void processBodyElements(XWPFDocument document, GenerationTemplateContext context) {

@@ -12,6 +12,7 @@ import java.util.Map;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
@@ -33,11 +34,11 @@ class XlsxTemplateProcessorTest {
         List<TemplateVariableInfo> variables = systemUnderTest.extractVariables(content);
 
         assertThat(variables)
-            .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope)
+            .extracting(TemplateVariableInfo::getKey, TemplateVariableInfo::getScope, TemplateVariableInfo::getBlockId)
             .containsExactlyInAnyOrder(
-                org.assertj.core.groups.Tuple.tuple("deal_number", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("product_name", MappingScope.VALUE),
-                org.assertj.core.groups.Tuple.tuple("product_qty", MappingScope.VALUE)
+                Tuple.tuple("deal_number", MappingScope.VALUE, "xlsx:block:001:deal_number"),
+                Tuple.tuple("product_name", MappingScope.VALUE, "xlsx:block:002:product_name"),
+                Tuple.tuple("product_qty", MappingScope.VALUE, "xlsx:block:002:product_name")
             );
     }
 

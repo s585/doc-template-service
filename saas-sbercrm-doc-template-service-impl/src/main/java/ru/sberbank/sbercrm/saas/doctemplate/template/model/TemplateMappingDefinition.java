@@ -16,10 +16,11 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSource;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"scope", "type", "expression", "source"})
+@JsonPropertyOrder({"scope", "type", "expression", "source", "layout"})
 public class TemplateMappingDefinition {
     private MappingScope scope;
     private TemplateValueType type;
     private Expression expression;
     private ValueSource source;
+    private TemplateMappingLayout layout;
 }

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateCreationCmd;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateVariableInfo;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ValueSourceKind;
 import ru.sberbank.sbercrm.saas.doctemplate.template.processor.TemplateProcessingFacade;
 import ru.sberbank.sbercrm.saas.doctemplate.template.service.TemplateService;
 
@@ -92,6 +94,77 @@ class TemplateImportUseCaseImplTest {
             .map(TemplateMapping::getKey)
             .toList();
         assertThat(capturedKeys).containsOnlyOnce("client_name");
+    }
+
+    @Test
+    @DisplayName("Импорт разрешает REFERENCE только переменным из одного repeatable блока")
+    void givenVariablesInDifferentLayoutPositions_whenExecute_thenCreateMappingsWithAllowedSourceKinds() {
+        UUID templateId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        TemplateCreationCmd command = TemplateCreationCmd.builder()
+            .entityId(ENTITY_ID)
+            .name("Договор")
+            .description("Описание")
+            .code("CONTRACT")
+            .build();
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "template.docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            new byte[] {1, 2, 3}
+        );
+        given(templateProcessingFacade.extractVariables(eq(TemplateFormat.DOCX), any()))
+            .willReturn(List.of(
+                TemplateVariableInfo.builder()
+                    .key("product_name")
+                    .scope(MappingScope.COLLECTION)
+                    .blockId("docx:block:001:product_name")
+                    .build(),
+                TemplateVariableInfo.builder()
+                    .key("currency")
+                    .scope(MappingScope.COLLECTION)
+                    .blockId("docx:block:001:product_name")
+                    .build(),
+                TemplateVariableInfo.builder()
+                    .key("deal_number")
+                    .scope(MappingScope.VALUE)
+                    .build(),
+                TemplateVariableInfo.builder()
+                    .key("currency")
+                    .scope(MappingScope.COLLECTION)
+                    .blockId("docx:block:002:currency")
+                    .build()
+            ));
+        given(fileStoragePathResolver.templateFolder(ENTITY_ID)).willReturn("/doc-template/" + ENTITY_ID);
+        given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
+            .willReturn(FileRs.builder().key("templates/template.docx").build());
+        given(templateService.create(eq(TENANT_ID), any()))
+            .willReturn(Template.builder().id(templateId).build());
+        given(templateService.getMappings(TENANT_ID, templateId)).willReturn(List.of());
+
+        systemUnderTest.execute(TENANT_ID, USER_ID, command, file);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TemplateMapping>> mappingsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(templateService).createMappings(eq(TENANT_ID), eq(templateId), eq(USER_ID), mappingsCaptor.capture());
+        Map<String, TemplateMapping> mappingsByKey = mappingsCaptor.getValue().stream()
+            .collect(java.util.stream.Collectors.toMap(TemplateMapping::getKey, mapping -> mapping));
+
+        assertThat(mappingsByKey.get("product_name").getDefinition().getLayout().getAllowedSourceKinds())
+            .containsExactly(
+                ValueSourceKind.CONSTANT,
+                ValueSourceKind.DIRECT,
+                ValueSourceKind.REFERENCE
+            );
+        assertThat(mappingsByKey.get("currency").getDefinition().getLayout().getAllowedSourceKinds())
+            .containsExactly(
+                ValueSourceKind.CONSTANT,
+                ValueSourceKind.DIRECT
+            );
+        assertThat(mappingsByKey.get("deal_number").getDefinition().getLayout().getAllowedSourceKinds())
+            .containsExactly(
+                ValueSourceKind.CONSTANT,
+                ValueSourceKind.DIRECT
+            );
     }
 
     @Test

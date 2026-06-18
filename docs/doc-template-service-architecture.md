@@ -371,6 +371,35 @@ endpoint core data `checkDataByEachFilter`.
 - соответствие результата проверки шаблону определяется порядком ответов core
   data.
 
+### Layout metadata mappings
+
+При импорте шаблона backend извлекает placeholder-ы и рассчитывает read-only
+layout metadata для каждого `template_mapping`.
+
+`TemplateMappingDefinition.layout.allowedSourceKinds` описывает, какие
+`source.kind` фронт может предложить пользователю для конкретной переменной.
+Значения используют тот же JSON-контракт kind-ов, что и `ValueSourceDto`:
+`CONSTANT`, `DIRECT`, `REFERENCE`.
+
+Правила расчета:
+
+- `CONSTANT` и `DIRECT` доступны для импортированной переменной по умолчанию;
+- `REFERENCE` добавляется только если все вхождения переменной находятся ровно в
+  одном repeatable-блоке шаблона;
+- для `DOCX` repeatable-блоками считаются строка таблицы и numbered/list
+  paragraph;
+- для `XLSX` repeatable-блоком считается строка листа;
+- если один placeholder key встречается вне repeatable-блока или в нескольких
+  repeatable-блоках, `REFERENCE` не добавляется.
+
+`layout` задается только backend-ом во время импорта и не принимается из
+запросов обновления mappings. Пользователь меняет `scope`, `type`, `source` и
+`expression`, но не редактирует сведения о расположении переменной в шаблоне.
+
+Эта metadata нужна для UI-настройки mappings и не является runtime-группировкой
+generation. Runtime по-прежнему строит collection datasets по `scope`,
+`source.kind = REFERENCE` и `CollectionQueryKey`.
+
 ## Поток обработки generation сейчас
 
 ### Создание документа

@@ -43,17 +43,21 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
     public List<TemplateVariableInfo> extractVariables(byte[] content) {
         try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
             Pattern placeholderPattern = getPlaceholderPattern();
-            List<TemplateVariableInfo> occurrences = new ArrayList<>();
+            List<TemplateVariableInfo> variables = new ArrayList<>();
+            int[] blockNumber = {1};
             for (Sheet sheet : workbook) {
                 for (Row row : sheet) {
+                    List<TemplateVariableInfo> rowVariables = new ArrayList<>();
                     for (Cell cell : row) {
-                        occurrences.addAll(
+                        rowVariables.addAll(
                             TemplateVariableUtils.extractVariables(cell.toString(), placeholderPattern, MappingScope.VALUE)
                         );
                     }
+                    assignBlockId(rowVariables, blockNumber);
+                    variables.addAll(rowVariables);
                 }
             }
-            return occurrences;
+            return variables;
         } catch (IOException ex) {
             throw new BusinessCrmException(
                 TemplateConstants.ErrorCodes.TEMPLATE_PARSING_FAILED,
@@ -87,6 +91,14 @@ public class XlsxTemplateProcessor implements FormatAwareTemplateProcessor {
         return TemplateVariableUtils.compilePlaceholderPattern(
             docTemplateProperties.getTemplate().getVariable().getPlaceholderRegex()
         );
+    }
+
+    private void assignBlockId(List<TemplateVariableInfo> variables, int[] blockNumber) {
+        if (variables.isEmpty()) {
+            return;
+        }
+        String blockId = String.format("xlsx:block:%03d:%s", blockNumber[0]++, variables.getFirst().getKey());
+        variables.forEach(variable -> variable.setBlockId(blockId));
     }
 
     private void processSheet(Sheet sheet, GenerationTemplateContext context) {
