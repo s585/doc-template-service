@@ -21,8 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
-import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
@@ -168,15 +166,9 @@ class TemplateImportUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Импорт выбрасывает ошибку, если одна переменная найдена с разными scope")
-    void givenVariableWithDifferentScopes_whenExecute_thenThrowBusinessException() {
-        // given
-        systemUnderTest = new TemplateImportUseCaseImpl(
-            templateService,
-            fileStorageGateway,
-            fileStoragePathResolver,
-            templateProcessingFacade
-        );
+    @DisplayName("Импорт допускает повтор placeholder-а в VALUE и таблице и создает VALUE mapping")
+    void givenVariableWithValueAndCollectionOccurrences_whenExecute_thenCreateSingleValueMapping() {
+        UUID templateId = UUID.fromString("55555555-5555-5555-5555-555555555555");
         TemplateCreationCmd command = TemplateCreationCmd.builder()
             .entityId(ENTITY_ID)
             .name("Договор")
@@ -196,18 +188,28 @@ class TemplateImportUseCaseImplTest {
                     TemplateVariableInfo.builder().key("deal_number").scope(MappingScope.COLLECTION).build()
                 )
             );
+        given(fileStoragePathResolver.templateFolder(ENTITY_ID)).willReturn("/doc-template/" + ENTITY_ID);
+        given(fileStorageGateway.upload(any(), any(), any(), any(), any()))
+            .willReturn(FileRs.builder().key("templates/template.docx").build());
+        given(templateService.create(eq(TENANT_ID), any()))
+            .willReturn(Template.builder().id(templateId).build());
+        given(templateService.getMappings(TENANT_ID, templateId)).willReturn(List.of());
 
-        // expected
-        assertThatThrownBy(() -> systemUnderTest.execute(TENANT_ID, USER_ID, command, file))
-            .isInstanceOf(BusinessCrmException.class)
-            .satisfies(ex -> {
-                BusinessCrmException exception = (BusinessCrmException) ex;
-                assertThat(exception.getCode()).isEqualTo(TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID);
-                assertThat(exception.getParams()).containsExactly("deal_number");
-            });
+        systemUnderTest.execute(TENANT_ID, USER_ID, command, file);
 
-        verify(templateService).checkCodeUnique(TENANT_ID, "CONTRACT", null);
-        verify(fileStorageGateway, never()).upload(any(), any(), any(), any(), any());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TemplateMapping>> mappingsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(templateService).createMappings(eq(TENANT_ID), eq(templateId), eq(USER_ID), mappingsCaptor.capture());
+        TemplateMapping dealNumberMapping = mappingsCaptor.getValue().stream()
+            .filter(mapping -> "deal_number".equals(mapping.getKey()))
+            .findFirst()
+            .orElseThrow();
+        assertThat(dealNumberMapping.getDefinition().getScope()).isEqualTo(MappingScope.VALUE);
+        assertThat(dealNumberMapping.getDefinition().getLayout().getAllowedSourceKinds())
+            .containsExactly(
+                ValueSourceKind.CONSTANT,
+                ValueSourceKind.DIRECT
+            );
     }
 
     @Test

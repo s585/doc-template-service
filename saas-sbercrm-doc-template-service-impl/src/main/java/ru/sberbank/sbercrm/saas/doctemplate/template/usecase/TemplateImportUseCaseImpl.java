@@ -8,7 +8,6 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.CrmErrorCodes;
 import ru.sberbank.sbercrm.saas.doctemplate.template.constant.TemplateConstants;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.AbstractCrmException;
-import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.SystemCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.client.FileRs;
 import ru.sberbank.sbercrm.saas.doctemplate.application.integration.gateway.FileStorageGateway;
@@ -123,19 +122,9 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
     }
 
     private List<TemplateMapping> buildMappings(String templateName, TemplateFormat format, byte[] content) {
-        Map<String, MappingScope> variableToScope = new LinkedHashMap<>();
-        Map<String, List<TemplateVariableInfo>> variablesByKey = new LinkedHashMap<>();
+        Map<String, List<TemplateVariableInfo>> keyToVariable = new LinkedHashMap<>();
         for (TemplateVariableInfo variable : templateProcessingFacade.extractVariables(format, content)) {
-            MappingScope currentScope = variableToScope.get(variable.getKey());
-            if (currentScope != null && currentScope != variable.getScope()) {
-                throw new BusinessCrmException(
-                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
-                    TemplateConstants.ErrorCodes.TEMPLATE_VARIABLE_INVALID,
-                    variable.getKey()
-                );
-            }
-            variableToScope.putIfAbsent(variable.getKey(), variable.getScope());
-            variablesByKey.computeIfAbsent(variable.getKey(), ignored -> new ArrayList<>()).add(variable);
+            keyToVariable.computeIfAbsent(variable.getKey(), ignored -> new ArrayList<>()).add(variable);
         }
 
         List<TemplateMapping> mappings = new ArrayList<>();
@@ -153,20 +142,26 @@ public class TemplateImportUseCaseImpl implements TemplateImportUseCase {
         );
 
         mappings.addAll(
-            variableToScope.entrySet().stream()
+            keyToVariable.entrySet().stream()
                 .map(entry -> TemplateMapping.builder()
                     .key(entry.getKey())
                     .definition(
                         TemplateMappingDefinition.builder()
-                            .scope(entry.getValue())
+                            .scope(resolveScope(entry.getValue()))
                             .type(TemplateValueType.STRING)
-                            .layout(buildLayout(variablesByKey.get(entry.getKey())))
+                            .layout(buildLayout(entry.getValue()))
                             .build()
                     )
                     .build())
                 .toList()
         );
         return mappings;
+    }
+
+    private MappingScope resolveScope(List<TemplateVariableInfo> variables) {
+        boolean allOccurrencesInRepeatableBlocks = variables.stream()
+            .allMatch(variable -> variable.getScope() == MappingScope.COLLECTION);
+        return allOccurrencesInRepeatableBlocks ? MappingScope.COLLECTION : MappingScope.VALUE;
     }
 
     private TemplateMappingLayout buildLayout(List<TemplateVariableInfo> variables) {
