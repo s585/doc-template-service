@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toUnmodifiableMap;
 
 public enum ExpressionOperator {
     COALESCE("coalesce"),
+    CONCAT("concat"),
     FORMAT_DATE("formatDate"),
     UPPER("upper"),
     LOWER("lower"),

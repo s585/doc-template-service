@@ -27,7 +27,7 @@ import ru.sberbank.sbercrm.saas.doctemplate.document.model.CollectionDataset;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationJob;
 import ru.sberbank.sbercrm.saas.doctemplate.document.model.GenerationTemplateContext;
 import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.ExpressionEvaluator;
-import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.NoOpExpressionEvaluator;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.TemplateExpressionEvaluator;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRqDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.PagingRsDto;
 import ru.sberbank.sbercrm.saas.doctemplate.shared.dto.SelectDto;
@@ -38,6 +38,8 @@ import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateFormat;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMappingDefinition;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateValueType;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.ExpressionOperator;
+import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.OperationExpression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.PrimitiveExpression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.ConstantValueSource;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.source.DirectValueSource;
@@ -56,7 +58,7 @@ class GenerationContextAssemblerImplTest {
 
     @BeforeEach
     void setUp() {
-        systemUnderTest = createAssembler(new NoOpExpressionEvaluator());
+        systemUnderTest = createAssembler(new TemplateExpressionEvaluator());
     }
 
     @Test
@@ -86,11 +88,11 @@ class GenerationContextAssemblerImplTest {
     }
 
     @Test
-    @DisplayName("Skeleton evaluator не меняет значение при наличии expression")
-    void givenExpression_whenAssemble_thenKeepResolvedSourceValue() {
+    @DisplayName("Assembler применяет expression после source resolution")
+    void givenExpression_whenAssemble_thenApplyExpressionToResolvedSourceValue() {
         GenerationTemplateContext context = systemUnderTest.assemble(buildJob(), USER_ID, buildTemplateWithExpression());
 
-        assertThat(context.getScalarValues()).containsEntry("customer_name", "Romashka LLC");
+        assertThat(context.getScalarValues()).containsEntry("customer_name", "ROMASHKA LLC");
     }
 
     @Test
@@ -343,7 +345,10 @@ class GenerationContextAssemblerImplTest {
                             .scope(MappingScope.VALUE)
                             .type(TemplateValueType.STRING)
                             .source(ConstantValueSource.builder().value("Romashka LLC").build())
-                            .expression(PrimitiveExpression.builder().value("unused").build())
+                            .expression(OperationExpression.builder()
+                                .op(ExpressionOperator.UPPER)
+                                .args(List.of(PrimitiveExpression.builder().value("$value").build()))
+                                .build())
                             .build()
                     )
                     .build()

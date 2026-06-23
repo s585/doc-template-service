@@ -484,6 +484,36 @@ Collection runtime-модель строится вокруг `CollectionDataset
 Expression-обработка применяется как к scalar values, так и к значениям внутри
 collection rows.
 
+### Expression evaluation
+
+`TemplateMappingDefinition.expression` хранится как типизированное AST-дерево,
+а не как строка JUEL/SpEL. Runtime expression evaluator интерпретирует это
+дерево напрямую.
+
+Архитектурные правила:
+
+- expression выполняется строго после `source` resolution;
+- expression получает на вход только уже извлечённое значение mapping-а;
+- единственная runtime-переменная expression — `$value`;
+- прямой доступ из expression к `source.*`, `reference.*`, business object map,
+  Spring beans или другим mapping-ам не поддерживается;
+- для `COLLECTION` expression применяется поэлементно к каждому значению row;
+- результат expression затем приводится к `String` при сборке
+  `GenerationTemplateContext`.
+
+Поддерживаемые операции MVP:
+
+- `coalesce`;
+- `concat`;
+- `formatDate`;
+- `upper`;
+- `lower`;
+- `trim`.
+
+Ошибки структуры expression, arity операторов, неподдерживаемых типов и
+форматирования дат должны маппиться в business error
+`generation.expression_invalid`.
+
 ## State machine generation job
 
 Для `generation_job` используется lightweight state machine в коде.
@@ -908,4 +938,5 @@ Recovery зависших `PROCESSING` job и бизнес-retry не должн
 2. уточнение классификации retriable/non-retriable ошибок по реальным интеграциям;
 3. опциональная публикация attempt/history в технический read API или admin diagnostics;
 4. добавление `generation_job_attempt`-ориентированной observability и метрик;
-5. расширение expression evaluator за пределы текущей no-op реализации.
+5. расширение expression evaluator условными/boolean операторами при появлении
+   продуктовой потребности.

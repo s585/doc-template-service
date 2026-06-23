@@ -66,6 +66,7 @@
 Поддерживаемые в MVP операторы:
 
 - `coalesce`
+- `concat`
 - `formatDate`
 - `upper`
 - `lower`
