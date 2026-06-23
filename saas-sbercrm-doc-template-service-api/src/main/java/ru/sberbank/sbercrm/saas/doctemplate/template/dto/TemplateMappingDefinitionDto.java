@@ -45,7 +45,7 @@ public class TemplateMappingDefinitionDto {
 
     @Valid
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Schema(description = "Read-only layout metadata calculated from the imported template file", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Метаданные расположения переменной, вычисленные при импорте шаблона. Только для чтения", accessMode = Schema.AccessMode.READ_ONLY)
     @Nullable
     private TemplateMappingLayoutDto layout;
 }

@@ -16,9 +16,9 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Schema(description = "Read-only template mapping layout metadata calculated from the imported template file")
+@Schema(description = "Метаданные расположения маппинга, вычисленные при импорте шаблона. Только для чтения")
 public class TemplateMappingLayoutDto {
 
-    @Schema(description = "Source kinds that can be selected for this variable in its template layout")
+    @Schema(description = "Типы источников данных, которые можно выбрать для переменной в этом расположении шаблона")
     private List<String> allowedSourceKinds;
 }
