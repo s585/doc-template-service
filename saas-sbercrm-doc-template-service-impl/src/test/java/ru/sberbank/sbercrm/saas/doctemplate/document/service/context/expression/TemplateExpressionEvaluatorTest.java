@@ -101,6 +101,34 @@ class TemplateExpressionEvaluatorTest {
     }
 
     @Test
+    @DisplayName("Evaluator парсит ISO local datetime string при форматировании даты")
+    void givenFormatDateWithIsoLocalDateTimeString_whenEvaluate_thenFormatDateValue() {
+        Expression expression = op(
+            ExpressionOperator.FORMAT_DATE,
+            value(),
+            primitive("dd.MM.yyyy HH:mm")
+        );
+
+        Object actual = systemUnderTest.evaluate(mapping(expression), "2026-06-23T10:15:30");
+
+        assertThat(actual).isEqualTo("23.06.2026 10:15");
+    }
+
+    @Test
+    @DisplayName("Evaluator парсит ISO offset datetime string при форматировании даты")
+    void givenFormatDateWithIsoOffsetDateTimeString_whenEvaluate_thenFormatDateValue() {
+        Expression expression = op(
+            ExpressionOperator.FORMAT_DATE,
+            value(),
+            primitive("dd.MM.yyyy HH:mm")
+        );
+
+        Object actual = systemUnderTest.evaluate(mapping(expression), "2026-06-23T10:15:30+03:00");
+
+        assertThat(actual).isEqualTo("23.06.2026 10:15");
+    }
+
+    @Test
     @DisplayName("Evaluator выбрасывает business error для некорректной arity")
     void givenInvalidArity_whenEvaluate_thenThrowBusinessException() {
         Expression expression = op(ExpressionOperator.UPPER, value(), primitive("extra"));

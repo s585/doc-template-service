@@ -8,13 +8,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import ru.sberbank.sbercrm.saas.doctemplate.application.exception.model.BusinessCrmException;
 import ru.sberbank.sbercrm.saas.doctemplate.document.constant.DocumentConstants;
+import ru.sberbank.sbercrm.saas.doctemplate.document.service.context.expression.util.TemplateExpressionDateParser;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.TemplateMapping;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.Expression;
 import ru.sberbank.sbercrm.saas.doctemplate.template.model.expression.OperationExpression;
@@ -128,27 +128,9 @@ public class TemplateExpressionEvaluator implements ExpressionEvaluator {
             return date.toInstant().atZone(ZoneId.systemDefault());
         }
         if (value instanceof CharSequence charSequence) {
-            return parseTemporal(charSequence.toString(), mappingKey);
+            return TemplateExpressionDateParser.parse(charSequence.toString(), mappingKey);
         }
         throw invalid(mappingKey, "formatDate value has unsupported type: " + value.getClass().getSimpleName());
-    }
-
-    private TemporalAccessor parseTemporal(String value, String mappingKey) {
-        try {
-            return OffsetDateTime.parse(value);
-        } catch (DateTimeParseException ignored) {
-            // Try less specific ISO formats below.
-        }
-        try {
-            return LocalDateTime.parse(value);
-        } catch (DateTimeParseException ignored) {
-            // Try date-only ISO format below.
-        }
-        try {
-            return LocalDate.parse(value);
-        } catch (DateTimeParseException exception) {
-            throw invalid(mappingKey, "formatDate value is not an ISO date/datetime: " + value);
-        }
     }
 
     private boolean isEmpty(Object value) {
